@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "question": "How do I book an appointment?",
+    "answer": "You can book an appointment by calling our reception between 9am and 6pm, or through our online booking portal. We recommend booking at least 48 hours in advance."
+  },
+  {
+    "id": 2,
+    "question": "What should I do if I need to cancel or reschedule?",
+    "answer": "Please contact reception at least 24 hours before your appointment to cancel or reschedule, so we can offer the slot to another patient."
+  },
+  {
+    "id": 3,
+    "question": "What are your clinic opening hours?",
+    "answer": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We are closed on Sundays and public holidays."
+  },
+  {
+    "id": 4,
+    "question": "Do I need a referral to book an appointment?",
+    "answer": "For most general appointments, no referral is needed. Specialist appointments may require a referral from your GP."
+  },
+  {
+    "id": 5,
+    "question": "What should I bring to my first appointment?",
+    "answer": "Please bring a valid photo ID, your insurance details if applicable, and a list of any current medications."
+  },
+  {
+    "id": 6,
+    "question": "How do I update my contact details?",
+    "answer": "You can update your contact details by calling reception or logging into the patient portal and editing your profile."
+  }
+]

@@ -1,0 +1,16 @@
+node_modules/
+.env
+*.log
+backend/logs/
+backend/uploads/*
+!backend/uploads/.gitkeep
+backend/data/*.db
+models/*.bin
+models/*.aiff
+models/*.wav
+frontend/dist/
+nest-api/dist/
+next-frontend/.next/
+python-eval/venv/
+.DS_Store
+*.tsbuildinfo
