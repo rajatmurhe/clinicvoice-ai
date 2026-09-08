@@ -4,7 +4,7 @@ const BLOCKED_PATTERNS = [
   /symptoms of/i, /what disease/i, /am i dying/i, /nhs number/i, /date of birth/i, /social security/i, /verify your identity/i
 ];
 
-const GREETING_ONLY_PATTERN = /^(hi|hello|hey|good morning|good afternoon|good evening)[\s,!.]*(my name is [a-z ]+[.!]?|i(.?m| am) [a-z ]+[.!]?)?[\s,!.]*(i(.?m| am) (studying|a student)( at| in) [a-z ]+[.!]?)?[\s,!.]*$/i;
+const GREETING_ONLY_PATTERN = /^((hi|hello|hey|good morning|good afternoon|good evening)[\s,!.]*)?(my name is [a-z ]+[.!]?|i(.?m| am) [a-z ]+[.!]?)?[\s,!.]*(i(.?m| am) (studying|a student)( at| in) [a-z ]+[.!]?)?[\s,!.]*$/i;
 
 function checkSafety(query) {
   return BLOCKED_PATTERNS.some(function(pattern) { return pattern.test(query); });
