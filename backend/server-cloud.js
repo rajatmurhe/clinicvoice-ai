@@ -46,6 +46,42 @@ app.post('/api/text-query', async (req, res) => {
   }
 });
 
+app.post('/api/tts', async (req, res) => {
+  try {
+    const text = req.body.text;
+    if (!text) {
+      return res.status(400).json({ error: 'No text provided.' });
+    }
+
+    const response = await fetch('https://api.groq.com/openai/v1/audio/speech', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + process.env.GROQ_API_KEY
+      },
+      body: JSON.stringify({
+        model: 'canopylabs/orpheus-v1-english',
+        voice: 'hannah',
+        input: text,
+        response_format: 'wav'
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error('Groq TTS error:', errText);
+      return res.status(500).json({ error: 'TTS generation failed.' });
+    }
+
+    const audioBuffer = await response.arrayBuffer();
+    res.set('Content-Type', 'audio/wav');
+    res.send(Buffer.from(audioBuffer));
+  } catch (err) {
+    console.error('Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 const PORT = process.env.PORT || 5050;
 app.listen(PORT, () => {
   console.log('Cloud FAQ API running on port ' + PORT);
