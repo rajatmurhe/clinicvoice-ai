@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend-unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        working-directory: ./backend
+        run: npm install
+      - name: Run unit tests
+        working-directory: ./backend
+        run: npm test
+
+  nestjs-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        working-directory: ./nest-api
+        run: npm install
+      - name: Build
+        working-directory: ./nest-api
+        run: npm run build
+
+  nextjs-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        working-directory: ./next-frontend
+        run: npm install
+      - name: Build
+        working-directory: ./next-frontend
+        run: npm run build
+
+  python-eval-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        working-directory: ./python-eval
+        run: pip install -r requirements.txt
+      - name: Check syntax
+        working-directory: ./python-eval
+        run: python -m py_compile eval.py
