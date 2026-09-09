@@ -5,7 +5,8 @@ BOOKING_PATTERNS = [
     r"schedule (an|a) appointment",
     r"cancel (my|an|the) appointment",
     r"reschedule",
-    r"(available|availability|free slot)",
+    r"(appointment|slot)s? (available|availability)",
+    r"any (available|free) (slots?|times?|appointments?)",
     r"(am i booked|do i have an appointment)",
 ]
 
