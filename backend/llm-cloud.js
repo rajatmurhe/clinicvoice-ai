@@ -1,13 +1,22 @@
-const BLOCKED_PATTERNS = [
+const BLOCKED_PATTERNS_INPUT = [
   /diagnos/i, /prescri/i, /medication/i, /dose/i, /dosage/i, /how much .* (take|dose)/i,
   /is it (cancer|serious|an emergency)/i, /chest pain/i, /cant breathe/i,
   /symptoms of/i, /what disease/i, /am i dying/i, /nhs number/i, /date of birth/i, /social security/i, /verify your identity/i
 ];
 
+const BLOCKED_PATTERNS_OUTPUT = [
+  /you should take/i, /take \d+/i, /recommended dose/i, /i diagnose/i, /you have (cancer|a disease)/i,
+  /nhs number/i, /date of birth/i, /social security/i, /verify your identity/i, /please confirm your (date of birth|id)/i
+];
+
 const GREETING_ONLY_PATTERN = /^((hi|hello|hey|good morning|good afternoon|good evening)[\s,!.]*)?(my name is [a-z ]+[.!]?|i(.?m| am) [a-z ]+[.!]?)?[\s,!.]*(i(.?m| am) (studying|a student)( at| in) [a-z ]+[.!]?)?[\s,!.]*$/i;
 
 function checkSafety(query) {
-  return BLOCKED_PATTERNS.some(function(pattern) { return pattern.test(query); });
+  return BLOCKED_PATTERNS_INPUT.some(function(pattern) { return pattern.test(query); });
+}
+
+function checkOutputSafety(text) {
+  return BLOCKED_PATTERNS_OUTPUT.some(function(pattern) { return pattern.test(text); });
 }
 
 async function generateResponse(query, context) {
@@ -58,7 +67,7 @@ async function generateResponse(query, context) {
   const data = await response.json();
   const generatedText = data.choices[0].message.content.trim();
 
-  if (checkSafety(generatedText)) {
+  if (checkOutputSafety(generatedText)) {
     return {
       response: "I am not able to help with that. Please contact the clinic directly.",
       guardrailTriggered: true
