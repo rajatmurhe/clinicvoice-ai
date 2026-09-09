@@ -1,13 +1,54 @@
 import { useState, useRef, useEffect } from 'react';
 import './App.css';
 
+function MicIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="9" y="2" width="6" height="12" rx="3" stroke="currentColor" strokeWidth="1.8"/>
+      <path d="M5 11a7 7 0 0014 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+      <path d="M12 18v3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+      <path d="M9 21h6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+function ShieldIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 2l8 3v6c0 5-3.5 8.5-8 11-4.5-2.5-8-6-8-11V5l8-3z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
+      <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+function BoltIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+function ClinicIcon() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M4 13v-1a8 8 0 0116 0v1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+      <rect x="3" y="13" width="4" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.8"/>
+      <rect x="17" y="13" width="4" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.8"/>
+      <path d="M19 19v1a3 3 0 01-3 3h-3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
 function App() {
+  const [showLanding, setShowLanding] = useState(true);
   const [isRecording, setIsRecording] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [messages, setMessages] = useState([]);
 
   const mediaRecorderRef = useRef(null);
+  const streamRef = useRef(null);
   const audioChunksRef = useRef([]);
   const conversationEndRef = useRef(null);
 
@@ -19,22 +60,45 @@ function App() {
     return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  const pickMimeType = () => {
+    const candidates = [
+      'audio/webm;codecs=opus',
+      'audio/mp4;codecs=mp4a.40.2',
+      'audio/mp4',
+      'audio/ogg;codecs=opus'
+    ];
+    for (const type of candidates) {
+      if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(type)) {
+        return type;
+      }
+    }
+    return '';
+  };
+
   const startRecording = async () => {
     setError('');
     audioChunksRef.current = [];
 
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const mediaRecorder = new MediaRecorder(stream);
+    if (!streamRef.current) {
+      streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+    }
+
+    const mimeType = pickMimeType();
+    const mediaRecorder = mimeType
+      ? new MediaRecorder(streamRef.current, { mimeType: mimeType })
+      : new MediaRecorder(streamRef.current);
     mediaRecorderRef.current = mediaRecorder;
 
     mediaRecorder.ondataavailable = (e) => {
-      audioChunksRef.current.push(e.data);
+      if (e.data && e.data.size > 0) {
+        audioChunksRef.current.push(e.data);
+      }
     };
 
     mediaRecorder.onstop = async () => {
-      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-      await sendAudio(audioBlob);
-      stream.getTracks().forEach(track => track.stop());
+      const finalType = mediaRecorder.mimeType || 'audio/webm';
+      const audioBlob = new Blob(audioChunksRef.current, { type: finalType });
+      await sendAudio(audioBlob, finalType);
     };
 
     mediaRecorder.start();
@@ -42,6 +106,7 @@ function App() {
   };
 
   const stopRecording = () => {
+
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
@@ -49,10 +114,12 @@ function App() {
     }
   };
 
-  const sendAudio = async (audioBlob) => {
+  const sendAudio = async (audioBlob, mimeType) => {
     try {
+      const ext = (mimeType && mimeType.includes('mp4')) ? 'mp4' : (mimeType && mimeType.includes('ogg')) ? 'ogg' : 'webm';
       const formData = new FormData();
-      formData.append('audio', audioBlob, 'recording.webm');
+      formData.append('audio', audioBlob, 'recording.' + ext);
+      formData.append('history', JSON.stringify(messages.map(function(m) { return { role: m.role, text: m.text }; })));
 
       const res = await fetch('http://localhost:5050/api/voice/query', {
         method: 'POST',
@@ -83,11 +150,46 @@ function App() {
     }
   };
 
+  if (showLanding) {
+    return (
+      <div className="landing">
+        <div className="landing-content">
+          <div className="landing-icon"><ClinicIcon /></div>
+          <h1 className="landing-title">ClinicVoice AI</h1>
+          <p className="landing-tagline">Your clinic's virtual reception, available anytime.</p>
+
+          <div className="landing-features">
+            <div className="landing-feature">
+              <span className="feature-icon"><MicIcon /></span>
+              <span>Ask by voice, get real answers about appointments, hours, and more</span>
+            </div>
+            <div className="landing-feature">
+              <span className="feature-icon"><ShieldIcon /></span>
+              <span>Built-in safety checks — never gives medical advice, always grounded in real clinic info</span>
+            </div>
+            <div className="landing-feature">
+              <span className="feature-icon"><BoltIcon /></span>
+              <span>Fast, natural conversation, powered by local AI</span>
+            </div>
+          </div>
+
+          <button className="landing-enter-btn" onClick={function() { setShowLanding(false); }}>
+            Talk to ClinicVoice
+          </button>
+
+          <p className="landing-disclaimer">
+            For appointment and clinic information only. Not for medical advice or emergencies.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="app-shell">
       <div className="header">
         <div className="brand">
-          <div className="brand-icon">🩺</div>
+          <div className="brand-icon"><ClinicIcon /></div>
           <div className="brand-text">
             <h1>ClinicVoice AI</h1>
             <div className="status-row">

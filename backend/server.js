@@ -54,11 +54,26 @@ app.post('/api/voice/query', voiceLimiter, upload.single('audio'), async (req, r
     const transcript = whisperOutput;
     console.log('Transcript:', transcript);
 
+    var history = [];
+    if (req.body.history) {
+      try {
+        history = JSON.parse(req.body.history);
+      } catch (e) {
+        history = [];
+      }
+    }
+
+    var retrievalQuery = transcript;
+    var lastUserTurns = history.filter(function(h) { return h.role === 'user'; }).slice(-1);
+    if (lastUserTurns.length > 0) {
+      retrievalQuery = lastUserTurns[0].text + ' ' + transcript;
+    }
+
     const t3 = Date.now();
-    const context = await retrieveContext(transcript);
+    const context = await retrieveContext(retrievalQuery);
     console.log("retrieval:", Date.now() - t3, "ms");
     const t4 = Date.now();
-    const result = await generateResponse(transcript, context);
+    const result = await generateResponse(transcript, context, history);
     console.log("llm:", Date.now() - t4, "ms");
 
     const speechPath = 'uploads/' + Date.now() + '_response.aiff';

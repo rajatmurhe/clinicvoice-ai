@@ -28,5 +28,75 @@
     "id": 6,
     "question": "How do I update my contact details?",
     "answer": "You can update your contact details by calling reception or logging into the patient portal and editing your profile."
+  },
+  {
+    "id": 7,
+    "question": "Do you accept walk-in patients?",
+    "answer": "We accept a limited number of walk-ins each day for urgent, non-emergency concerns, but booking ahead is strongly recommended to avoid waiting."
+  },
+  {
+    "id": 8,
+    "question": "How do I request a prescription refill?",
+    "answer": "You can request a prescription refill through the patient portal or by calling reception. Please allow 48 hours for the request to be processed."
+  },
+  {
+    "id": 9,
+    "question": "How do I access my medical records?",
+    "answer": "You can request access to your medical records through the patient portal, or by submitting a written request at reception. Processing usually takes 5 to 10 business days."
+  },
+  {
+    "id": 10,
+    "question": "Do you offer telehealth or video appointments?",
+    "answer": "Yes, we offer video consultations for follow-up appointments and certain general concerns. You can request a telehealth appointment when booking."
+  },
+  {
+    "id": 11,
+    "question": "What insurance providers do you work with?",
+    "answer": "We work with most major insurance providers. Please contact reception with your insurance details before your appointment so we can confirm coverage."
+  },
+  {
+    "id": 12,
+    "question": "What happens if I miss my appointment?",
+    "answer": "If you miss an appointment without cancelling in advance, a missed appointment fee may apply. Please contact reception as soon as possible if you cannot attend."
+  },
+  {
+    "id": 13,
+    "question": "Is parking available at the clinic?",
+    "answer": "Yes, free patient parking is available in the lot behind the clinic building. Additional street parking is also available nearby."
+  },
+  {
+    "id": 14,
+    "question": "Can I bring a family member into my appointment?",
+    "answer": "Yes, you are welcome to bring a family member or support person into your appointment if you would like."
+  },
+  {
+    "id": 15,
+    "question": "How do I get in touch with a specific doctor?",
+    "answer": "You can leave a message for your doctor through the patient portal or with reception, and they will get back to you as soon as possible."
+  },
+  {
+    "id": 16,
+    "question": "What should I do in a medical emergency?",
+    "answer": "If you are experiencing a medical emergency, please call your local emergency number immediately or go to the nearest emergency room. Do not wait for a callback from the clinic."
+  },
+  {
+    "id": 17,
+    "question": "How do I pay my bill?",
+    "answer": "Bills can be paid online through the patient portal, over the phone with reception, or in person at the clinic front desk."
+  },
+  {
+    "id": 18,
+    "question": "Do you treat children and teenagers?",
+    "answer": "Yes, we see patients of all ages. For patients under 18, a parent or guardian must be present or have provided written consent."
+  },
+  {
+    "id": 19,
+    "question": "How do I switch to a different doctor at the clinic?",
+    "answer": "You can request to switch doctors by speaking with reception. We will do our best to accommodate your preference based on availability."
+  },
+  {
+    "id": 20,
+    "question": "Is the clinic wheelchair accessible?",
+    "answer": "Yes, the clinic is fully wheelchair accessible, including accessible parking, entrances, and restrooms."
   }
 ]
