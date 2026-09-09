@@ -109,6 +109,35 @@ app.post('/api/voice/query', voiceLimiter, upload.single('audio'), async (req, r
   }
 });
 
+app.post('/api/text-query', async (req, res) => {
+  try {
+    const query = req.body.query;
+    if (!query) {
+      return res.status(400).json({ error: 'No query provided.' });
+    }
+
+    var history = req.body.history || [];
+
+    var retrievalQuery = query;
+    var lastUserTurns = history.filter(function(h) { return h.role === 'user'; }).slice(-1);
+    if (lastUserTurns.length > 0) {
+      retrievalQuery = lastUserTurns[0].text + ' ' + query;
+    }
+
+    const context = await retrieveContext(retrievalQuery);
+    const result = await generateResponse(query, context, history);
+
+    res.json({
+      query: query,
+      response: result.response,
+      guardrailTriggered: result.guardrailTriggered
+    });
+  } catch (err) {
+    console.error('Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.use((err, req, res, next) => {
   if (err.code === 'LIMIT_FILE_SIZE') {
     return res.status(413).json({ error: 'Audio file too large. Maximum size is 10MB.' });
