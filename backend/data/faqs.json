@@ -98,5 +98,55 @@
     "id": 20,
     "question": "Is the clinic wheelchair accessible?",
     "answer": "Yes, the clinic is fully wheelchair accessible, including accessible parking, entrances, and restrooms."
+  },
+  {
+    "id": 21,
+    "question": "What is this clinic?",
+    "answer": "We are a general medical clinic offering primary care, appointment scheduling, prescription support, and referrals to specialists. Our reception team can give you more detail on any specific service."
+  },
+  {
+    "id": 22,
+    "question": "What services does the clinic offer?",
+    "answer": "We offer general check-ups, follow-up appointments, prescription refills, telehealth consultations, and referrals to specialists. For a full list of services, please contact reception."
+  },
+  {
+    "id": 23,
+    "question": "How much does an appointment cost?",
+    "answer": "Costs depend on your insurance coverage and the type of appointment. Please contact reception or check with your insurance provider for exact pricing."
+  },
+  {
+    "id": 24,
+    "question": "What languages do you support?",
+    "answer": "Our main language of service is English. Please contact reception in advance if you need an interpreter, and we will do our best to accommodate you."
+  },
+  {
+    "id": 25,
+    "question": "How do I register as a new patient?",
+    "answer": "You can register as a new patient by calling reception or filling out the registration form on our patient portal. You will need a valid photo ID and insurance details if applicable."
+  },
+  {
+    "id": 26,
+    "question": "How do I get my test results?",
+    "answer": "Test results are usually available through the patient portal within a few business days. If you have not received them, please contact reception."
+  },
+  {
+    "id": 27,
+    "question": "Do you offer vaccinations?",
+    "answer": "Yes, we offer a range of routine vaccinations. Please contact reception to check availability and book a vaccination appointment."
+  },
+  {
+    "id": 28,
+    "question": "Can I request a specific doctor for my appointment?",
+    "answer": "Yes, you can request a specific doctor when booking, subject to their availability. Please mention this when calling reception or booking online."
+  },
+  {
+    "id": 29,
+    "question": "What should I do if I have a complaint?",
+    "answer": "If you have a complaint, please contact reception or ask to speak with the practice manager. We take all feedback seriously and aim to respond promptly."
+  },
+  {
+    "id": 30,
+    "question": "Is my personal information kept private?",
+    "answer": "Yes, all patient information is kept confidential and handled in line with data protection regulations. Please contact reception if you have specific privacy questions."
   }
 ]
