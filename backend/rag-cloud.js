@@ -21,7 +21,9 @@ function scoreOverlap(queryTokens, faqTokens) {
   for (const t of querySet) {
     if (faqSet.has(t)) overlap++;
   }
-  return overlap / Math.max(querySet.size, 1);
+  const queryRatio = overlap / Math.max(querySet.size, 1);
+  const faqRatio = overlap / Math.max(faqSet.size, 1);
+  return (queryRatio + faqRatio) / 2;
 }
 
 async function retrieveContext(query, topK = 2) {
@@ -29,10 +31,13 @@ async function retrieveContext(query, topK = 2) {
   const queryTokens = tokenize(query);
 
   const scored = faqs.map(function(faq) {
-    const faqTokens = tokenize(faq.question + ' ' + faq.answer);
+    const questionTokens = tokenize(faq.question);
+    const answerTokens = tokenize(faq.answer);
+    const questionScore = scoreOverlap(queryTokens, questionTokens);
+    const answerScore = scoreOverlap(queryTokens, answerTokens);
     return {
       faq: faq,
-      score: scoreOverlap(queryTokens, faqTokens)
+      score: (questionScore * 0.75) + (answerScore * 0.25)
     };
   });
 
