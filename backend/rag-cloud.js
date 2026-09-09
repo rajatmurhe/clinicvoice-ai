@@ -1,7 +1,17 @@
 const { getAllFaqs } = require('./db');
 
+const STOPWORDS = new Set([
+  'a', 'an', 'the', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
+  'what', 'when', 'where', 'who', 'why', 'how', 'which',
+  'about', 'do', 'does', 'did', 'i', 'you', 'it', 'to', 'for', 'of',
+  'in', 'on', 'at', 'and', 'or', 'my', 'your', 'me', 'can', 'will',
+  'that', 'this', 'there', 'have', 'has', 'need', 'want'
+]);
+
 function tokenize(text) {
-  return text.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(Boolean);
+  return text.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(function(t) {
+    return t && !STOPWORDS.has(t);
+  });
 }
 
 function scoreOverlap(queryTokens, faqTokens) {
