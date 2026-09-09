@@ -13,20 +13,16 @@ db.exec(`
 `);
 
 function seedFromJson() {
-  const existing = db.prepare('SELECT COUNT(*) as count FROM faqs').get();
-  if (existing.count > 0) {
-    console.log('Database already seeded, skipping.');
-    return;
-  }
-
   const faqs = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'faqs.json'), 'utf8'));
-  const insert = db.prepare('INSERT INTO faqs (id, question, answer) VALUES (?, ?, ?)');
 
+  db.exec('DELETE FROM faqs');
+
+  const insert = db.prepare('INSERT INTO faqs (id, question, answer) VALUES (?, ?, ?)');
   for (const faq of faqs) {
     insert.run(faq.id, faq.question, faq.answer);
   }
 
-  console.log('Seeded ' + faqs.length + ' FAQs into SQLite.');
+  console.log('Refreshed database with ' + faqs.length + ' FAQs from faqs.json.');
 }
 
 function getAllFaqs() {
