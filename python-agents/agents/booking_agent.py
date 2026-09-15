@@ -23,22 +23,43 @@ def extract_date(query: str):
 
 def extract_time(query: str):
     time_match = re.search(r"(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)", query)
-    if not time_match:
-        time_match = re.search(r"\b(\d{1,2})\s*(AM|PM|am|pm|A\.M\.|P\.M\.|a\.m\.|p\.m\.)", query)
-        if time_match:
-            hour = time_match.group(1)
-            period = time_match.group(2).replace(".", "").upper()
-            raw = hour + ":00 " + period
-        else:
-            return None
-    else:
+    if time_match:
         raw = time_match.group(1) + ":" + time_match.group(2) + " " + time_match.group(3).upper()
+        try:
+            parsed = datetime.strptime(raw, "%I:%M %p")
+            return parsed.strftime("%I:%M %p")
+        except ValueError:
+            return None
 
-    try:
-        parsed = datetime.strptime(raw, "%I:%M %p")
-        return parsed.strftime("%I:%M %p")
-    except ValueError:
-        return None
+    four_digit_match = re.search(r"\b(\d{3,4})\s*(AM|PM|am|pm|A\.M\.|P\.M\.|a\.m\.|p\.m\.)", query)
+    if four_digit_match:
+        digits = four_digit_match.group(1)
+        period = four_digit_match.group(2).replace(".", "").upper()
+        if len(digits) == 3:
+            hour = digits[0]
+            minute = digits[1:]
+        else:
+            hour = digits[:2]
+            minute = digits[2:]
+        raw = hour + ":" + minute + " " + period
+        try:
+            parsed = datetime.strptime(raw, "%I:%M %p")
+            return parsed.strftime("%I:%M %p")
+        except ValueError:
+            pass
+
+    bare_hour_match = re.search(r"\b(\d{1,2})\s*(AM|PM|am|pm|A\.M\.|P\.M\.|a\.m\.|p\.m\.)", query)
+    if bare_hour_match:
+        hour = bare_hour_match.group(1)
+        period = bare_hour_match.group(2).replace(".", "").upper()
+        raw = hour + ":00 " + period
+        try:
+            parsed = datetime.strptime(raw, "%I:%M %p")
+            return parsed.strftime("%I:%M %p")
+        except ValueError:
+            return None
+
+    return None
 
 
 def extract_name(query: str):
