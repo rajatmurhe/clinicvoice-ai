@@ -8,6 +8,7 @@ from agents.refill_agent import handle_refill
 from agents.insurance_agent import handle_insurance
 from dashboard_log import log_query, get_stats
 import time
+import re
 from fastapi.staticfiles import StaticFiles
 from voice_service import synthesize
 from fastapi.responses import FileResponse
@@ -17,6 +18,8 @@ app = FastAPI(title="ClinicVoice AI - Multi-Agent Orchestrator")
 app.mount("/dashboard", StaticFiles(directory="static", html=True), name="dashboard")
 
 SESSIONS = {}
+
+REPEAT_PATTERN = re.compile(r"(what did you say|say that again|repeat that|can you repeat|pardon|come again|sorry what)", re.IGNORECASE)
 
 
 class QueryRequest(BaseModel):
@@ -44,12 +47,22 @@ def dashboard_stats():
 @app.post("/api/agent-query")
 def agent_query(req: QueryRequest):
     start = time.time()
-    intent = classify_intent(req.query)
 
     if req.session_id not in SESSIONS:
         SESSIONS[req.session_id] = {}
 
     session = SESSIONS[req.session_id]
+
+    if REPEAT_PATTERN.search(req.query) and session.get("last_response"):
+        return {
+            "response": session["last_response"],
+            "guardrailTriggered": False,
+            "agent": "repeat",
+            "intent": "repeat",
+            "query": req.query
+        }
+
+    intent = classify_intent(req.query)
 
     if (session.get("booking_in_progress") or session.get("lookup_pending")) and intent != "escalation":
         intent = "booking"
@@ -70,6 +83,8 @@ def agent_query(req: QueryRequest):
 
     result["intent"] = intent
     result["query"] = req.query
+
+    session["last_response"] = result.get("response", "")
 
     total_latency = round((time.time() - start) * 1000, 1)
     log_query(
