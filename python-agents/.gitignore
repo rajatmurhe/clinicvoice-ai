@@ -7,3 +7,4 @@ voice-samples/xtts-v2-model/
 voice-samples/*.mp3
 voice-samples/*.wav
 dashboard.db
+refills.db

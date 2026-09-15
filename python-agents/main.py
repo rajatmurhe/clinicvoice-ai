@@ -4,6 +4,8 @@ from agents.router import classify_intent
 from agents.faq_agent import handle_faq
 from agents.booking_agent import handle_booking
 from agents.escalation_agent import handle_escalation
+from agents.refill_agent import handle_refill
+from agents.insurance_agent import handle_insurance
 from dashboard_log import log_query, get_stats
 import time
 from fastapi.staticfiles import StaticFiles
@@ -38,6 +40,7 @@ def synthesize_voice(req: QueryRequest):
 def dashboard_stats():
     return get_stats()
 
+
 @app.post("/api/agent-query")
 def agent_query(req: QueryRequest):
     start = time.time()
@@ -48,13 +51,20 @@ def agent_query(req: QueryRequest):
 
     session = SESSIONS[req.session_id]
 
-    if session.get("booking_in_progress") and intent != "escalation":
+    if (session.get("booking_in_progress") or session.get("lookup_pending")) and intent != "escalation":
         intent = "booking"
+
+    if session.get("refill_pending") and intent != "escalation":
+        intent = "refill"
 
     if intent == "escalation":
         result = handle_escalation(req.query)
     elif intent == "booking":
         result = handle_booking(req.query, session)
+    elif intent == "refill":
+        result = handle_refill(req.query, session)
+    elif intent == "insurance":
+        result = handle_insurance(req.query, session)
     else:
         result = handle_faq(req.query)
 

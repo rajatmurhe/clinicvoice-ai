@@ -68,3 +68,38 @@ def book_appointment(date_str, time_str, patient_name, duration_minutes=30):
 
     created_event = service.events().insert(calendarId=CALENDAR_ID, body=event).execute()
     return created_event.get('id')
+
+
+def find_appointments_by_name(patient_name, days_ahead=30):
+    service = get_calendar_service()
+    now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=5, minutes=30)))
+    time_max = now + datetime.timedelta(days=days_ahead)
+
+    events_result = service.events().list(
+        calendarId=CALENDAR_ID,
+        timeMin=now.isoformat(),
+        timeMax=time_max.isoformat(),
+        singleEvents=True,
+        orderBy='startTime',
+        q=patient_name
+    ).execute()
+
+    events = events_result.get('items', [])
+    matches = []
+    for event in events:
+        summary = event.get('summary', '')
+        if patient_name.lower() in summary.lower():
+            start = event['start'].get('dateTime')
+            matches.append({
+                'id': event['id'],
+                'summary': summary,
+                'start': start
+            })
+
+    return matches
+
+
+def cancel_appointment(event_id):
+    service = get_calendar_service()
+    service.events().delete(calendarId=CALENDAR_ID, eventId=event_id).execute()
+    return True
