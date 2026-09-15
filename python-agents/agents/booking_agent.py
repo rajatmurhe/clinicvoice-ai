@@ -2,6 +2,7 @@ import re
 from datetime import datetime, timedelta
 from calendar_service import get_available_slots, book_appointment, find_appointments_by_name, cancel_appointment, DOCTORS
 from clinic_hours import is_clinic_open, hours_message
+from waitlist import add_to_waitlist, notify_waitlist
 
 
 def extract_date(query: str):
@@ -55,7 +56,53 @@ def extract_doctor(query: str):
     return None
 
 
+def is_affirmative(query: str):
+    return bool(re.search(r"\b(yes|yeah|yep|sure|please|add me)\b", query, re.IGNORECASE))
+
+
 def handle_booking(query: str, session: dict) -> dict:
+    waitlist_offer = session.get("waitlist_offer")
+    if waitlist_offer and is_affirmative(query):
+        name = extract_name(query) or waitlist_offer.get("name")
+        if not name:
+            session["waitlist_offer"]["awaiting_name"] = True
+            return {
+                "response": "Sure, what name should I add to the waitlist?",
+                "guardrailTriggered": False,
+                "agent": "booking"
+            }
+        try:
+            add_to_waitlist(name, waitlist_offer["date"], waitlist_offer.get("doctor"))
+        except Exception:
+            return {
+                "response": "I am having trouble adding you to the waitlist right now. Please call reception directly.",
+                "guardrailTriggered": False,
+                "agent": "booking"
+            }
+        session["waitlist_offer"] = None
+        return {
+            "response": "You are on the waitlist for " + waitlist_offer["date"] + ". We will contact you right away if a slot opens up.",
+            "guardrailTriggered": False,
+            "agent": "booking"
+        }
+
+    if waitlist_offer and waitlist_offer.get("awaiting_name"):
+        name = extract_name(query) or query.strip()
+        try:
+            add_to_waitlist(name, waitlist_offer["date"], waitlist_offer.get("doctor"))
+        except Exception:
+            return {
+                "response": "I am having trouble adding you to the waitlist right now. Please call reception directly.",
+                "guardrailTriggered": False,
+                "agent": "booking"
+            }
+        session["waitlist_offer"] = None
+        return {
+            "response": "You are on the waitlist for " + waitlist_offer["date"] + ". We will contact you right away if a slot opens up.",
+            "guardrailTriggered": False,
+            "agent": "booking"
+        }
+
     is_lookup = re.search(r"(when is|what time is|do i have)", query, re.IGNORECASE)
     is_cancel = re.search(r"\bcancel\b", query, re.IGNORECASE)
     is_reschedule = re.search(r"\breschedule\b", query, re.IGNORECASE)
@@ -96,6 +143,7 @@ def handle_booking(query: str, session: dict) -> dict:
         appt = matches[0]
         appt_time = datetime.fromisoformat(appt["start"])
         readable = appt_time.strftime("%A, %B %d at %I:%M %p")
+        appt_date = appt_time.strftime("%Y-%m-%d")
 
         if pending_lookup == "cancel" or is_cancel:
             try:
@@ -107,8 +155,10 @@ def handle_booking(query: str, session: dict) -> dict:
                     "agent": "booking"
                 }
             session["lookup_pending"] = None
+            notified = notify_waitlist(appt_date)
+            waitlist_note = " I have also notified " + str(notified) + " waitlisted patient(s) for that date." if notified else ""
             return {
-                "response": "Your appointment on " + readable + " has been cancelled. Let me know if you would like to book a new one.",
+                "response": "Your appointment on " + readable + " has been cancelled." + waitlist_note + " Let me know if you would like to book a new one.",
                 "guardrailTriggered": False,
                 "agent": "booking"
             }
@@ -177,8 +227,9 @@ def handle_booking(query: str, session: dict) -> dict:
 
     if not slots:
         doctor_text = " with " + doctor if doctor else ""
+        session["waitlist_offer"] = {"date": date_str, "doctor": doctor}
         return {
-            "response": "I am sorry, there are no available slots" + doctor_text + " on " + date_str + ". Please try another date or call reception.",
+            "response": "I am sorry, there are no available slots" + doctor_text + " on " + date_str + ". Would you like me to add you to the waitlist so we can contact you if a slot opens up?",
             "guardrailTriggered": False,
             "agent": "booking"
         }

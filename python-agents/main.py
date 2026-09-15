@@ -64,7 +64,7 @@ def agent_query(req: QueryRequest):
 
     intent = classify_intent(req.query)
 
-    if (session.get("booking_in_progress") or session.get("lookup_pending")) and intent != "escalation":
+    if (session.get("booking_in_progress") or session.get("lookup_pending") or session.get("waitlist_offer")) and intent != "escalation":
         intent = "booking"
 
     if session.get("refill_pending") and intent != "escalation":

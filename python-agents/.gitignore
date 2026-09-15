@@ -8,3 +8,4 @@ voice-samples/*.mp3
 voice-samples/*.wav
 dashboard.db
 refills.db
+waitlist.db
