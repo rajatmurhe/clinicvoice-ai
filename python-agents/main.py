@@ -4,6 +4,9 @@ from agents.router import classify_intent
 from agents.faq_agent import handle_faq
 from agents.booking_agent import handle_booking
 from agents.escalation_agent import handle_escalation
+from voice_service import synthesize
+from fastapi.responses import FileResponse
+import tempfile
 
 app = FastAPI(title="ClinicVoice AI - Multi-Agent Orchestrator")
 
@@ -18,6 +21,13 @@ class QueryRequest(BaseModel):
 @app.get("/health")
 def health():
     return {"status": "ok", "message": "Multi-agent orchestrator running"}
+
+
+@app.post("/api/synthesize-voice")
+def synthesize_voice(req: QueryRequest):
+    temp_path = tempfile.mktemp(suffix=".wav")
+    synthesize(req.query, temp_path)
+    return FileResponse(temp_path, media_type="audio/wav")
 
 
 @app.post("/api/agent-query")
