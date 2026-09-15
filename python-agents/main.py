@@ -48,7 +48,7 @@ def agent_query(req: QueryRequest):
 
     session = SESSIONS[req.session_id]
 
-    if session.get("booking") and intent != "escalation":
+    if session.get("booking_in_progress") and intent != "escalation":
         intent = "booking"
 
     if intent == "escalation":

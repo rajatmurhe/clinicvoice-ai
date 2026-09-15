@@ -20,16 +20,23 @@ def extract_date(query: str):
 
 
 def extract_time(query: str):
-    time_match = re.search(r'(\d{1,2}[:.]?\d{2}\s*(?:AM|PM|am|pm))', query)
-    if time_match:
-        raw = time_match.group(1).replace('.', ':').upper()
-        raw = re.sub(r'\s+', ' ', raw)
-        try:
-            parsed = datetime.strptime(raw, '%I:%M %p')
-            return parsed.strftime('%I:%M %p')
-        except ValueError:
+    time_match = re.search(r'(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)', query)
+    if not time_match:
+        time_match = re.search(r'\b(\d{1,2})\s*(AM|PM|am|pm|A\.M\.|P\.M\.|a\.m\.|p\.m\.)', query)
+        if time_match:
+            hour = time_match.group(1)
+            period = time_match.group(2).replace('.', '').upper()
+            raw = hour + ':00 ' + period
+        else:
             return None
-    return None
+    else:
+        raw = time_match.group(1) + ':' + time_match.group(2) + ' ' + time_match.group(3).upper()
+
+    try:
+        parsed = datetime.strptime(raw, '%I:%M %p')
+        return parsed.strftime('%I:%M %p')
+    except ValueError:
+        return None
 
 
 def extract_name(query: str):
@@ -47,6 +54,8 @@ def handle_booking(query: str, session: dict) -> dict:
             "agent": "booking"
         }
 
+    session["booking_in_progress"] = True
+
     pending = session.get("booking")
     requested_time = extract_time(query)
 
@@ -62,6 +71,7 @@ def handle_booking(query: str, session: dict) -> dict:
             }
 
         session["booking"] = None
+        session["booking_in_progress"] = False
         return {
             "response": f"You're all set! I've booked your appointment for {pending['date']} at {requested_time}. We look forward to seeing you.",
             "guardrailTriggered": False,
@@ -94,6 +104,7 @@ def handle_booking(query: str, session: dict) -> dict:
         }
 
     session["booking"] = {"date": date_str, "slots": slots}
+    session["booking_in_progress"] = True
 
     slots_text = ", ".join(slots[:5])
     return {

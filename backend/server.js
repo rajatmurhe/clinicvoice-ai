@@ -54,27 +54,21 @@ app.post('/api/voice/query', voiceLimiter, upload.single('audio'), async (req, r
     const transcript = whisperOutput;
     console.log('Transcript:', transcript);
 
-    var history = [];
-    if (req.body.history) {
-      try {
-        history = JSON.parse(req.body.history);
-      } catch (e) {
-        history = [];
-      }
-    }
-
-    var retrievalQuery = transcript;
-    var lastUserTurns = history.filter(function(h) { return h.role === 'user'; }).slice(-1);
-    if (lastUserTurns.length > 0) {
-      retrievalQuery = lastUserTurns[0].text + ' ' + transcript;
-    }
+    var sessionId = req.body.sessionId || 'voice-default';
 
     const t3 = Date.now();
-    const context = await retrieveContext(retrievalQuery);
-    console.log("retrieval:", Date.now() - t3, "ms");
-    const t4 = Date.now();
-    const result = await generateResponse(transcript, context, history);
-    console.log("llm:", Date.now() - t4, "ms");
+    const agentRes = await fetch('http://localhost:8000/api/agent-query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: transcript, session_id: sessionId })
+    });
+    const agentData = await agentRes.json();
+    console.log('agent:', Date.now() - t3, 'ms', '| intent:', agentData.intent);
+
+    const result = {
+      response: agentData.response,
+      guardrailTriggered: agentData.guardrailTriggered || false
+    };
 
     const speechPath = 'uploads/' + Date.now() + '_response.aiff';
     const t5 = Date.now();
@@ -90,8 +84,8 @@ app.post('/api/voice/query', voiceLimiter, upload.single('audio'), async (req, r
 
     logInteraction({
       transcript: transcript,
-      topRetrievalScore: context[0] ? context[0].score : null,
-      retrievedQuestion: context[0] ? context[0].faq.question : null,
+      intent: agentData.intent,
+      agent: agentData.agent,
       response: result.response,
       guardrailTriggered: result.guardrailTriggered,
       latencyMs: Date.now() - startTime
