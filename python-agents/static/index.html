@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ClinicVoice AI — Admin Dashboard</title>
+<style>
+  body { font-family: -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; padding: 24px; }
+  h1 { color: #f8fafc; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 32px; }
+  .card { background: #1e293b; border-radius: 12px; padding: 20px; }
+  .card .label { color: #94a3b8; font-size: 13px; margin-bottom: 8px; }
+  .card .value { font-size: 28px; font-weight: 700; color: #f8fafc; }
+  table { width: 100%; border-collapse: collapse; background: #1e293b; border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid #334155; font-size: 13px; }
+  th { color: #94a3b8; font-weight: 600; }
+  .badge { padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+  .badge.faq { background: #1e3a5f; color: #60a5fa; }
+  .badge.booking { background: #1e3a2e; color: #4ade80; }
+  .badge.escalation { background: #4a1e1e; color: #f87171; }
+  .refresh { color: #64748b; font-size: 12px; margin-bottom: 16px; }
+</style>
+</head>
+<body>
+  <h1>ClinicVoice AI — Admin Dashboard</h1>
+  <div class="refresh">Auto-refreshes every 5 seconds</div>
+  <div class="cards" id="cards"></div>
+  <table>
+    <thead>
+      <tr><th>Time</th><th>Query</th><th>Agent</th><th>Guardrail</th><th>Cache</th><th>Latency</th></tr>
+    </thead>
+    <tbody id="table-body"></tbody>
+  </table>
+
+<script>
+async function loadStats() {
+  const res = await fetch('/api/dashboard/stats');
+  const data = await res.json();
+
+  const cards = document.getElementById('cards');
+  cards.innerHTML = `
+    <div class="card"><div class="label">Total Queries</div><div class="value">${data.total_queries}</div></div>
+    <div class="card"><div class="label">Guardrail Triggers</div><div class="value">${data.guardrail_triggered_count}</div></div>
+    <div class="card"><div class="label">Cache Hit Rate</div><div class="value">${(data.cache_hit_rate * 100).toFixed(0)}%</div></div>
+    <div class="card"><div class="label">Avg Latency</div><div class="value">${data.avg_latency_ms ? data.avg_latency_ms.toFixed(0) + 'ms' : '—'}</div></div>
+  `;
+
+  const tbody = document.getElementById('table-body');
+  tbody.innerHTML = data.recent_queries.map(q => `
+    <tr>
+      <td>${new Date(q.timestamp * 1000).toLocaleTimeString()}</td>
+      <td>${q.query}</td>
+      <td><span class="badge ${q.agent}">${q.agent}</span></td>
+      <td>${q.guardrail_triggered ? '🛡️ yes' : '—'}</td>
+      <td>${q.cache_hit ? '⚡ hit' : '—'}</td>
+      <td>${q.latency_ms ? q.latency_ms.toFixed(0) + 'ms' : '—'}</td>
+    </tr>
+  `).join('');
+}
+
+loadStats();
+setInterval(loadStats, 5000);
+</script>
+</body>
+</html>

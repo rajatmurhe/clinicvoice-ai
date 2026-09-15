@@ -6,3 +6,4 @@ service-account-key.json
 voice-samples/xtts-v2-model/
 voice-samples/*.mp3
 voice-samples/*.wav
+dashboard.db
