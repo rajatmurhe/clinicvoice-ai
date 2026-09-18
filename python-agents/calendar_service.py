@@ -4,7 +4,9 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
-SERVICE_ACCOUNT_FILE = os.path.join(os.path.dirname(__file__), "service-account-key.json")
+_RENDER_SECRET_PATH = "/etc/secrets/service-account-key.json"
+_LOCAL_PATH = os.path.join(os.path.dirname(__file__), "service-account-key.json")
+SERVICE_ACCOUNT_FILE = _RENDER_SECRET_PATH if os.path.exists(_RENDER_SECRET_PATH) else _LOCAL_PATH
 CALENDAR_ID = "c7a96c6fe2ec8d04973de5e5f01444a92f8208e9c9d47ea7b7ea771be0695654@group.calendar.google.com"
 
 DOCTORS = ["Dr. Sharma", "Dr. Patel", "Dr. Khan"]

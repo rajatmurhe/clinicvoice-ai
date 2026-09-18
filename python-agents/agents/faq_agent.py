@@ -1,8 +1,9 @@
 import requests
 import time
+import os
 from semantic_cache import check_cache, store_in_cache
 
-FAQ_BACKEND_URL = "http://localhost:5050/api/text-query"
+FAQ_BACKEND_URL = os.environ.get("FAQ_BACKEND_URL", "http://localhost:5050/api/text-query")
 
 
 def handle_faq(query: str) -> dict:

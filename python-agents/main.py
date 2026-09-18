@@ -10,9 +10,20 @@ from dashboard_log import log_query, get_stats
 import time
 import re
 from fastapi.staticfiles import StaticFiles
-from voice_service import synthesize
 from fastapi.responses import FileResponse
 import tempfile
+import os
+
+VOICE_CLONING_ENABLED = os.environ.get("VOICE_CLONING_ENABLED", "true").lower() == "true"
+
+if VOICE_CLONING_ENABLED:
+    try:
+        from voice_service import synthesize
+    except Exception:
+        VOICE_CLONING_ENABLED = False
+        synthesize = None
+else:
+    synthesize = None
 
 app = FastAPI(title="ClinicVoice AI - Multi-Agent Orchestrator")
 app.mount("/dashboard", StaticFiles(directory="static", html=True), name="dashboard")
@@ -29,11 +40,13 @@ class QueryRequest(BaseModel):
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "message": "Multi-agent orchestrator running"}
+    return {"status": "ok", "message": "Multi-agent orchestrator running", "voice_cloning": VOICE_CLONING_ENABLED}
 
 
 @app.post("/api/synthesize-voice")
 def synthesize_voice(req: QueryRequest):
+    if not VOICE_CLONING_ENABLED or synthesize is None:
+        return {"error": "Voice cloning is not available on this deployment."}
     temp_path = tempfile.mktemp(suffix=".wav")
     synthesize(req.query, temp_path)
     return FileResponse(temp_path, media_type="audio/wav")
