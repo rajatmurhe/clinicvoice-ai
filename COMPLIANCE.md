@@ -81,3 +81,31 @@ third-party LLM/TTS provider, an audit log separate from the operational
 log, and a data-retention policy with an actual deletion mechanism — none of
 which are hard to add given the current architecture, but none of which
 are pretended to already exist here.
+
+## 6. Relationship to DTAC (Digital Technology Assessment Criteria)
+
+DTAC is the NHS framework used to assess digital health tools before adoption
+by GP surgeries. It covers five areas: clinical safety, data protection,
+technical security, interoperability, and usability/accessibility. This
+project is a portfolio build, not a submitted or assessed DTAC product, but
+its design choices map onto DTAC's structure deliberately:
+
+- **Clinical safety**: enforced through the 4-layer guardrail system (see
+  Section 4), which prevents diagnostic or advice-giving responses and
+  escalates anything outside the assistant's scope to a human.
+- **Data protection**: covered in Sections 1 to 3 above (what is collected,
+  where it goes, what never leaves the local machine).
+- **Technical security**: rate limiting, input validation, and the known
+  gaps in Section 5 are the honest starting point for a real security
+  review, not a claim of completion.
+- **Interoperability**: the assistant integrates with a real external
+  system (Google Calendar) via a documented service account pattern, the
+  same shape of integration a real NHS booking or consultation system would
+  need.
+- **Usability and accessibility**: voice-first design with a clear,
+  disclosed scope (appointment and clinic information only) so patients are
+  never left unsure whether they are talking to a clinician.
+
+This project does not claim DTAC compliance. It is built with DTAC's
+structure in mind so that the gap between a portfolio build and a
+DTAC-assessed product is well understood.
