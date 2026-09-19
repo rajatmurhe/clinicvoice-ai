@@ -6,6 +6,8 @@ from agents.booking_agent import handle_booking
 from agents.escalation_agent import handle_escalation
 from agents.refill_agent import handle_refill
 from agents.insurance_agent import handle_insurance
+from agents.intake_agent import handle_intake
+from self_service import maybe_add_nudge
 from dashboard_log import log_query, get_stats
 import time
 import re
@@ -83,6 +85,9 @@ def agent_query(req: QueryRequest):
     if session.get("refill_pending") and intent != "escalation":
         intent = "refill"
 
+    if session.get("intake_pending") and intent != "escalation":
+        intent = "intake"
+
     if intent == "escalation":
         result = handle_escalation(req.query)
     elif intent == "booking":
@@ -91,11 +96,14 @@ def agent_query(req: QueryRequest):
         result = handle_refill(req.query, session)
     elif intent == "insurance":
         result = handle_insurance(req.query, session)
+    elif intent == "intake":
+        result = handle_intake(req.query, session)
     else:
         result = handle_faq(req.query)
 
     result["intent"] = intent
     result["query"] = req.query
+    result["response"] = maybe_add_nudge(req.query, result.get("response", ""), result.get("agent", intent))
 
     session["last_response"] = result.get("response", "")
 

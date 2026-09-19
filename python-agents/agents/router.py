@@ -36,15 +36,27 @@ INSURANCE_PATTERNS = [
     r"do you (take|accept)",
 ]
 
+INTAKE_PATTERNS = [
+    r"calling about (a|my) (symptom|pain|test result)",
+    r"(test results|blood test)",
+    r"(ongoing|new) (symptom|pain)",
+    r"not feeling well",
+    r"i.?m unwell",
+    r"i have a (pain|symptom)",
+]
+
 BOOKING_REGEX = re.compile("|".join(BOOKING_PATTERNS), re.IGNORECASE)
 ESCALATION_REGEX = re.compile("|".join(ESCALATION_PATTERNS), re.IGNORECASE)
 REFILL_REGEX = re.compile("|".join(REFILL_PATTERNS), re.IGNORECASE)
 INSURANCE_REGEX = re.compile("|".join(INSURANCE_PATTERNS), re.IGNORECASE)
+INTAKE_REGEX = re.compile("|".join(INTAKE_PATTERNS), re.IGNORECASE)
 
 
 def classify_intent(query: str) -> str:
     if ESCALATION_REGEX.search(query):
         return "escalation"
+    if INTAKE_REGEX.search(query):
+        return "intake"
     if REFILL_REGEX.search(query):
         return "refill"
     if INSURANCE_REGEX.search(query):

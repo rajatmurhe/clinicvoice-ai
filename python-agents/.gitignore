@@ -9,3 +9,4 @@ voice-samples/*.wav
 dashboard.db
 refills.db
 waitlist.db
+intake.db
