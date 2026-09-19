@@ -142,8 +142,26 @@ app.use((err, req, res, next) => {
 
 const PORT = 5050;
 
+function warmUpModel() {
+  fetch('http://localhost:11434/api/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'llama3.2:3b',
+      prompt: 'Hello',
+      stream: false,
+      options: { num_predict: 5 }
+    })
+  }).then(() => {
+    console.log('Model warmed up.');
+  }).catch((err) => {
+    console.log('Warm-up call failed (non-fatal):', err.message);
+  });
+}
+
 initRAG().then(() => {
   app.listen(PORT, () => {
     console.log('Server running on http://localhost:' + PORT);
+    warmUpModel();
   });
 });
