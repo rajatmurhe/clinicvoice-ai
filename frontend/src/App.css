@@ -7,8 +7,8 @@
 }
 
 :root {
-  --bg: #12201f;
-  --bg-raised: #16261f;
+  --bg: #0e1917;
+  --bg-raised: #1c2f28;
   --ink: #ede8df;
   --ink-dim: #a9b4ab;
   --ink-faint: #6f7a73;
@@ -482,12 +482,11 @@ body {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 13px 0;
-  border-top: 1px solid var(--line);
-}
-
-.capability-item:first-child {
-  border-top: none;
+  padding: 13px 14px;
+  border-radius: 10px;
+  background: var(--bg-raised);
+  border: 1px solid var(--line-bright);
+  margin-bottom: 10px;
 }
 
 .capability-icon {
