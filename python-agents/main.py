@@ -81,19 +81,23 @@ def agent_query(req: QueryRequest):
 
     STRONG_INTENTS = ("booking", "refill", "insurance", "intake", "escalation")
 
-    if intent not in STRONG_INTENTS:
-        if session.get("booking_in_progress") or session.get("lookup_pending") or session.get("waitlist_offer"):
-            intent = "booking"
-        elif session.get("refill_pending"):
-            intent = "refill"
-        elif session.get("intake_pending"):
-            intent = "intake"
-    elif intent != "escalation":
-        session["booking_in_progress"] = False
-        session["lookup_pending"] = None
-        session["waitlist_offer"] = None
-        session["refill_pending"] = None
-        session["intake_pending"] = None
+    pending_flow = None
+    if session.get("booking_in_progress") or session.get("lookup_pending") or session.get("waitlist_offer"):
+        pending_flow = "booking"
+    elif session.get("refill_pending"):
+        pending_flow = "refill"
+    elif session.get("intake_pending"):
+        pending_flow = "intake"
+
+    if pending_flow:
+        if intent not in STRONG_INTENTS or intent == pending_flow:
+            intent = pending_flow
+        elif intent != "escalation":
+            session["booking_in_progress"] = False
+            session["lookup_pending"] = None
+            session["waitlist_offer"] = None
+            session["refill_pending"] = None
+            session["intake_pending"] = None
 
     if intent == "escalation":
         result = handle_escalation(req.query)
