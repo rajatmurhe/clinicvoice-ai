@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import './App.css';
 
 const API_URL = 'https://clinicvoice-ai.onrender.com';
+const AGENT_URL = 'https://clinicvoice-ai-agents.onrender.com';
 
 function MicIcon() {
   return (
@@ -104,6 +105,7 @@ function App() {
 
   const recognitionRef = useRef(null);
   const conversationEndRef = useRef(null);
+  const sessionIdRef = useRef('cloud-' + Date.now());
 
   useEffect(() => {
     conversationEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -185,10 +187,10 @@ function App() {
     });
 
     try {
-      const res = await fetch(API_URL + '/api/text-query', {
+      const res = await fetch(AGENT_URL + '/api/agent-query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: query })
+        body: JSON.stringify({ query: query, session_id: sessionIdRef.current })
       });
 
       if (!res.ok) {
