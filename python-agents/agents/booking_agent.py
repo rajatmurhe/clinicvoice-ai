@@ -205,6 +205,14 @@ def handle_booking(query: str, session: dict) -> dict:
     requested_time = extract_time(query)
     doctor = extract_doctor(query) or (pending.get("doctor") if pending else None)
 
+    if pending and requested_time and requested_time not in pending["slots"]:
+        slots_text = ", ".join(pending["slots"][:5])
+        return {
+            "response": "I am sorry, " + requested_time + " is not available. The open times are " + slots_text + ". Which of these would you like?",
+            "guardrailTriggered": False,
+            "agent": "booking"
+        }
+
     if pending and requested_time and requested_time in pending["slots"]:
         patient_name = extract_name(query) or "Patient"
         try:
