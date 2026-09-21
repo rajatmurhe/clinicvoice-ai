@@ -116,9 +116,15 @@ def agent_query(req: QueryRequest):
         pending_flow = "intake"
 
     if pending_flow:
-        if intent not in STRONG_INTENTS or intent == pending_flow:
+        if intent == "escalation":
+            session["booking_in_progress"] = False
+            session["lookup_pending"] = None
+            session["waitlist_offer"] = None
+            session["refill_pending"] = None
+            session["intake_pending"] = None
+        elif intent not in STRONG_INTENTS or intent == pending_flow:
             intent = pending_flow
-        elif intent != "escalation":
+        else:
             session["booking_in_progress"] = False
             session["lookup_pending"] = None
             session["waitlist_offer"] = None
