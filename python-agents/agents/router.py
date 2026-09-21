@@ -11,6 +11,11 @@ BOOKING_PATTERNS = [
     r"when is my appointment",
     r"what time is my appointment",
     r"\bcancel\b",
+    r"(get|book) (me )?an? appointment",
+    r"book me in",
+    r"(can|could) i (get|come in|book)",
+    r"see (a|the) doctor",
+    r"i.?d like to come in",
 ]
 
 ESCALATION_PATTERNS = [
