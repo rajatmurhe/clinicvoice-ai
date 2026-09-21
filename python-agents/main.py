@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from agents.router import classify_intent
 from agents.faq_agent import handle_faq
@@ -29,6 +30,15 @@ else:
     synthesize = None
 
 app = FastAPI(title="ClinicVoice AI - Multi-Agent Orchestrator")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.mount("/dashboard", StaticFiles(directory="static", html=True), name="dashboard")
 
 SESSIONS = {}
