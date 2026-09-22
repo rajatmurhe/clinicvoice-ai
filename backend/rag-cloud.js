@@ -8,10 +8,18 @@ const STOPWORDS = new Set([
   'that', 'this', 'there', 'have', 'has', 'need', 'want'
 ]);
 
+function stem(word) {
+  if (word.length > 5 && word.endsWith('ing')) return word.slice(0, -3);
+  if (word.length > 4 && word.endsWith('ed')) return word.slice(0, -2);
+  if (word.length > 3 && word.endsWith('es')) return word.slice(0, -2);
+  if (word.length > 3 && word.endsWith('s') && !word.endsWith('ss')) return word.slice(0, -1);
+  return word;
+}
+
 function tokenize(text) {
   return text.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(function(t) {
     return t && !STOPWORDS.has(t);
-  });
+  }).map(stem);
 }
 
 function scoreOverlap(queryTokens, faqTokens) {
