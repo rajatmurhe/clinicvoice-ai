@@ -22,7 +22,10 @@ def extract_date(query: str):
 
 
 def extract_time(query: str):
-    time_match = re.search(r"(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)", query)
+    normalized_query = re.sub(r"\b(a|A)\.\s*(m|M)\.", "AM", query)
+    normalized_query = re.sub(r"\b(p|P)\.\s*(m|M)\.", "PM", normalized_query)
+
+    time_match = re.search(r"(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)", normalized_query)
     if time_match:
         raw = time_match.group(1) + ":" + time_match.group(2) + " " + time_match.group(3).upper()
         try:
@@ -31,7 +34,7 @@ def extract_time(query: str):
         except ValueError:
             return None
 
-    four_digit_match = re.search(r"\b(\d{3,4})\s*(AM|PM|am|pm|A\.M\.|P\.M\.|a\.m\.|p\.m\.)", query)
+    four_digit_match = re.search(r"\b(\d{3,4})\s*(AM|PM|am|pm|A\.M\.|P\.M\.|a\.m\.|p\.m\.)", normalized_query)
     if four_digit_match:
         digits = four_digit_match.group(1)
         period = four_digit_match.group(2).replace(".", "").upper()
@@ -48,7 +51,7 @@ def extract_time(query: str):
         except ValueError:
             pass
 
-    bare_hour_match = re.search(r"\b(\d{1,2})\s*(AM|PM|am|pm|A\.M\.|P\.M\.|a\.m\.|p\.m\.)", query)
+    bare_hour_match = re.search(r"\b(\d{1,2})\s*(AM|PM|am|pm|A\.M\.|P\.M\.|a\.m\.|p\.m\.)", normalized_query)
     if bare_hour_match:
         hour = bare_hour_match.group(1)
         period = bare_hour_match.group(2).replace(".", "").upper()
