@@ -18,6 +18,29 @@ def extract_date(query: str):
     if date_match:
         return date_match.group(1)
 
+    month_names = "january|february|march|april|may|june|july|august|september|october|november|december"
+
+    day_first_match = re.search(r"\b(\d{1,2})(?:st|nd|rd|th)?\s+(" + month_names + r")\b", query, re.IGNORECASE)
+    month_first_match = re.search(r"\b(" + month_names + r")\s+(\d{1,2})(?:st|nd|rd|th)?\b", query, re.IGNORECASE)
+
+    day = None
+    month_name = None
+    if day_first_match:
+        day = int(day_first_match.group(1))
+        month_name = day_first_match.group(2)
+    elif month_first_match:
+        month_name = month_first_match.group(1)
+        day = int(month_first_match.group(2))
+
+    if day and month_name:
+        try:
+            candidate = datetime.strptime(str(today.year) + " " + month_name + " " + str(day), "%Y %B %d")
+        except ValueError:
+            return None
+        if candidate.date() < today.date():
+            candidate = candidate.replace(year=today.year + 1)
+        return candidate.strftime("%Y-%m-%d")
+
     return None
 
 
