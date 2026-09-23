@@ -89,7 +89,7 @@ def extract_time(query: str):
 
 
 def extract_name(query: str):
-    name_match = re.search(r"(?:my name is|i.?m|this is)\s+([a-zA-Z]+(?:\s[a-zA-Z]+)?)", query, re.IGNORECASE)
+    name_match = re.search(r"(?:my name is|i.?m|this is)\s+([a-zA-Z0-9]+(?:\s[a-zA-Z0-9]+)?)", query, re.IGNORECASE)
     if name_match:
         return name_match.group(1).strip()
     return None
@@ -100,6 +100,13 @@ def extract_doctor(query: str):
         last_name = doc.split(" ")[-1]
         if re.search(r"\b" + re.escape(last_name) + r"\b", query, re.IGNORECASE):
             return doc
+    return None
+
+
+def mentions_unrecognized_doctor(query: str):
+    mention = re.search(r"\b(?:dr\.?|doctor)\s+([A-Z][a-zA-Z]+)", query, re.IGNORECASE)
+    if mention and not extract_doctor(query):
+        return mention.group(1)
     return None
 
 
@@ -229,6 +236,15 @@ def handle_booking(query: str, session: dict) -> dict:
 
     pending = session.get("booking")
     requested_time = extract_time(query)
+    unrecognized = mentions_unrecognized_doctor(query)
+    if unrecognized:
+        doctor_names = ", ".join(DOCTORS)
+        return {
+            "response": "I am sorry, I do not have a doctor named " + unrecognized + ". Our available doctors are " + doctor_names + ". Would you like to book with one of them, or with no preference?",
+            "guardrailTriggered": False,
+            "agent": "booking"
+        }
+
     doctor = extract_doctor(query) or (pending.get("doctor") if pending else None)
 
     if pending and requested_time and requested_time not in pending["slots"]:

@@ -29,7 +29,7 @@ def extract_body_area(text):
 
 
 def extract_name(query):
-    name_match = re.search(r"(?:my name is|i.?m|this is)\s+([a-zA-Z]+(?:\s[a-zA-Z]+)?)", query, re.IGNORECASE)
+    name_match = re.search(r"(?:my name is|i.?m|this is)\s+([a-zA-Z0-9]+(?:\s[a-zA-Z0-9]+)?)", query, re.IGNORECASE)
     if name_match:
         return name_match.group(1).strip()
     return None

@@ -12,7 +12,7 @@ def extract_medication_name(query: str):
 
 
 def extract_name(query: str):
-    name_match = re.search(r"(?:my name is|i.?m|this is)\s+([a-zA-Z]+(?:\s[a-zA-Z]+)?)", query, re.IGNORECASE)
+    name_match = re.search(r"(?:my name is|i.?m|this is)\s+([a-zA-Z0-9]+(?:\s[a-zA-Z0-9]+)?)", query, re.IGNORECASE)
     if name_match:
         return name_match.group(1).strip()
     return None
@@ -21,28 +21,41 @@ def extract_name(query: str):
 def handle_refill(query: str, session: dict) -> dict:
     pending = session.get("refill_pending")
 
-    name = extract_name(query)
-    medication = extract_medication_name(query)
+    if pending and pending.get("stage") == "name":
+        name = extract_name(query) or query.strip()
+        medication = pending.get("medication")
 
-    if pending:
-        name = name or pending.get("name")
-        medication = medication or pending.get("medication") or query.strip()
+        if not medication:
+            session["refill_pending"] = {"stage": "medication", "name": name}
+            return {
+                "response": "Thanks. Which medication would you like refilled? Just the name is fine, no need to share dosage details.",
+                "guardrailTriggered": False,
+                "agent": "refill"
+            }
 
-    if not name:
-        session["refill_pending"] = {"medication": medication}
-        return {
-            "response": "I can help log a refill request. Could you tell me your name?",
-            "guardrailTriggered": False,
-            "agent": "refill"
-        }
+    elif pending and pending.get("stage") == "medication":
+        name = pending.get("name")
+        medication = extract_medication_name(query) or query.strip()
 
-    if not medication:
-        session["refill_pending"] = {"name": name}
-        return {
-            "response": "Thanks. Which medication would you like refilled? Just the name is fine, no need to share dosage details.",
-            "guardrailTriggered": False,
-            "agent": "refill"
-        }
+    else:
+        name = extract_name(query)
+        medication = extract_medication_name(query)
+
+        if not name:
+            session["refill_pending"] = {"stage": "name", "medication": medication}
+            return {
+                "response": "I can help log a refill request. Could you tell me your name?",
+                "guardrailTriggered": False,
+                "agent": "refill"
+            }
+
+        if not medication:
+            session["refill_pending"] = {"stage": "medication", "name": name}
+            return {
+                "response": "Thanks. Which medication would you like refilled? Just the name is fine, no need to share dosage details.",
+                "guardrailTriggered": False,
+                "agent": "refill"
+            }
 
     try:
         log_refill_request(name, medication)
