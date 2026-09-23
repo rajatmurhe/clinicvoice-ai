@@ -95,19 +95,27 @@ def extract_name(query: str):
     return None
 
 
+NON_NAME_WORDS = ("for", "a", "the", "an", "here", "please", "available", "tomorrow", "today")
+
+
 def extract_doctor(query: str):
     for doc in DOCTORS:
         last_name = doc.split(" ")[-1]
-        if re.search(r"\b" + re.escape(last_name) + r"\b", query, re.IGNORECASE):
+        if re.search(r"\b(?:dr\.?|doctor)\s+" + re.escape(last_name) + r"\b", query, re.IGNORECASE):
             return doc
     return None
 
 
 def mentions_unrecognized_doctor(query: str):
-    mention = re.search(r"\b(?:dr\.?|doctor)\s+([A-Z][a-zA-Z]+)", query, re.IGNORECASE)
-    if mention and not extract_doctor(query):
-        return mention.group(1)
-    return None
+    mention = re.search(r"\b(?:dr\.?|doctor)\s+([a-zA-Z]+)", query, re.IGNORECASE)
+    if not mention:
+        return None
+    word = mention.group(1)
+    if word.lower() in NON_NAME_WORDS:
+        return None
+    if extract_doctor(query):
+        return None
+    return word
 
 
 def is_affirmative(query: str):
