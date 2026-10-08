@@ -15,3 +15,5 @@ python-eval/venv/
 .DS_Store
 *.tsbuildinfo
 results-ci/
+__pycache__/
+*.pyc
