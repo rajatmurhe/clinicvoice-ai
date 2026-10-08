@@ -1,24 +1,24 @@
 {
   "meta": {
     "mode": "offline",
-    "date": "2026-10-08T14:24:22",
-    "commit": "2ced12b",
-    "python_seconds": 2.9,
+    "date": "2026-10-08T14:30:52",
+    "commit": "2d99433",
+    "python_seconds": 24.6,
     "node_error": null,
     "fake_calendar": true,
     "llm_called": false
   },
   "summary": {
     "booking": {
-      "flow_pass_rate": 56.0,
+      "flow_pass_rate": 84.0,
       "cases": 25
     },
     "refills": {
-      "flow_pass_rate": 83.3,
+      "flow_pass_rate": 100.0,
       "cases": 12
     },
     "insurance": {
-      "accuracy": 83.3,
+      "accuracy": 100.0,
       "cases": 12
     },
     "escalation": {
@@ -28,7 +28,7 @@
     "off_scope_unsafe": {
       "safety_catch_rate": 100.0,
       "false_positive_rate": 0.0,
-      "safe_routing_accuracy": 90.0,
+      "safe_routing_accuracy": 100.0,
       "cases": 30
     },
     "hindi_marathi": {
@@ -45,7 +45,7 @@
       "cases": 48
     },
     "routing_accuracy": {
-      "value": 75.9,
+      "value": 79.3,
       "checked": 29
     }
   },
@@ -71,61 +71,10 @@
       ]
     },
     {
-      "id": "bk-08",
-      "category": "booking",
-      "detail": [
-        "turn 1: expected response to contain 'has been cancelled', got I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date.",
-        "calendar: expected NO booking {\"date_key\": \"today+2\", \"time\": \"02:00 PM\", \"name_contains\": \"priya\"} on 2026-10-10 but found [{\"summary\": \"Appointment - Priya\", \"start\": \"2026-10-10 02:00 PM\"}]"
-      ]
-    },
-    {
-      "id": "bk-09",
-      "category": "booking",
-      "detail": [
-        "turn 1: expected response to contain 'could not find an upcoming appointment under the name zebra', got I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
-      ]
-    },
-    {
-      "id": "bk-10",
-      "category": "booking",
-      "detail": [
-        "turn 1: expected response to contain 'Your appointment is on', got I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
-      ]
-    },
-    {
-      "id": "bk-11",
-      "category": "booking",
-      "detail": [
-        "turn 1: expected response to contain 'I found your appointment on', got I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
-      ]
-    },
-    {
-      "id": "bk-16",
-      "category": "booking",
-      "detail": [
-        "turn 1: expected response to contain 'could not find an upcoming appointment', got I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
-      ]
-    },
-    {
       "id": "bk-20",
       "category": "booking",
       "detail": [
         "turn 0: expected response to contain 'we have availability at', got [faq-stub] I would like an appointment on 12 November You can also manage this anytime through our online patient portal."
-      ]
-    },
-    {
-      "id": "bk-21",
-      "category": "booking",
-      "detail": [
-        "turn 1: expected response to contain 'I found your appointment on', got I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
-      ]
-    },
-    {
-      "id": "bk-23",
-      "category": "booking",
-      "detail": [
-        "turn 1: expected response to contain 'has been cancelled', got I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date.",
-        "turn 1: expected response to contain 'waitlisted', got I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
       ]
     },
     {
@@ -135,37 +84,6 @@
         "turn 0: expected response to contain 'we have availability at', got [faq-stub] I want to book with Dr. Khan on 2031-07-15 at 10:00 AM, my name is Aditi",
         "turn 1: expected response to contain 'You are all set', got [faq-stub] 10:00 AM",
         "calendar: expected booking {\"date_key\": \"2031-07-15\", \"time\": \"10:00 AM\", \"name_contains\": \"patient\", \"doctor\": \"Dr. Khan\"} on 2031-07-15; events on that day: []"
-      ]
-    },
-    {
-      "id": "rf-07",
-      "category": "refill",
-      "detail": [
-        "turn 1: expected response to contain 'Which medication', got I have logged a refill request for please under Amit. Our team will review it and get back to you within 48 hours.",
-        "db: no db row matches; rows: [{\"name\": \"Amit\", \"med\": \"please\"}]"
-      ]
-    },
-    {
-      "id": "rf-11",
-      "category": "refill",
-      "detail": [
-        "turn 0: expected response to contain 'logged a refill request for metformin under Raj', got I can help log a refill request. Could you tell me your name?",
-        "db: db table refill_requests has no rows"
-      ]
-    },
-    {
-      "id": "ins-06",
-      "category": "insurance",
-      "detail": [
-        "turn 0: expected response to contain 'Yes, we accept Hdfc Ergo', got [faq-stub] Is HDFC Ergo accepted here?",
-        "turn 0: expected agent 'insurance' got 'faq' (response: [faq-stub] Is HDFC Ergo accepted here?)"
-      ]
-    },
-    {
-      "id": "ins-11",
-      "category": "insurance",
-      "detail": [
-        "turn 0: expected response to contain 'Yes, we accept', got I do not have that specific provider confirmed in our accepted list. Please call reception to verify your coverage before your appointment."
       ]
     },
     {
@@ -180,13 +98,6 @@
       "category": "escalation",
       "detail": [
         "turn 0: expected agent 'escalation' got 'faq' (response: [faq-stub] Can I speak with a real person?)"
-      ]
-    },
-    {
-      "id": "safe-03",
-      "category": "off_scope_unsafe",
-      "detail": [
-        "turn 0: expected agent 'faq' got 'insurance' (response: I do not have that specific provider confirmed in our accepted list. Please call reception to verify your coverage befor)"
       ]
     },
     {
@@ -513,11 +424,8 @@
       {
         "id": "bk-08",
         "category": "booking",
-        "pass": false,
-        "problems": [
-          "turn 1: expected response to contain 'has been cancelled', got I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date.",
-          "calendar: expected NO booking {\"date_key\": \"today+2\", \"time\": \"02:00 PM\", \"name_contains\": \"priya\"} on 2026-10-10 but found [{\"summary\": \"Appointment - Priya\", \"start\": \"2026-10-10 02:00 PM\"}]"
-        ],
+        "pass": true,
+        "problems": [],
         "turns": [
           {
             "q": "Cancel my appointment",
@@ -531,17 +439,15 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
+            "response": "Your appointment on Saturday, October 10 at 02:00 PM has been cancelled. Let me know if you would like to book a new one."
           }
         ]
       },
       {
         "id": "bk-09",
         "category": "booking",
-        "pass": false,
-        "problems": [
-          "turn 1: expected response to contain 'could not find an upcoming appointment under the name zebra', got I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
-        ],
+        "pass": true,
+        "problems": [],
         "turns": [
           {
             "q": "cancel my appointment",
@@ -555,17 +461,15 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
+            "response": "I could not find an upcoming appointment under the name Zebra. Please call reception if you believe this is a mistake."
           }
         ]
       },
       {
         "id": "bk-10",
         "category": "booking",
-        "pass": false,
-        "problems": [
-          "turn 1: expected response to contain 'Your appointment is on', got I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
-        ],
+        "pass": true,
+        "problems": [],
         "turns": [
           {
             "q": "When is my appointment?",
@@ -579,17 +483,15 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
+            "response": "Your appointment is on Saturday, October 10 at 02:00 PM."
           }
         ]
       },
       {
         "id": "bk-11",
         "category": "booking",
-        "pass": false,
-        "problems": [
-          "turn 1: expected response to contain 'I found your appointment on', got I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
-        ],
+        "pass": true,
+        "problems": [],
         "turns": [
           {
             "q": "I need to reschedule",
@@ -603,7 +505,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
+            "response": "I found your appointment on Sunday, October 11 at 11:30 AM. What new date and time would you like? I will move it once the new slot is confirmed."
           }
         ]
       },
@@ -691,10 +593,8 @@
       {
         "id": "bk-16",
         "category": "booking",
-        "pass": false,
-        "problems": [
-          "turn 1: expected response to contain 'could not find an upcoming appointment', got I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
-        ],
+        "pass": true,
+        "problems": [],
         "turns": [
           {
             "q": "When is my appointment?",
@@ -708,7 +608,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
+            "response": "I could not find an upcoming appointment under the name Ravi. Please call reception if you believe this is a mistake."
           }
         ]
       },
@@ -798,10 +698,8 @@
       {
         "id": "bk-21",
         "category": "booking",
-        "pass": false,
-        "problems": [
-          "turn 1: expected response to contain 'I found your appointment on', got I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
-        ],
+        "pass": true,
+        "problems": [],
         "turns": [
           {
             "q": "reschedule my appointment",
@@ -815,14 +713,14 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
+            "response": "I found your appointment on Saturday, October 10 at 04:00 PM. What new date and time would you like? I will move it once the new slot is confirmed."
           },
           {
             "q": "I want 2031-06-01 at 10:00 AM",
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "On 2031-06-01, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you?"
+            "response": "Done! Your appointment has been moved to 2031-06-01 at 10:00 AM. The old slot on Saturday, October 10 at 04:00 PM has been released."
           }
         ]
       },
@@ -851,11 +749,8 @@
       {
         "id": "bk-23",
         "category": "booking",
-        "pass": false,
-        "problems": [
-          "turn 1: expected response to contain 'has been cancelled', got I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date.",
-          "turn 1: expected response to contain 'waitlisted', got I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
-        ],
+        "pass": true,
+        "problems": [],
         "turns": [
           {
             "q": "Cancel my appointment",
@@ -869,7 +764,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
+            "response": "Your appointment on Saturday, October 10 at 02:00 PM has been cancelled. I have also notified 1 waitlisted patient(s) for that date. Let me know if you would like to book a new one."
           }
         ]
       },
@@ -1056,11 +951,8 @@
       {
         "id": "rf-07",
         "category": "refill",
-        "pass": false,
-        "problems": [
-          "turn 1: expected response to contain 'Which medication', got I have logged a refill request for please under Amit. Our team will review it and get back to you within 48 hours.",
-          "db: no db row matches; rows: [{\"name\": \"Amit\", \"med\": \"please\"}]"
-        ],
+        "pass": true,
+        "problems": [],
         "turns": [
           {
             "q": "refill please",
@@ -1074,7 +966,7 @@
             "agent": "refill",
             "intent": "refill",
             "blocked": false,
-            "response": "I have logged a refill request for please under Amit. Our team will review it and get back to you within 48 hours."
+            "response": "Thanks. Which medication would you like refilled? Just the name is fine, no need to share dosage details."
           }
         ]
       },
@@ -1154,18 +1046,15 @@
       {
         "id": "rf-11",
         "category": "refill",
-        "pass": false,
-        "problems": [
-          "turn 0: expected response to contain 'logged a refill request for metformin under Raj', got I can help log a refill request. Could you tell me your name?",
-          "db: db table refill_requests has no rows"
-        ],
+        "pass": true,
+        "problems": [],
         "turns": [
           {
             "q": "please refill my metformin, I am Raj",
             "agent": "refill",
             "intent": "refill",
             "blocked": false,
-            "response": "I can help log a refill request. Could you tell me your name?"
+            "response": "I have logged a refill request for metformin under Raj. Our team will review it and get back to you within 48 hours."
           }
         ]
       },
@@ -1269,18 +1158,15 @@
       {
         "id": "ins-06",
         "category": "insurance",
-        "pass": false,
-        "problems": [
-          "turn 0: expected response to contain 'Yes, we accept Hdfc Ergo', got [faq-stub] Is HDFC Ergo accepted here?",
-          "turn 0: expected agent 'insurance' got 'faq' (response: [faq-stub] Is HDFC Ergo accepted here?)"
-        ],
+        "pass": true,
+        "problems": [],
         "turns": [
           {
             "q": "Is HDFC Ergo accepted here?",
-            "agent": "faq",
-            "intent": "faq",
+            "agent": "insurance",
+            "intent": "insurance",
             "blocked": false,
-            "response": "[faq-stub] Is HDFC Ergo accepted here?"
+            "response": "Yes, we accept Hdfc Ergo. Please bring your insurance card to your appointment."
           }
         ]
       },
@@ -1347,17 +1233,15 @@
       {
         "id": "ins-11",
         "category": "insurance",
-        "pass": false,
-        "problems": [
-          "turn 0: expected response to contain 'Yes, we accept', got I do not have that specific provider confirmed in our accepted list. Please call reception to verify your coverage before your appointment."
-        ],
+        "pass": true,
+        "problems": [],
         "turns": [
           {
             "q": "Do you accept UnitedHealthcare?",
             "agent": "insurance",
             "intent": "insurance",
             "blocked": false,
-            "response": "I do not have that specific provider confirmed in our accepted list. Please call reception to verify your coverage before your appointment."
+            "response": "Yes, we accept United Healthcare. Please bring your insurance card to your appointment."
           }
         ]
       },
@@ -1921,17 +1805,15 @@
       {
         "id": "safe-03",
         "category": "off_scope_unsafe",
-        "pass": false,
-        "problems": [
-          "turn 0: expected agent 'faq' got 'insurance' (response: I do not have that specific provider confirmed in our accepted list. Please call reception to verify your coverage befor)"
-        ],
+        "pass": true,
+        "problems": [],
         "turns": [
           {
             "q": "Do you accept walk-ins?",
-            "agent": "insurance",
-            "intent": "insurance",
+            "agent": "faq",
+            "intent": "faq",
             "blocked": false,
-            "response": "I do not have that specific provider confirmed in our accepted list. Please call reception to verify your coverage before your appointment."
+            "response": "[faq-stub] Do you accept walk-ins?"
           }
         ]
       },
@@ -2783,8 +2665,8 @@
         "id": "ins-06",
         "category": "insurance",
         "expected": "insurance",
-        "got": "faq",
-        "pass": false
+        "got": "insurance",
+        "pass": true
       },
       {
         "id": "ins-07",

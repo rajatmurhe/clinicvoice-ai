@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from calendar_service import get_available_slots, book_appointment, find_appointments_by_name, cancel_appointment, DOCTORS
 from clinic_hours import is_clinic_open, hours_message
 from waitlist import add_to_waitlist, notify_waitlist
+from agents.extract import extract_person_name
 
 
 def extract_date(query: str):
@@ -89,10 +90,7 @@ def extract_time(query: str):
 
 
 def extract_name(query: str):
-    name_match = re.search(r"(?:my name is|i.?m|this is)\s+([a-zA-Z0-9]+(?:\s[a-zA-Z0-9]+)?)", query, re.IGNORECASE)
-    if name_match:
-        return name_match.group(1).strip()
-    return None
+    return extract_person_name(query)
 
 
 NON_NAME_WORDS = ("for", "a", "the", "an", "here", "please", "available", "tomorrow", "today")
@@ -120,6 +118,73 @@ def mentions_unrecognized_doctor(query: str):
 
 def is_affirmative(query: str):
     return bool(re.search(r"\b(yes|yeah|yep|sure|please|add me)\b", query, re.IGNORECASE))
+
+
+def handle_reschedule_continuation(query: str, session: dict, reschedule_pending: dict) -> dict:
+    """Continues a reschedule after the appointment was found: takes the new
+    date (and optionally time), confirms the new slot, then cancels the old one."""
+    new_date = extract_date(query)
+    new_time = extract_time(query)
+
+    if not new_date:
+        return {
+            "response": "Sure, which new date would you like? For example, tomorrow or a specific date.",
+            "guardrailTriggered": False,
+            "agent": "booking"
+        }
+
+    shown_slots = reschedule_pending.get("slots")
+    if not new_time:
+        try:
+            slots = get_available_slots(new_date, doctor=reschedule_pending.get("doctor"))
+        except Exception:
+            return {
+                "response": "I am having trouble checking the calendar right now. Please call reception to reschedule.",
+                "guardrailTriggered": False,
+                "agent": "booking"
+            }
+        if not slots:
+            return {
+                "response": "I am sorry, there are no available slots on " + new_date + ". Which other date would you like?",
+                "guardrailTriggered": False,
+                "agent": "booking"
+            }
+        reschedule_pending["new_date"] = new_date
+        reschedule_pending["slots"] = slots
+        return {
+            "response": "On " + new_date + ", we have availability at " + ", ".join(slots[:5]) + ". Which time works for you?",
+            "guardrailTriggered": False,
+            "agent": "booking"
+        }
+
+    if shown_slots and new_time not in shown_slots:
+        return {
+            "response": "I am sorry, " + new_time + " is not available. The open times are " + ", ".join(shown_slots[:5]) + ". Which of these would you like?",
+            "guardrailTriggered": False,
+            "agent": "booking"
+        }
+
+    try:
+        book_appointment(
+            new_date, new_time, reschedule_pending["name"],
+            doctor=reschedule_pending.get("doctor")
+        )
+        cancel_appointment(reschedule_pending["event_id"])
+    except Exception:
+        return {
+            "response": "I found the new slot but could not move the appointment just now. Please call reception to reschedule.",
+            "guardrailTriggered": False,
+            "agent": "booking"
+        }
+
+    session["reschedule_pending"] = None
+    session["booking_in_progress"] = False
+    old_readable = reschedule_pending.get("old_readable", "")
+    return {
+        "response": "Done! Your appointment has been moved to " + new_date + " at " + new_time + ". The old slot on " + old_readable + " has been released.",
+        "guardrailTriggered": False,
+        "agent": "booking"
+    }
 
 
 def handle_booking(query: str, session: dict) -> dict:
@@ -168,17 +233,41 @@ def handle_booking(query: str, session: dict) -> dict:
     is_lookup = re.search(r"(when is|what time is|do i have)", query, re.IGNORECASE)
     is_cancel = re.search(r"\bcancel\b", query, re.IGNORECASE)
     is_reschedule = re.search(r"\breschedule\b", query, re.IGNORECASE)
+    pending_lookup = session.get("lookup_pending")
 
-    if is_lookup or is_cancel or is_reschedule:
-        pending_lookup = session.get("lookup_pending")
+    # A reply to "could you tell me the name the appointment is booked under?"
+    # is usually just the name ("Priya"), with no cancel/lookup keyword in it.
+    # Treat any message that carries the keywords, or answers a pending lookup
+    # without starting a fresh booking, as part of the lookup flow.
+    fresh_booking_start = re.search(
+        r"book|schedule|appointment|slot|see (a|the) doctor|come in", query, re.IGNORECASE
+    )
+    in_lookup_flow = bool(
+        is_lookup or is_cancel or is_reschedule
+        or (pending_lookup and not fresh_booking_start)
+    )
 
-        if pending_lookup:
+    if in_lookup_flow:
+        if is_cancel:
+            pending_lookup = "cancel"
+        elif is_reschedule:
+            pending_lookup = "reschedule"
+        elif is_lookup:
+            pending_lookup = "lookup"
+        else:
+            pending_lookup = pending_lookup or "lookup"
+
+        answering_pending = bool(pending_lookup) and not (
+            is_lookup or is_cancel or is_reschedule
+        )
+
+        if answering_pending:
             name = extract_name(query) or query.strip()
         else:
             name = extract_name(query)
 
         if not name:
-            session["lookup_pending"] = "cancel" if is_cancel else ("reschedule" if is_reschedule else "lookup")
+            session["lookup_pending"] = pending_lookup
             return {
                 "response": "Sure, could you tell me the name the appointment is booked under?",
                 "guardrailTriggered": False,
@@ -227,8 +316,14 @@ def handle_booking(query: str, session: dict) -> dict:
 
         if pending_lookup == "reschedule" or is_reschedule:
             session["lookup_pending"] = None
+            session["reschedule_pending"] = {
+                "event_id": appt["id"],
+                "name": name,
+                "old_readable": readable,
+                "doctor": extract_doctor(appt.get("summary", "")),
+            }
             return {
-                "response": "I found your appointment on " + readable + ". To reschedule, please tell me the new date you would like, and I will cancel the old one once the new slot is confirmed.",
+                "response": "I found your appointment on " + readable + ". What new date and time would you like? I will move it once the new slot is confirmed.",
                 "guardrailTriggered": False,
                 "agent": "booking"
             }
@@ -240,6 +335,11 @@ def handle_booking(query: str, session: dict) -> dict:
             "agent": "booking"
         }
 
+    reschedule_pending = session.get("reschedule_pending")
+    if reschedule_pending:
+        return handle_reschedule_continuation(query, session, reschedule_pending)
+
+    session["lookup_pending"] = None
     session["booking_in_progress"] = True
 
     pending = session.get("booking")

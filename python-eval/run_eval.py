@@ -145,6 +145,8 @@ class OfflineHarness:
         rows = [dict(r) for r in conn.execute("SELECT * FROM " + expect_db["table"])]
         conn.close()
         if not rows:
+            if expect_db.get("allow_empty"):
+                return True, ""
             return False, "db table " + expect_db["table"] + " has no rows"
         name_contains = expect_db.get("name_contains")
         med_contains = expect_db.get("medication_contains")

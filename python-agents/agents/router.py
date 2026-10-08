@@ -38,7 +38,10 @@ INSURANCE_PATTERNS = [
     r"insurance",
     r"do you (take|accept) .*insurance",
     r"is .*covered",
-    r"do you (take|accept)",
+    # "Do you accept Aetna?" is insurance, but "Do you accept walk-ins?" and
+    # "do you accept card?" are not, so exclude common non-insurance objects.
+    r"do you (take|accept) (?!walk.?ins?\b|cash\b|credit|debit|card\b)",
+    r"accept(ed)? here",
 ]
 
 INTAKE_PATTERNS = [

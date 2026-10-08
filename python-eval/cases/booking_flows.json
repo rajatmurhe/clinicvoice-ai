@@ -136,8 +136,10 @@
    "turns": [
      {"q": "reschedule my appointment", "expect_contains": ["name the appointment is booked under"]},
      {"q": "Priya", "expect_contains": ["I found your appointment on"]},
-     {"q": "I want 2031-06-01 at 10:00 AM", "expect_contains": ["we have availability at"]}
-   ]},
+     {"q": "I want 2031-06-01 at 10:00 AM", "expect_contains": ["has been moved"]}
+   ],
+   "expect_calendar": {"date_key": "2031-06-01", "time": "10:00 AM", "name_contains": "priya"},
+   "expect_calendar_absent": {"date_key": "today+2", "time": "04:00 PM", "name_contains": "priya"}},
 
   {"id": "bk-22", "category": "booking",
    "turns": [

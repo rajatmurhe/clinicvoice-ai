@@ -8,9 +8,10 @@ ACCEPTED_PROVIDERS = [
 
 
 def check_provider(query: str):
-    query_lower = query.lower()
+    # Normalise spacing so "UnitedHealthcare" matches "united healthcare".
+    query_norm = query.lower().replace(" ", "")
     for provider in ACCEPTED_PROVIDERS:
-        if provider in query_lower:
+        if provider.replace(" ", "") in query_norm:
             return provider
     return None
 

@@ -1,21 +1,26 @@
 import re
 from refill_log import log_refill_request
+from agents.extract import extract_person_name
+
+# Words that routinely follow "refill" in speech but are never a drug name,
+# e.g. "refill please" or "refill my medication".
+MEDICATION_FILLERS = (
+    "my", "a", "the", "prescription", "medication", "medicine",
+    "please", "some", "it", "refill", "request", "urgent", "today", "tomorrow",
+)
 
 
 def extract_medication_name(query: str):
     match = re.search(r"refill (?:my |for )?(?:my )?([a-zA-Z]+)", query, re.IGNORECASE)
     if match:
         word = match.group(1).lower()
-        if word not in ("my", "a", "the", "prescription", "medication"):
+        if word not in MEDICATION_FILLERS:
             return word
     return None
 
 
 def extract_name(query: str):
-    name_match = re.search(r"(?:my name is|i.?m|this is)\s+([a-zA-Z0-9]+(?:\s[a-zA-Z0-9]+)?)", query, re.IGNORECASE)
-    if name_match:
-        return name_match.group(1).strip()
-    return None
+    return extract_person_name(query)
 
 
 def handle_refill(query: str, session: dict) -> dict:

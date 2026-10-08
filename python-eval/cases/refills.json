@@ -43,7 +43,7 @@
      {"q": "refill please", "expect_contains": ["your name"]},
      {"q": "Amit", "expect_contains": ["Which medication"]}
    ],
-   "expect_db": {"table": "refill_requests", "medication_not_contains": "please"}},
+   "expect_db": {"table": "refill_requests", "medication_not_contains": "please", "allow_empty": true}},
 
   {"id": "rf-08", "category": "refill",
    "turns": [

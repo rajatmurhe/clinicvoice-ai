@@ -1,5 +1,6 @@
 import re
 from intake_log import log_intake
+from agents.extract import extract_person_name
 
 REASON_CATEGORIES = {
     "test results": ["test result", "blood test", "results"],
@@ -29,10 +30,7 @@ def extract_body_area(text):
 
 
 def extract_name(query):
-    name_match = re.search(r"(?:my name is|i.?m|this is)\s+([a-zA-Z0-9]+(?:\s[a-zA-Z0-9]+)?)", query, re.IGNORECASE)
-    if name_match:
-        return name_match.group(1).strip()
-    return None
+    return extract_person_name(query)
 
 
 def handle_intake(query, session):
