@@ -1,5 +1,7 @@
 # ClinicVoice AI
 
+[![CI](https://github.com/rajatmurhe/clinicvoice-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/rajatmurhe/clinicvoice-ai/actions/workflows/ci.yml)
+
 A voice assistant for a medical clinic. It answers patient questions,
 books real appointments, and speaks its answers back, using a fully
 local speech pipeline and a separate multi-agent system for anything

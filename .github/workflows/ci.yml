@@ -21,6 +21,26 @@ jobs:
         working-directory: ./backend
         run: npm test
 
+  python-agents-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        working-directory: ./python-agents
+        run: |
+          pip install -r requirements.txt
+          pip install pytest
+      - name: Run unit and regression tests
+        working-directory: ./python-agents
+        run: python -m pytest tests -q
+      - name: Run offline eval (no network, no LLM)
+        run: python python-eval/run_eval.py --out-dir python-eval/results-ci
+      - name: Check eval thresholds
+        run: python python-eval/check_thresholds.py python-eval/results-ci/eval-offline.json
+
   nestjs-build:
     runs-on: ubuntu-latest
     steps:
@@ -48,17 +68,3 @@ jobs:
       - name: Build
         working-directory: ./next-frontend
         run: npm run build
-
-  python-eval-check:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - name: Install dependencies
-        working-directory: ./python-eval
-        run: pip install -r requirements.txt
-      - name: Check syntax
-        working-directory: ./python-eval
-        run: python -m py_compile eval.py
