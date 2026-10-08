@@ -93,6 +93,15 @@ class FakeCalendar:
         start = datetime.datetime.strptime(
             date_str + " " + time_str, "%Y-%m-%d %I:%M %p"
         ).replace(tzinfo=IST)
+        # Mirror the real idempotency rule: same summary at the same slot
+        # returns the existing event instead of double booking.
+        summary = "Appointment - " + patient_name
+        if doctor:
+            summary = summary + " (" + doctor + ")"
+        with self._lock:
+            for e in self._events.values():
+                if e["summary"] == summary and e["start"] == start:
+                    return e["id"]
         return self._insert(start, patient_name, doctor)
 
     def find_appointments_by_name(self, patient_name, days_ahead=30):

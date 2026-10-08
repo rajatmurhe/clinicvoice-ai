@@ -155,11 +155,14 @@ function App() {
     setIsListening(false);
   };
 
-  const speak = async (text) => {
+  const speak = async (text, requestId) => {
     try {
       const res = await fetch(API_URL + '/api/tts', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Request-ID': requestId || ''
+        },
         body: JSON.stringify({ text: text })
       });
 
@@ -181,6 +184,10 @@ function App() {
   const sendQuery = async (query) => {
     setLoading(true);
     const time = formatTime();
+    // One id per turn flows through the agent service, the FAQ service and
+    // every log line, so any answer can be traced end to end.
+    const requestId = (crypto.randomUUID && crypto.randomUUID().replace(/-/g, '').slice(0, 12)) ||
+      String(Date.now().toString(36) + Math.random().toString(36).slice(2, 8));
 
     setMessages(function(prev) {
       return prev.concat([{ role: 'user', text: query, time: time }]);
@@ -189,9 +196,16 @@ function App() {
     try {
       const res = await fetch(AGENT_URL + '/api/agent-query', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Request-ID': requestId
+        },
         body: JSON.stringify({ query: query, session_id: sessionIdRef.current })
       });
+
+      if (res.status === 429) {
+        throw new Error('You are sending messages too quickly. Please wait a moment and try again.');
+      }
 
       if (!res.ok) {
         throw new Error('Server error: ' + res.status);
@@ -205,7 +219,7 @@ function App() {
         ]);
       });
 
-      speak(data.response);
+      speak(data.response, res.headers.get('X-Request-ID') || requestId);
     } catch (err) {
       setError(err.message);
     } finally {

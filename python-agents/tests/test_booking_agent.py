@@ -127,6 +127,23 @@ def test_requested_time_not_offered(cal):
     assert "open times are" in r2["response"]
 
 
+def test_idempotent_booking_no_double_book(cal):
+    # A retried confirm request (same date, time and name) must not create a
+    # second event. The fake calendar mirrors the real idempotency rule.
+    session = new_session()
+    handle_booking("Book an appointment on 2031-08-01", session)
+    r1 = handle_booking("10:00 AM, my name is Raj", session)
+    assert "You are all set" in r1["response"]
+
+    session2 = {"booking": {"date": "2031-08-01", "slots": ["10:00 AM"], "doctor": None},
+                "booking_in_progress": True}
+    handle_booking("10:00 AM, my name is Raj", session2)  # replayed request
+
+    events = cal.events_on("2031-08-01")
+    raj_events = [e for e in events if "raj" in e["summary"].lower() and e["start"].endswith("10:00 AM")]
+    assert len(raj_events) == 1
+
+
 def test_stale_lookup_cleared_on_new_booking(cal):
     session = new_session()
     handle_booking("when is my appointment", session)  # asks for name

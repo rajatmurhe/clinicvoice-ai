@@ -14,6 +14,7 @@ os.environ["CLINICVOICE_DATA_DIR"] = tempfile.mkdtemp(prefix="clinicvoice-test-"
 os.environ["VOICE_CLONING_ENABLED"] = "false"
 # Deterministic FAQ failures in pipeline tests: instant connection refused.
 os.environ["FAQ_BACKEND_URL"] = "http://127.0.0.1:1/unreachable"
+os.environ["CLINICVOICE_RATE_LIMIT"] = "100000"
 
 # main.py mounts ./static relative to the cwd at import time.
 os.chdir(ROOT)

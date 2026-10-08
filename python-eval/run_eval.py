@@ -83,6 +83,7 @@ class OfflineHarness:
         os.environ["CLINICVOICE_DATA_DIR"] = self.tmp_data_dir
         os.environ["VOICE_CLONING_ENABLED"] = "false"
         os.environ["FAQ_BACKEND_URL"] = "http://127.0.0.1:1/unreachable"
+        os.environ["CLINICVOICE_RATE_LIMIT"] = "100000"
 
         sys.path.insert(0, str(AGENTS_DIR))
         os.chdir(AGENTS_DIR)

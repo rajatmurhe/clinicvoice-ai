@@ -1,5 +1,7 @@
 import datetime
 import os
+import time
+
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
@@ -15,6 +17,20 @@ CALENDAR_ID = os.environ.get(
 DOCTORS = ["Dr. Sharma", "Dr. Patel", "Dr. Khan"]
 
 
+def _with_retries(call, attempts=3):
+    """Retries transient calendar API failures with backoff so a blip does not
+    fail a booking. Raises the last exception after the final attempt."""
+    last_error = None
+    for attempt in range(attempts):
+        try:
+            return call()
+        except Exception as e:
+            last_error = e
+            if attempt < attempts - 1:
+                time.sleep(0.4 * (2 ** attempt))
+    raise last_error
+
+
 def get_calendar_service():
     credentials = service_account.Credentials.from_service_account_file(
         SERVICE_ACCOUNT_FILE, scopes=SCOPES
@@ -28,13 +44,13 @@ def get_available_slots(date_str, duration_minutes=30, doctor=None):
     day_start = datetime.datetime.fromisoformat(date_str + "T09:00:00+05:30")
     day_end = datetime.datetime.fromisoformat(date_str + "T18:00:00+05:30")
 
-    events_result = service.events().list(
+    events_result = _with_retries(lambda: service.events().list(
         calendarId=CALENDAR_ID,
         timeMin=day_start.isoformat(),
         timeMax=day_end.isoformat(),
         singleEvents=True,
         orderBy="startTime"
-    ).execute()
+    ).execute())
 
     events = events_result.get("items", [])
     busy_slots = []
@@ -75,13 +91,27 @@ def book_appointment(date_str, time_str, patient_name, duration_minutes=30, doct
     if doctor:
         summary = summary + " (" + doctor + ")"
 
+    # Idempotency: a retried request must not double book. If an event with the
+    # same summary already starts at this exact time, return it unchanged.
+    day_start = start_dt.replace(hour=9, minute=0, second=0)
+    day_end = start_dt.replace(hour=18, minute=0, second=0)
+    existing = _with_retries(lambda: service.events().list(
+        calendarId=CALENDAR_ID,
+        timeMin=day_start.isoformat(),
+        timeMax=day_end.isoformat(),
+        singleEvents=True,
+    ).execute())
+    for event in existing.get("items", []):
+        if event.get("summary") == summary and event.get("start", {}).get("dateTime", "").startswith(start_dt.isoformat()[:16]):
+            return event.get("id")
+
     event = {
         "summary": summary,
         "start": {"dateTime": start_dt.isoformat()},
         "end": {"dateTime": end_dt.isoformat()},
     }
 
-    created_event = service.events().insert(calendarId=CALENDAR_ID, body=event).execute()
+    created_event = _with_retries(lambda: service.events().insert(calendarId=CALENDAR_ID, body=event).execute())
     return created_event.get("id")
 
 
@@ -90,14 +120,14 @@ def find_appointments_by_name(patient_name, days_ahead=30):
     now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=5, minutes=30)))
     time_max = now + datetime.timedelta(days=days_ahead)
 
-    events_result = service.events().list(
+    events_result = _with_retries(lambda: service.events().list(
         calendarId=CALENDAR_ID,
         timeMin=now.isoformat(),
         timeMax=time_max.isoformat(),
         singleEvents=True,
         orderBy="startTime",
         q=patient_name
-    ).execute()
+    ).execute())
 
     events = events_result.get("items", [])
     matches = []
@@ -116,5 +146,5 @@ def find_appointments_by_name(patient_name, days_ahead=30):
 
 def cancel_appointment(event_id):
     service = get_calendar_service()
-    service.events().delete(calendarId=CALENDAR_ID, eventId=event_id).execute()
+    _with_retries(lambda: service.events().delete(calendarId=CALENDAR_ID, eventId=event_id).execute())
     return True

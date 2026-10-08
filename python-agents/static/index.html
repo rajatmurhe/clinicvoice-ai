@@ -5,29 +5,45 @@
 <style>
   body { font-family: -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; padding: 24px; }
   h1 { color: #f8fafc; }
-  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 32px; }
+  h2 { color: #f8fafc; margin-top: 32px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 16px; margin-bottom: 32px; }
   .card { background: #1e293b; border-radius: 12px; padding: 20px; }
   .card .label { color: #94a3b8; font-size: 13px; margin-bottom: 8px; }
   .card .value { font-size: 28px; font-weight: 700; color: #f8fafc; }
-  table { width: 100%; border-collapse: collapse; background: #1e293b; border-radius: 12px; overflow: hidden; }
+  .card .value.warn { color: #fbbf24; }
+  table { width: 100%; border-collapse: collapse; background: #1e293b; border-radius: 12px; overflow: hidden; margin-bottom: 8px; }
   th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid #334155; font-size: 13px; }
   th { color: #94a3b8; font-weight: 600; }
+  td.mono { font-family: ui-monospace, monospace; color: #94a3b8; }
   .badge { padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
   .badge.faq { background: #1e3a5f; color: #60a5fa; }
   .badge.booking { background: #1e3a2e; color: #4ade80; }
   .badge.escalation { background: #4a1e1e; color: #f87171; }
+  .badge.emergency { background: #5f1e1e; color: #fca5a5; }
   .refresh { color: #64748b; font-size: 12px; margin-bottom: 16px; }
+  .empty { color: #64748b; font-size: 13px; }
 </style>
 </head>
 <body>
   <h1>ClinicVoice AI — Admin Dashboard</h1>
   <div class="refresh">Auto-refreshes every 5 seconds</div>
   <div class="cards" id="cards"></div>
+
+  <h2>Recent requests</h2>
   <table>
     <thead>
-      <tr><th>Time</th><th>Query</th><th>Agent</th><th>Guardrail</th><th>Cache</th><th>Latency</th></tr>
+      <tr><th>Time</th><th>Request ID</th><th>Query</th><th>Agent</th><th>Guardrail</th><th>Cache</th><th>Latency</th><th>Error</th></tr>
     </thead>
     <tbody id="table-body"></tbody>
+  </table>
+
+  <h2>Recent failures</h2>
+  <div class="empty" id="failures-empty" hidden>No failures recorded.</div>
+  <table id="failures-table" hidden>
+    <thead>
+      <tr><th>Time</th><th>Request ID</th><th>Route</th><th>Error</th></tr>
+    </thead>
+    <tbody id="failures-body"></tbody>
   </table>
 
 <script>
@@ -40,20 +56,52 @@ async function loadStats() {
     <div class="card"><div class="label">Total Queries</div><div class="value">${data.total_queries}</div></div>
     <div class="card"><div class="label">Guardrail Triggers</div><div class="value">${data.guardrail_triggered_count}</div></div>
     <div class="card"><div class="label">Cache Hit Rate</div><div class="value">${(data.cache_hit_rate * 100).toFixed(0)}%</div></div>
-    <div class="card"><div class="label">Avg Latency</div><div class="value">${data.avg_latency_ms ? data.avg_latency_ms.toFixed(0) + 'ms' : '—'}</div></div>
+    <div class="card"><div class="label">p50 Latency</div><div class="value">${data.p50_latency_ms ? data.p50_latency_ms.toFixed(0) + 'ms' : '—'}</div></div>
+    <div class="card"><div class="label">p95 Latency</div><div class="value">${data.p95_latency_ms ? data.p95_latency_ms.toFixed(0) + 'ms' : '—'}</div></div>
+    <div class="card"><div class="label">Failures</div><div class="value ${data.failure_count > 0 ? 'warn' : ''}">${data.failure_count}</div></div>
+    <div class="card"><div class="label">LLM Tokens</div><div class="value">${data.tokens_total || 0}</div></div>
+    <div class="card"><div class="label">Est. Cost</div><div class="value">$${(data.estimated_cost_usd || 0).toFixed(4)}</div></div>
   `;
 
   const tbody = document.getElementById('table-body');
   tbody.innerHTML = data.recent_queries.map(q => `
     <tr>
       <td>${new Date(q.timestamp * 1000).toLocaleTimeString()}</td>
-      <td>${q.query}</td>
+      <td class="mono">${q.request_id || '—'}</td>
+      <td>${escapeHtml(q.query || '')}</td>
       <td><span class="badge ${q.agent}">${q.agent}</span></td>
       <td>${q.guardrail_triggered ? '🛡️ yes' : '—'}</td>
       <td>${q.cache_hit ? '⚡ hit' : '—'}</td>
       <td>${q.latency_ms ? q.latency_ms.toFixed(0) + 'ms' : '—'}</td>
+      <td>${q.error_type ? '⚠️ ' + q.error_type : '—'}</td>
     </tr>
   `).join('');
+
+  loadFailures();
+}
+
+async function loadFailures() {
+  const res = await fetch('/api/dashboard/failures');
+  const data = await res.json();
+  const failures = data.failures || [];
+  const table = document.getElementById('failures-table');
+  const empty = document.getElementById('failures-empty');
+  table.hidden = failures.length === 0;
+  empty.hidden = failures.length !== 0;
+  document.getElementById('failures-body').innerHTML = failures.map(f => `
+    <tr>
+      <td>${new Date(f.timestamp * 1000).toLocaleTimeString()}</td>
+      <td class="mono">${f.request_id || '—'}</td>
+      <td>${f.intent || '—'}</td>
+      <td>⚠️ ${f.error_type || '—'}</td>
+    </tr>
+  `).join('');
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }
 
 loadStats();
