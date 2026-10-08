@@ -22,7 +22,7 @@ def test_request_id_roundtrip(capsys):
     obs.set_request_id("abc123def456")
     assert obs.get_request_id() == "abc123def456"
     obs.log_event("test_event", route="/x", status=200)
-    line = capsys.readouterr().out.strip().splitlines()[-1]
+    line = capsys.readouterr().err.strip().splitlines()[-1]
     import json
 
     record = json.loads(line)

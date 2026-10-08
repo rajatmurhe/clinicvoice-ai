@@ -2,151 +2,211 @@
   {
     "id": 1,
     "question": "How do I book an appointment?",
-    "answer": "You can book an appointment by calling our reception between 9am and 6pm, or through our online booking portal. We recommend booking at least 48 hours in advance."
+    "answer": "You can book an appointment by calling our reception between 9am and 6pm, or through our online booking portal. We recommend booking at least 48 hours in advance.",
+    "question_hi": "मैं अपॉइंटमेंट कैसे बुक करूँ?",
+    "question_mr": "अपॉइंटमेंट कशी बुक करावी?"
   },
   {
     "id": 2,
     "question": "What should I do if I need to cancel or reschedule?",
-    "answer": "Please contact reception at least 24 hours before your appointment to cancel or reschedule, so we can offer the slot to another patient."
+    "answer": "Please contact reception at least 24 hours before your appointment to cancel or reschedule, so we can offer the slot to another patient.",
+    "question_hi": "अपॉइंटमेंट रद्द या बदलनी हो तो क्या करें?",
+    "question_mr": "अपॉइंटमेंट रद्द किंवा बदलायची असल्यास काय करावे?"
   },
   {
     "id": 3,
     "question": "What are your clinic opening hours?",
-    "answer": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We are closed on Sundays and public holidays."
+    "answer": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We are closed on Sundays and public holidays.",
+    "question_hi": "क्लिनिक के समय क्या हैं?",
+    "question_mr": "क्लिनिकचे वेळापत्रक काय आहे?"
   },
   {
     "id": 4,
     "question": "Do I need a referral to book an appointment?",
-    "answer": "For most general appointments, no referral is needed. Specialist appointments may require a referral from your GP."
+    "answer": "For most general appointments, no referral is needed. Specialist appointments may require a referral from your GP.",
+    "question_hi": "क्या अपॉइंटमेंट के लिए रेफरल चाहिए?",
+    "question_mr": "अपॉइंटमेंटसाठी रेफरल लागते का?"
   },
   {
     "id": 5,
     "question": "What should I bring to my first appointment?",
-    "answer": "Please bring a valid photo ID, your insurance details if applicable, and a list of any current medications."
+    "answer": "Please bring a valid photo ID, your insurance details if applicable, and a list of any current medications.",
+    "question_hi": "पहली मुलाकात पर क्या लाना चाहिए?",
+    "question_mr": "पहिल्या भेटीसाठी काय आणावे?"
   },
   {
     "id": 6,
     "question": "How do I update my contact details?",
-    "answer": "You can update your contact details by calling reception or logging into the patient portal and editing your profile."
+    "answer": "You can update your contact details by calling reception or logging into the patient portal and editing your profile.",
+    "question_hi": "मैं अपने संपर्क विवरण कैसे बदलूँ?",
+    "question_mr": "माझा संपर्क तपशील कसा बदलावा?"
   },
   {
     "id": 7,
     "question": "Do you accept walk-in patients?",
-    "answer": "We accept a limited number of walk-ins each day for urgent, non-emergency concerns, but booking ahead is strongly recommended to avoid waiting."
+    "answer": "We accept a limited number of walk-ins each day for urgent, non-emergency concerns, but booking ahead is strongly recommended to avoid waiting.",
+    "question_hi": "क्या बिना अपॉइंटमेंट आ सकते हैं?",
+    "question_mr": "अपॉइंटमेंटशिवाय येता येते का?"
   },
   {
     "id": 8,
     "question": "How do I request a prescription refill?",
-    "answer": "You can request a prescription refill through the patient portal or by calling reception. Please allow 48 hours for the request to be processed."
+    "answer": "You can request a prescription refill through the patient portal or by calling reception. Please allow 48 hours for the request to be processed.",
+    "question_hi": "दवा की प्रिस्क्रिप्शन रिफिल कैसे मिलेगी?",
+    "question_mr": "औषधाचा रिफिल कसा मिळेल?"
   },
   {
     "id": 9,
     "question": "How do I access my medical records?",
-    "answer": "You can request access to your medical records through the patient portal, or by submitting a written request at reception. Processing usually takes 5 to 10 business days."
+    "answer": "You can request access to your medical records through the patient portal, or by submitting a written request at reception. Processing usually takes 5 to 10 business days.",
+    "question_hi": "मैं अपने मेडिकल रिकॉर्ड कैसे देख सकता हूँ?",
+    "question_mr": "माझे मेडिकल रेकॉर्ड कसे पाहू?"
   },
   {
     "id": 10,
     "question": "Do you offer telehealth or video appointments?",
-    "answer": "Yes, we offer video consultations for follow-up appointments and certain general concerns. You can request a telehealth appointment when booking."
+    "answer": "Yes, we offer video consultations for follow-up appointments and certain general concerns. You can request a telehealth appointment when booking.",
+    "question_hi": "क्या वीडियो कंसल्टेशन उपलब्ध है?",
+    "question_mr": "व्हिडिओ कन्सल्टेशन उपलब्ध आहे का?"
   },
   {
     "id": 11,
     "question": "What insurance providers do you work with?",
-    "answer": "We work with most major insurance providers. Please contact reception with your insurance details before your appointment so we can confirm coverage."
+    "answer": "We work with most major insurance providers. Please contact reception with your insurance details before your appointment so we can confirm coverage.",
+    "question_hi": "आप किन बीमा कंपनियों के साथ काम करते हैं?",
+    "question_mr": "तुम्ही कोणत्या विमा कंपन्यांशी काम करता?"
   },
   {
     "id": 12,
     "question": "What happens if I miss my appointment?",
-    "answer": "If you miss an appointment without cancelling in advance, a missed appointment fee may apply. Please contact reception as soon as possible if you cannot attend."
+    "answer": "If you miss an appointment without cancelling in advance, a missed appointment fee may apply. Please contact reception as soon as possible if you cannot attend.",
+    "question_hi": "अगर मैं अपॉइंटमेंट मिस कर दूँ तो क्या होगा?",
+    "question_mr": "अपॉइंटमेंट चुकल्यास काय होते?"
   },
   {
     "id": 13,
     "question": "Is parking available at the clinic?",
-    "answer": "Yes, free patient parking is available in the lot behind the clinic building. Additional street parking is also available nearby."
+    "answer": "Yes, free patient parking is available in the lot behind the clinic building. Additional street parking is also available nearby.",
+    "question_hi": "क्या क्लिनिक में पार्किंग है?",
+    "question_mr": "क्लिनिकमध्ये पार्किंग आहे का?"
   },
   {
     "id": 14,
     "question": "Can I bring a family member into my appointment?",
-    "answer": "Yes, you are welcome to bring a family member or support person into your appointment if you would like."
+    "answer": "Yes, you are welcome to bring a family member or support person into your appointment if you would like.",
+    "question_hi": "क्या परिवार का कोई सदस्य साथ आ सकता है?",
+    "question_mr": "परिवाराचा सदस्य सोबत येऊ शकतो का?"
   },
   {
     "id": 15,
     "question": "How do I get in touch with a specific doctor?",
-    "answer": "You can leave a message for your doctor through the patient portal or with reception, and they will get back to you as soon as possible."
+    "answer": "You can leave a message for your doctor through the patient portal or with reception, and they will get back to you as soon as possible.",
+    "question_hi": "किसी डॉक्टर से संपर्क कैसे करें?",
+    "question_mr": "डॉक्टरांशी संपर्क कसा करावा?"
   },
   {
     "id": 16,
     "question": "What should I do in a medical emergency?",
-    "answer": "If you are experiencing a medical emergency, please call your local emergency number immediately or go to the nearest emergency room. Do not wait for a callback from the clinic."
+    "answer": "If you are experiencing a medical emergency, please call your local emergency number immediately or go to the nearest emergency room. Do not wait for a callback from the clinic.",
+    "question_hi": "मेडिकल इमरजेंसी में क्या करें?",
+    "question_mr": "वैद्यकीय आपत्कालीन परिस्थितीत काय करावे?"
   },
   {
     "id": 17,
     "question": "How do I pay my bill?",
-    "answer": "Bills can be paid online through the patient portal, over the phone with reception, or in person at the clinic front desk."
+    "answer": "Bills can be paid online through the patient portal, over the phone with reception, or in person at the clinic front desk.",
+    "question_hi": "बिल का भुगतान कैसे करें?",
+    "question_mr": "बिलाचे देयक कसे भरावे?"
   },
   {
     "id": 18,
     "question": "Do you treat children and teenagers?",
-    "answer": "Yes, we see patients of all ages. For patients under 18, a parent or guardian must be present or have provided written consent."
+    "answer": "Yes, we see patients of all ages. For patients under 18, a parent or guardian must be present or have provided written consent.",
+    "question_hi": "क्या बच्चों को भी देखा जाता है?",
+    "question_mr": "मुलांनाही पाहिले जाते का?"
   },
   {
     "id": 19,
     "question": "How do I switch to a different doctor at the clinic?",
-    "answer": "You can request to switch doctors by speaking with reception. We will do our best to accommodate your preference based on availability."
+    "answer": "You can request to switch doctors by speaking with reception. We will do our best to accommodate your preference based on availability.",
+    "question_hi": "डॉक्टर बदलना हो तो क्या करें?",
+    "question_mr": "डॉक्टर बदलायचे असल्यास काय करावे?"
   },
   {
     "id": 20,
     "question": "Is the clinic wheelchair accessible?",
-    "answer": "Yes, the clinic is fully wheelchair accessible, including accessible parking, entrances, and restrooms."
+    "answer": "Yes, the clinic is fully wheelchair accessible, including accessible parking, entrances, and restrooms.",
+    "question_hi": "क्या क्लिनिक व्हीलचेयर से सुलभ है?",
+    "question_mr": "क्लिनिक व्हीलचेअरसाठी सुलभ आहे का?"
   },
   {
     "id": 21,
     "question": "What is this clinic?",
-    "answer": "We are a general medical clinic offering primary care, appointment scheduling, prescription support, and referrals to specialists. Our reception team can give you more detail on any specific service."
+    "answer": "We are a general medical clinic offering primary care, appointment scheduling, prescription support, and referrals to specialists. Our reception team can give you more detail on any specific service.",
+    "question_hi": "यह क्लिनिक किस तरह का है?",
+    "question_mr": "हे क्लिनिक कोणत्या प्रकारचे आहे?"
   },
   {
     "id": 22,
     "question": "What services does the clinic offer?",
-    "answer": "We offer general check-ups, follow-up appointments, prescription refills, telehealth consultations, and referrals to specialists. For a full list of services, please contact reception."
+    "answer": "We offer general check-ups, follow-up appointments, prescription refills, telehealth consultations, and referrals to specialists. For a full list of services, please contact reception.",
+    "question_hi": "क्लिनिक कौन सी सेवाएँ देता है?",
+    "question_mr": "क्लिनिक कोणत्या सेवा देते?"
   },
   {
     "id": 23,
     "question": "How much does an appointment cost?",
-    "answer": "Costs depend on your insurance coverage and the type of appointment. Please contact reception or check with your insurance provider for exact pricing."
+    "answer": "Costs depend on your insurance coverage and the type of appointment. Please contact reception or check with your insurance provider for exact pricing.",
+    "question_hi": "अपॉइंटमेंट की फीस कितनी है?",
+    "question_mr": "अपॉइंटमेंटची फी किती आहे?"
   },
   {
     "id": 24,
     "question": "What languages do you support?",
-    "answer": "Our main language of service is English. Please contact reception in advance if you need an interpreter, and we will do our best to accommodate you."
+    "answer": "Our main language of service is English. Please contact reception in advance if you need an interpreter, and we will do our best to accommodate you.",
+    "question_hi": "कौन सी भाषाओं में सेवा मिलती है?",
+    "question_mr": "कोणत्या भाषांमध्ये सेवा मिळते?"
   },
   {
     "id": 25,
     "question": "How do I register as a new patient?",
-    "answer": "You can register as a new patient by calling reception or filling out the registration form on our patient portal. You will need a valid photo ID and insurance details if applicable."
+    "answer": "You can register as a new patient by calling reception or filling out the registration form on our patient portal. You will need a valid photo ID and insurance details if applicable.",
+    "question_hi": "नए मरीज के रूप में पंजीकरण कैसे करें?",
+    "question_mr": "नवीन रुग्ण म्हणून नोंदणी कशी करावी?"
   },
   {
     "id": 26,
     "question": "How do I get my test results?",
-    "answer": "Test results are usually available through the patient portal within a few business days. If you have not received them, please contact reception."
+    "answer": "Test results are usually available through the patient portal within a few business days. If you have not received them, please contact reception.",
+    "question_hi": "टेस्ट रिपोर्ट कब मिलेगी?",
+    "question_mr": "टेस्ट रिपोर्ट कधी मिळेल?"
   },
   {
     "id": 27,
     "question": "Do you offer vaccinations?",
-    "answer": "Yes, we offer a range of routine vaccinations. Please contact reception to check availability and book a vaccination appointment."
+    "answer": "Yes, we offer a range of routine vaccinations. Please contact reception to check availability and book a vaccination appointment.",
+    "question_hi": "क्या टीकाकरण उपलब्ध है?",
+    "question_mr": "लसीकरण उपलब्ध आहे का?"
   },
   {
     "id": 28,
     "question": "Can I request a specific doctor for my appointment?",
-    "answer": "Yes, you can request a specific doctor when booking, subject to their availability. Please mention this when calling reception or booking online."
+    "answer": "Yes, you can request a specific doctor when booking, subject to their availability. Please mention this when calling reception or booking online.",
+    "question_hi": "क्या अपॉइंटमेंट के लिए कोई खास डॉक्टर माँग सकते हैं?",
+    "question_mr": "अपॉइंटमेंटसाठी विशिष्ट डॉक्टर मागता येते का?"
   },
   {
     "id": 29,
     "question": "What should I do if I have a complaint?",
-    "answer": "If you have a complaint, please contact reception or ask to speak with the practice manager. We take all feedback seriously and aim to respond promptly."
+    "answer": "If you have a complaint, please contact reception or ask to speak with the practice manager. We take all feedback seriously and aim to respond promptly.",
+    "question_hi": "शिकायत कहाँ करें?",
+    "question_mr": "तक्रार कुठे करावी?"
   },
   {
     "id": 30,
     "question": "Is my personal information kept private?",
-    "answer": "Yes, all patient information is kept confidential and handled in line with data protection regulations. Please contact reception if you have specific privacy questions."
+    "answer": "Yes, all patient information is kept confidential and handled in line with data protection regulations. Please contact reception if you have specific privacy questions.",
+    "question_hi": "क्या मेरी जानकारी गोपनीय रहती है?",
+    "question_mr": "माझी माहिती गोपनीय राहते का?"
   }
 ]

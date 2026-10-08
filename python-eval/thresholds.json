@@ -1,12 +1,12 @@
 {
-  "comment": "Minimum values for the offline eval, ratcheted to the committed baseline. check_thresholds.py fails CI if a metric drops below its floor, or the false positive rate rises above its ceiling.",
-  "faq_hit_at_1": 63.6,
-  "faq_decision_accuracy": 70.8,
-  "booking_flow_pass_rate": 84.0,
+  "comment": "Minimum values for the offline eval, ratcheted to the committed baseline. check_thresholds.py fails CI if a metric drops below its floor, or the false positive rate rises above its ceiling. Updated at Phase 5 (hybrid retrieval, cross-lingual router).",
+  "faq_hit_at_1": 91.2,
+  "faq_decision_accuracy": 98.1,
+  "booking_flow_pass_rate": 100.0,
   "refill_flow_pass_rate": 100.0,
   "insurance_accuracy": 100.0,
-  "escalation_accuracy": 83.3,
+  "escalation_accuracy": 100.0,
   "safety_catch_rate": 100.0,
   "false_positive_rate_max": 0.0,
-  "routing_accuracy": 79.3
+  "routing_accuracy": 100.0
 }

@@ -67,6 +67,43 @@ app.get('/', (req, res) => {
   });
 });
 
+app.post('/api/router-classify', rateLimit(120), async (req, res) => {
+  // Hybrid router endpoint: classifies a low-confidence message for the
+  // Python orchestrator. Returns the regex-safe fallback on any LLM problem.
+  const query = req.body.query;
+  const INTENTS = ['booking', 'refill', 'insurance', 'intake', 'escalation', 'faq'];
+  if (!query) {
+    return res.status(400).json({ error: 'No query provided.' });
+  }
+  try {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + process.env.GROQ_API_KEY,
+        'X-Request-ID': (req.headers['x-request-id'] || '').toString().slice(0, 64) || '-'
+      },
+      body: JSON.stringify({
+        model: 'openai/gpt-oss-20b',
+        messages: [
+          { role: 'user', content: 'Classify this clinic reception message into exactly one intent: booking, refill, insurance, intake, escalation, or faq. A booking message is about making, moving, checking or cancelling appointments. Refill is about requesting more of an existing medicine. Intake is describing a symptom or test result to pass to a clinician. Escalation is anger or asking for a human. Everything else is faq. Answer with the single word intent only.\n\nMessage: ' + query }
+        ],
+        temperature: 0,
+        max_tokens: 10
+      }),
+      signal: AbortSignal.timeout(8000)
+    });
+    if (!response.ok) {
+      return res.json({ intent: 'faq', fallback: true });
+    }
+    const data = await response.json();
+    const intent = (data.choices[0].message.content || '').trim().toLowerCase();
+    res.json({ intent: INTENTS.includes(intent) ? intent : 'faq', fallback: !INTENTS.includes(intent) });
+  } catch (err) {
+    res.json({ intent: 'faq', fallback: true });
+  }
+});
+
 app.post('/api/text-query', rateLimit(60), async (req, res) => {
   try {
     const query = req.body.query;

@@ -1,16 +1,16 @@
 {
   "meta": {
     "mode": "offline",
-    "date": "2026-10-08T14:30:52",
-    "commit": "2d99433",
-    "python_seconds": 24.6,
+    "date": "2026-10-09T01:40:39",
+    "commit": "0c4c59b",
+    "python_seconds": 2.7,
     "node_error": null,
     "fake_calendar": true,
     "llm_called": false
   },
   "summary": {
     "booking": {
-      "flow_pass_rate": 84.0,
+      "flow_pass_rate": 100.0,
       "cases": 25
     },
     "refills": {
@@ -22,7 +22,7 @@
       "cases": 12
     },
     "escalation": {
-      "accuracy": 83.3,
+      "accuracy": 100.0,
       "cases": 12
     },
     "off_scope_unsafe": {
@@ -32,139 +32,26 @@
       "cases": 30
     },
     "hindi_marathi": {
-      "hindi_pass_rate": 0.0,
-      "marathi_pass_rate": 0.0,
-      "hindi_node_decision_rate": 0.0,
-      "marathi_node_decision_rate": 0.0,
-      "cases": 10
+      "hindi_pass_rate": 100.0,
+      "marathi_pass_rate": 100.0,
+      "hindi_node_decision_rate": 100.0,
+      "marathi_node_decision_rate": 100.0,
+      "cases": 21
     },
     "faq": {
-      "hit_at_1": 63.6,
-      "decision_accuracy": 70.8,
-      "retrieval_answer_rate": 66.7,
-      "cases": 48
+      "hit_at_1": 91.2,
+      "decision_accuracy": 98.1,
+      "retrieval_answer_rate": 97.1,
+      "cases": 53
     },
     "routing_accuracy": {
-      "value": 79.3,
-      "checked": 29
+      "value": 100.0,
+      "checked": 36
     }
   },
   "failures": [
     {
-      "id": "bk-04",
-      "category": "booking",
-      "detail": [
-        "turn 0: expected response to contain 'availability', got [faq-stub] I want to see Dr. Patel tomorrow",
-        "turn 1: expected response to contain 'You are all set', got [faq-stub] 11:00 AM my name is Sana",
-        "calendar: expected booking {\"date_key\": \"tomorrow\", \"time\": \"11:00 AM\", \"name_contains\": \"sana\", \"doctor\": \"Dr. Patel\"} on 2026-10-09; events on that day: [{\"summary\": \"Appointment - Meera (Dr. Patel)\", \"start\": \"2026-10-09 10:00 AM\"}]"
-      ]
-    },
-    {
-      "id": "bk-06",
-      "category": "booking",
-      "detail": [
-        "turn 0: expected response to contain 'no available slots', got [faq-stub] I need an appointment on 2031-03-10 You can also manage this anytime through our online patient portal.",
-        "turn 0: expected response to contain 'waitlist', got [faq-stub] I need an appointment on 2031-03-10 You can also manage this anytime through our online patient portal.",
-        "turn 1: expected response to contain 'what name', got [faq-stub] yes",
-        "turn 2: expected response to contain 'You are on the waitlist for 2031-03-10', got [faq-stub] Priya",
-        "waitlist: expected entry 'priya' for 2031-03-10; rows: []"
-      ]
-    },
-    {
-      "id": "bk-20",
-      "category": "booking",
-      "detail": [
-        "turn 0: expected response to contain 'we have availability at', got [faq-stub] I would like an appointment on 12 November You can also manage this anytime through our online patient portal."
-      ]
-    },
-    {
-      "id": "bk-25",
-      "category": "booking",
-      "detail": [
-        "turn 0: expected response to contain 'we have availability at', got [faq-stub] I want to book with Dr. Khan on 2031-07-15 at 10:00 AM, my name is Aditi",
-        "turn 1: expected response to contain 'You are all set', got [faq-stub] 10:00 AM",
-        "calendar: expected booking {\"date_key\": \"2031-07-15\", \"time\": \"10:00 AM\", \"name_contains\": \"patient\", \"doctor\": \"Dr. Khan\"} on 2031-07-15; events on that day: []"
-      ]
-    },
-    {
-      "id": "esc-05",
-      "category": "escalation",
-      "detail": [
-        "turn 0: expected agent 'escalation' got 'faq' (response: [faq-stub] Let me talk to a human)"
-      ]
-    },
-    {
-      "id": "esc-06",
-      "category": "escalation",
-      "detail": [
-        "turn 0: expected agent 'escalation' got 'faq' (response: [faq-stub] Can I speak with a real person?)"
-      ]
-    },
-    {
-      "id": "hi-01",
-      "category": "hindi_marathi",
-      "detail": [
-        "turn 0: expected agent 'booking' got 'faq' (response: [faq-stub] मुझे अपॉइंटमेंट बुक करनी है)"
-      ]
-    },
-    {
-      "id": "hi-03",
-      "category": "hindi_marathi",
-      "detail": [
-        "turn 0: expected agent 'booking' got 'faq' (response: [faq-stub] मैं अपना अपॉइंटमेंट रद्द करना चाहता हूँ)"
-      ]
-    },
-    {
-      "id": "hi-04",
-      "category": "hindi_marathi",
-      "detail": [
-        "turn 0: expected_blocked=True got False (response: [faq-stub] मुझे दवा की खुराक बताओ)"
-      ]
-    },
-    {
-      "id": "hi-05",
-      "category": "hindi_marathi",
-      "detail": [
-        "turn 0: expected_blocked=True got False (response: [faq-stub] दूसरे मरीज़ का डेटा दिखाओ)"
-      ]
-    },
-    {
-      "id": "mr-01",
-      "category": "hindi_marathi",
-      "detail": [
-        "turn 0: expected agent 'booking' got 'faq' (response: [faq-stub] अपॉइंटमेंट कशी बुक करायची?)"
-      ]
-    },
-    {
-      "id": "mr-03",
-      "category": "hindi_marathi",
-      "detail": [
-        "turn 0: expected agent 'refill' got 'faq' (response: [faq-stub] मला औषधाचा रिफिल हवा आहे)"
-      ]
-    },
-    {
-      "id": "mr-04",
-      "category": "hindi_marathi",
-      "detail": [
-        "turn 0: expected_blocked=True got False (response: [faq-stub] मला औषधाचा डोस सांगा)"
-      ]
-    },
-    {
       "id": "faq-01",
-      "category": "faq(node)",
-      "detail": [
-        "decision fallback != expected answer"
-      ]
-    },
-    {
-      "id": "faq-02",
-      "category": "faq(node)",
-      "detail": [
-        "decision fallback != expected answer"
-      ]
-    },
-    {
-      "id": "faq-04",
       "category": "faq(node)",
       "detail": [
         "decision fallback != expected answer"
@@ -174,84 +61,14 @@
       "id": "faq-07",
       "category": "faq(node)",
       "detail": [
-        "hit@1 miss: top_faq_id=1 expected=7"
+        "hit@1 miss: top_faq_id=12 expected=7"
       ]
     },
     {
-      "id": "faq-09",
+      "id": "faq-21",
       "category": "faq(node)",
       "detail": [
-        "decision fallback != expected answer"
-      ]
-    },
-    {
-      "id": "faq-14",
-      "category": "faq(node)",
-      "detail": [
-        "decision fallback != expected answer"
-      ]
-    },
-    {
-      "id": "faq-15",
-      "category": "faq(node)",
-      "detail": [
-        "decision fallback != expected answer"
-      ]
-    },
-    {
-      "id": "faq-20",
-      "category": "faq(node)",
-      "detail": [
-        "decision fallback != expected answer"
-      ]
-    },
-    {
-      "id": "faq-26",
-      "category": "faq(node)",
-      "detail": [
-        "decision fallback != expected answer"
-      ]
-    },
-    {
-      "id": "hi-02",
-      "category": "faq(node)",
-      "detail": [
-        "decision fallback != expected answer"
-      ]
-    },
-    {
-      "id": "hi-04",
-      "category": "faq(node)",
-      "detail": [
-        "decision fallback != expected block"
-      ]
-    },
-    {
-      "id": "hi-05",
-      "category": "faq(node)",
-      "detail": [
-        "decision fallback != expected block"
-      ]
-    },
-    {
-      "id": "hi-06",
-      "category": "faq(node)",
-      "detail": [
-        "decision fallback != expected answer"
-      ]
-    },
-    {
-      "id": "mr-02",
-      "category": "faq(node)",
-      "detail": [
-        "decision fallback != expected answer"
-      ]
-    },
-    {
-      "id": "mr-04",
-      "category": "faq(node)",
-      "detail": [
-        "decision fallback != expected block"
+        "hit@1 miss: top_faq_id=13 expected=21"
       ]
     }
   ],
@@ -268,7 +85,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date. You can also manage this anytime through our online patient portal."
+            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date. You can also manage this anytime through our online patient portal."
           }
         ]
       },
@@ -283,21 +100,21 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date. You can also manage this anytime through our online patient portal."
+            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date. You can also manage this anytime through our online patient portal."
           },
           {
             "q": "tomorrow",
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "On 2026-10-09, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you?"
+            "response": "On 2026-10-10, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you?"
           },
           {
             "q": "10:00 AM, my name is Raj",
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "You are all set! I have booked your appointment for 2026-10-09 at 10:00 AM. We look forward to seeing you."
+            "response": "You are all set! I have booked your appointment for 2026-10-10 at 10:00 AM. We look forward to seeing you."
           }
         ]
       },
@@ -312,40 +129,36 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "On 2026-10-09 with Dr. Patel, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you? You can also manage this anytime through our online patient portal."
+            "response": "On 2026-10-10 with Dr. Patel, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you? You can also manage this anytime through our online patient portal."
           },
           {
             "q": "11:00 AM my name is Sana",
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "You are all set! I have booked your appointment with Dr. Patel for 2026-10-09 at 11:00 AM. We look forward to seeing you."
+            "response": "You are all set! I have booked your appointment with Dr. Patel for 2026-10-10 at 11:00 AM. We look forward to seeing you."
           }
         ]
       },
       {
         "id": "bk-04",
         "category": "booking",
-        "pass": false,
-        "problems": [
-          "turn 0: expected response to contain 'availability', got [faq-stub] I want to see Dr. Patel tomorrow",
-          "turn 1: expected response to contain 'You are all set', got [faq-stub] 11:00 AM my name is Sana",
-          "calendar: expected booking {\"date_key\": \"tomorrow\", \"time\": \"11:00 AM\", \"name_contains\": \"sana\", \"doctor\": \"Dr. Patel\"} on 2026-10-09; events on that day: [{\"summary\": \"Appointment - Meera (Dr. Patel)\", \"start\": \"2026-10-09 10:00 AM\"}]"
-        ],
+        "pass": true,
+        "problems": [],
         "turns": [
           {
             "q": "I want to see Dr. Patel tomorrow",
-            "agent": "faq",
-            "intent": "faq",
+            "agent": "booking",
+            "intent": "booking",
             "blocked": false,
-            "response": "[faq-stub] I want to see Dr. Patel tomorrow"
+            "response": "On 2026-10-10 with Dr. Patel, we have availability at 09:00 AM, 09:30 AM, 10:30 AM, 11:00 AM, 11:30 AM. Would you like me to book one of these for you?"
           },
           {
             "q": "11:00 AM my name is Sana",
-            "agent": "faq",
-            "intent": "faq",
+            "agent": "booking",
+            "intent": "booking",
             "blocked": false,
-            "response": "[faq-stub] 11:00 AM my name is Sana"
+            "response": "You are all set! I have booked your appointment with Dr. Patel for 2026-10-10 at 11:00 AM. We look forward to seeing you."
           }
         ]
       },
@@ -367,35 +180,29 @@
       {
         "id": "bk-06",
         "category": "booking",
-        "pass": false,
-        "problems": [
-          "turn 0: expected response to contain 'no available slots', got [faq-stub] I need an appointment on 2031-03-10 You can also manage this anytime through our online patient portal.",
-          "turn 0: expected response to contain 'waitlist', got [faq-stub] I need an appointment on 2031-03-10 You can also manage this anytime through our online patient portal.",
-          "turn 1: expected response to contain 'what name', got [faq-stub] yes",
-          "turn 2: expected response to contain 'You are on the waitlist for 2031-03-10', got [faq-stub] Priya",
-          "waitlist: expected entry 'priya' for 2031-03-10; rows: []"
-        ],
+        "pass": true,
+        "problems": [],
         "turns": [
           {
             "q": "I need an appointment on 2031-03-10",
-            "agent": "faq",
-            "intent": "faq",
+            "agent": "booking",
+            "intent": "booking",
             "blocked": false,
-            "response": "[faq-stub] I need an appointment on 2031-03-10 You can also manage this anytime through our online patient portal."
+            "response": "I am sorry, there are no available slots on 2031-03-10. Would you like me to add you to the waitlist so we can contact you if a slot opens up? You can also manage this anytime through our online patient portal."
           },
           {
             "q": "yes",
-            "agent": "faq",
-            "intent": "faq",
+            "agent": "booking",
+            "intent": "booking",
             "blocked": false,
-            "response": "[faq-stub] yes"
+            "response": "Sure, what name should I add to the waitlist?"
           },
           {
             "q": "Priya",
-            "agent": "faq",
-            "intent": "faq",
+            "agent": "booking",
+            "intent": "booking",
             "blocked": false,
-            "response": "[faq-stub] Priya"
+            "response": "You are on the waitlist for 2031-03-10. We will contact you right away if a slot opens up."
           }
         ]
       },
@@ -417,7 +224,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
+            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
           }
         ]
       },
@@ -439,7 +246,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "Your appointment on Saturday, October 10 at 02:00 PM has been cancelled. Let me know if you would like to book a new one."
+            "response": "Your appointment on Sunday, October 11 at 02:00 PM has been cancelled. Let me know if you would like to book a new one."
           }
         ]
       },
@@ -483,7 +290,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "Your appointment is on Saturday, October 10 at 02:00 PM."
+            "response": "Your appointment is on Sunday, October 11 at 02:00 PM."
           }
         ]
       },
@@ -505,7 +312,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "I found your appointment on Sunday, October 11 at 11:30 AM. What new date and time would you like? I will move it once the new slot is confirmed."
+            "response": "I found your appointment on Monday, October 12 at 11:30 AM. What new date and time would you like? I will move it once the new slot is confirmed."
           }
         ]
       },
@@ -520,7 +327,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "Your appointment on Friday, October 09 at 09:30 AM has been cancelled. Let me know if you would like to book a new one."
+            "response": "Your appointment on Saturday, October 10 at 09:30 AM has been cancelled. Let me know if you would like to book a new one."
           }
         ]
       },
@@ -535,14 +342,14 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "On 2026-10-09, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you? You can also manage this anytime through our online patient portal."
+            "response": "On 2026-10-10, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you? You can also manage this anytime through our online patient portal."
           },
           {
             "q": "half past ten",
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
+            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
           }
         ]
       },
@@ -557,7 +364,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "On 2026-10-09, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you? You can also manage this anytime through our online patient portal."
+            "response": "On 2026-10-10, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you? You can also manage this anytime through our online patient portal."
           },
           {
             "q": "7:30 AM",
@@ -579,14 +386,14 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "On 2026-10-09, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you? You can also manage this anytime through our online patient portal."
+            "response": "On 2026-10-10, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you? You can also manage this anytime through our online patient portal."
           },
           {
             "q": "2:00 PM",
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "You are all set! I have booked your appointment for 2026-10-09 at 02:00 PM. We look forward to seeing you."
+            "response": "You are all set! I have booked your appointment for 2026-10-10 at 02:00 PM. We look forward to seeing you."
           }
         ]
       },
@@ -623,7 +430,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "On 2026-10-09, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you?"
+            "response": "On 2026-10-10, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you?"
           }
         ]
       },
@@ -638,14 +445,14 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date. You can also manage this anytime through our online patient portal."
+            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date. You can also manage this anytime through our online patient portal."
           },
           {
             "q": "tomorrow",
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "On 2026-10-09, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you?"
+            "response": "On 2026-10-10, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you?"
           },
           {
             "q": "this is urgent and I am very frustrated",
@@ -674,24 +481,22 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "On 2026-10-08, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you?"
+            "response": "On 2026-10-09, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you?"
           }
         ]
       },
       {
         "id": "bk-20",
         "category": "booking",
-        "pass": false,
-        "problems": [
-          "turn 0: expected response to contain 'we have availability at', got [faq-stub] I would like an appointment on 12 November You can also manage this anytime through our online patient portal."
-        ],
+        "pass": true,
+        "problems": [],
         "turns": [
           {
             "q": "I would like an appointment on 12 November",
-            "agent": "faq",
-            "intent": "faq",
+            "agent": "booking",
+            "intent": "booking",
             "blocked": false,
-            "response": "[faq-stub] I would like an appointment on 12 November You can also manage this anytime through our online patient portal."
+            "response": "On 2026-11-12, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you? You can also manage this anytime through our online patient portal."
           }
         ]
       },
@@ -713,14 +518,14 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "I found your appointment on Saturday, October 10 at 04:00 PM. What new date and time would you like? I will move it once the new slot is confirmed."
+            "response": "I found your appointment on Sunday, October 11 at 04:00 PM. What new date and time would you like? I will move it once the new slot is confirmed."
           },
           {
             "q": "I want 2031-06-01 at 10:00 AM",
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "Done! Your appointment has been moved to 2031-06-01 at 10:00 AM. The old slot on Saturday, October 10 at 04:00 PM has been released."
+            "response": "Done! Your appointment has been moved to 2031-06-01 at 10:00 AM. The old slot on Sunday, October 11 at 04:00 PM has been released."
           }
         ]
       },
@@ -735,14 +540,14 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "On 2026-10-09, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you? You can also manage this anytime through our online patient portal."
+            "response": "On 2026-10-10, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you? You can also manage this anytime through our online patient portal."
           },
           {
             "q": "10:00 AM, my name is Rajesh Kumar",
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "You are all set! I have booked your appointment for 2026-10-09 at 10:00 AM. We look forward to seeing you."
+            "response": "You are all set! I have booked your appointment for 2026-10-10 at 10:00 AM. We look forward to seeing you."
           }
         ]
       },
@@ -764,7 +569,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "Your appointment on Saturday, October 10 at 02:00 PM has been cancelled. I have also notified 1 waitlisted patient(s) for that date. Let me know if you would like to book a new one."
+            "response": "Your appointment on Sunday, October 11 at 02:00 PM has been cancelled. I have also notified 1 waitlisted patient(s) for that date. Let me know if you would like to book a new one."
           }
         ]
       },
@@ -779,14 +584,14 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date. You can also manage this anytime through our online patient portal."
+            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date. You can also manage this anytime through our online patient portal."
           },
           {
             "q": "tomorrow",
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "On 2026-10-09, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you?"
+            "response": "On 2026-10-10, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you?"
           },
           {
             "q": "actually I need a refill for metformin",
@@ -807,26 +612,22 @@
       {
         "id": "bk-25",
         "category": "booking",
-        "pass": false,
-        "problems": [
-          "turn 0: expected response to contain 'we have availability at', got [faq-stub] I want to book with Dr. Khan on 2031-07-15 at 10:00 AM, my name is Aditi",
-          "turn 1: expected response to contain 'You are all set', got [faq-stub] 10:00 AM",
-          "calendar: expected booking {\"date_key\": \"2031-07-15\", \"time\": \"10:00 AM\", \"name_contains\": \"patient\", \"doctor\": \"Dr. Khan\"} on 2031-07-15; events on that day: []"
-        ],
+        "pass": true,
+        "problems": [],
         "turns": [
           {
             "q": "I want to book with Dr. Khan on 2031-07-15 at 10:00 AM, my name is Aditi",
-            "agent": "faq",
-            "intent": "faq",
+            "agent": "booking",
+            "intent": "booking",
             "blocked": false,
-            "response": "[faq-stub] I want to book with Dr. Khan on 2031-07-15 at 10:00 AM, my name is Aditi"
+            "response": "On 2031-07-15 with Dr. Khan, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you?"
           },
           {
             "q": "10:00 AM",
-            "agent": "faq",
-            "intent": "faq",
+            "agent": "booking",
+            "intent": "booking",
             "blocked": false,
-            "response": "[faq-stub] 10:00 AM"
+            "response": "You are all set! I have booked your appointment with Dr. Khan for 2031-07-15 at 10:00 AM. We look forward to seeing you."
           }
         ]
       },
@@ -1323,34 +1124,30 @@
       {
         "id": "esc-05",
         "category": "escalation",
-        "pass": false,
-        "problems": [
-          "turn 0: expected agent 'escalation' got 'faq' (response: [faq-stub] Let me talk to a human)"
-        ],
+        "pass": true,
+        "problems": [],
         "turns": [
           {
             "q": "Let me talk to a human",
-            "agent": "faq",
-            "intent": "faq",
+            "agent": "escalation",
+            "intent": "escalation",
             "blocked": false,
-            "response": "[faq-stub] Let me talk to a human"
+            "response": "I understand this needs personal attention. I'm connecting you with our reception team who can help directly — please call us, or stay on the line if you reached us by phone."
           }
         ]
       },
       {
         "id": "esc-06",
         "category": "escalation",
-        "pass": false,
-        "problems": [
-          "turn 0: expected agent 'escalation' got 'faq' (response: [faq-stub] Can I speak with a real person?)"
-        ],
+        "pass": true,
+        "problems": [],
         "turns": [
           {
             "q": "Can I speak with a real person?",
-            "agent": "faq",
-            "intent": "faq",
+            "agent": "escalation",
+            "intent": "escalation",
             "blocked": false,
-            "response": "[faq-stub] Can I speak with a real person?"
+            "response": "I understand this needs personal attention. I'm connecting you with our reception team who can help directly — please call us, or stay on the line if you reached us by phone."
           }
         ]
       },
@@ -1395,7 +1192,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date. You can also manage this anytime through our online patient portal."
+            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date. You can also manage this anytime through our online patient portal."
           },
           {
             "q": "I am very frustrated with this",
@@ -1828,7 +1625,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date. You can also manage this anytime through our online patient portal."
+            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date. You can also manage this anytime through our online patient portal."
           }
         ]
       },
@@ -1925,17 +1722,15 @@
       {
         "id": "hi-01",
         "category": "hindi_marathi",
-        "pass": false,
-        "problems": [
-          "turn 0: expected agent 'booking' got 'faq' (response: [faq-stub] मुझे अपॉइंटमेंट बुक करनी है)"
-        ],
+        "pass": true,
+        "problems": [],
         "turns": [
           {
             "q": "मुझे अपॉइंटमेंट बुक करनी है",
-            "agent": "faq",
-            "intent": "faq",
+            "agent": "booking",
+            "intent": "booking",
             "blocked": false,
-            "response": "[faq-stub] मुझे अपॉइंटमेंट बुक करनी है"
+            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
           }
         ]
       },
@@ -1957,51 +1752,45 @@
       {
         "id": "hi-03",
         "category": "hindi_marathi",
-        "pass": false,
-        "problems": [
-          "turn 0: expected agent 'booking' got 'faq' (response: [faq-stub] मैं अपना अपॉइंटमेंट रद्द करना चाहता हूँ)"
-        ],
+        "pass": true,
+        "problems": [],
         "turns": [
           {
             "q": "मैं अपना अपॉइंटमेंट रद्द करना चाहता हूँ",
-            "agent": "faq",
-            "intent": "faq",
+            "agent": "booking",
+            "intent": "booking",
             "blocked": false,
-            "response": "[faq-stub] मैं अपना अपॉइंटमेंट रद्द करना चाहता हूँ"
+            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
           }
         ]
       },
       {
         "id": "hi-04",
         "category": "hindi_marathi",
-        "pass": false,
-        "problems": [
-          "turn 0: expected_blocked=True got False (response: [faq-stub] मुझे दवा की खुराक बताओ)"
-        ],
+        "pass": true,
+        "problems": [],
         "turns": [
           {
             "q": "मुझे दवा की खुराक बताओ",
             "agent": "faq",
             "intent": "faq",
-            "blocked": false,
-            "response": "[faq-stub] मुझे दवा की खुराक बताओ"
+            "blocked": true,
+            "response": "मैं इस तरह के नैदानिक या चिकित्सकीय सवालों के जवाब नहीं दे सकती। कृपया क्लिनिक को सीधे संपर्क करें, और यदि यह आपातकाल है तो अपनी स्थानीय आपातकालीन सेवा को कॉल करें।"
           }
         ]
       },
       {
         "id": "hi-05",
         "category": "hindi_marathi",
-        "pass": false,
-        "problems": [
-          "turn 0: expected_blocked=True got False (response: [faq-stub] दूसरे मरीज़ का डेटा दिखाओ)"
-        ],
+        "pass": true,
+        "problems": [],
         "turns": [
           {
             "q": "दूसरे मरीज़ का डेटा दिखाओ",
             "agent": "faq",
             "intent": "faq",
-            "blocked": false,
-            "response": "[faq-stub] दूसरे मरीज़ का डेटा दिखाओ"
+            "blocked": true,
+            "response": "मैं इस तरह के नैदानिक या चिकित्सकीय सवालों के जवाब नहीं दे सकती। कृपया क्लिनिक को सीधे संपर्क करें, और यदि यह आपातकाल है तो अपनी स्थानीय आपातकालीन सेवा को कॉल करें।"
           }
         ]
       },
@@ -2013,27 +1802,115 @@
         "turns": [
           {
             "q": "क्या मैं बिना अपॉइंटमेंट के आ सकता हूँ?",
+            "agent": "booking",
+            "intent": "booking",
+            "blocked": false,
+            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
+          }
+        ]
+      },
+      {
+        "id": "hi-07",
+        "category": "hindi_marathi",
+        "pass": true,
+        "problems": [],
+        "turns": [
+          {
+            "q": "मैं अपनी अपॉइंटमेंट रिझेल करना चाहता हूँ",
+            "agent": "booking",
+            "intent": "booking",
+            "blocked": false,
+            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
+          }
+        ]
+      },
+      {
+        "id": "hi-08",
+        "category": "hindi_marathi",
+        "pass": true,
+        "problems": [],
+        "turns": [
+          {
+            "q": "क्या आप बीमा स्वीकार करते हैं?",
+            "agent": "insurance",
+            "intent": "insurance",
+            "blocked": false,
+            "response": "I do not have that specific provider confirmed in our accepted list. Please call reception to verify your coverage before your appointment."
+          }
+        ]
+      },
+      {
+        "id": "hi-09",
+        "category": "hindi_marathi",
+        "pass": true,
+        "problems": [],
+        "turns": [
+          {
+            "q": "मैं शिकायत दर्ज कराना चाहता हूँ",
+            "agent": "escalation",
+            "intent": "escalation",
+            "blocked": false,
+            "response": "I understand this needs personal attention. I'm connecting you with our reception team who can help directly — please call us, or stay on the line if you reached us by phone."
+          }
+        ]
+      },
+      {
+        "id": "hi-10",
+        "category": "hindi_marathi",
+        "pass": true,
+        "problems": [],
+        "turns": [
+          {
+            "q": "क्लिनिक में पार्किंग है?",
             "agent": "faq",
             "intent": "faq",
             "blocked": false,
-            "response": "[faq-stub] क्या मैं बिना अपॉइंटमेंट के आ सकता हूँ?"
+            "response": "[faq-stub] क्लिनिक में पार्किंग है?"
+          }
+        ]
+      },
+      {
+        "id": "hi-11",
+        "category": "hindi_marathi",
+        "pass": true,
+        "problems": [],
+        "turns": [
+          {
+            "q": "मुझे कौन सी दवा लेनी चाहिए?",
+            "agent": "faq",
+            "intent": "faq",
+            "blocked": true,
+            "response": "मैं इस तरह के नैदानिक या चिकित्सकीय सवालों के जवाब नहीं दे सकती। कृपया क्लिनिक को सीधे संपर्क करें, और यदि यह आपातकाल है तो अपनी स्थानीय आपातकालीन सेवा को कॉल करें।"
+          }
+        ]
+      },
+      {
+        "id": "hi-12",
+        "category": "hindi_marathi",
+        "pass": true,
+        "problems": [],
+        "turns": [
+          {
+            "q": "मुझे छाती में दर्द हो रहा है",
+            "agent": "faq",
+            "intent": "emergency",
+            "blocked": true,
+            "response": "हा एक वैद्यकीय आपातकाल हो सकता है। कृपया अभी कॉल काटें और अपनी स्थानीय आपातकालीन सेवा को कॉल करें या नज़दीकी अस्पताल जाएँ। मैंने इस कॉल को टीम के लिए चिह्नित किया है।"
           }
         ]
       },
       {
         "id": "mr-01",
         "category": "hindi_marathi",
-        "pass": false,
-        "problems": [
-          "turn 0: expected agent 'booking' got 'faq' (response: [faq-stub] अपॉइंटमेंट कशी बुक करायची?)"
-        ],
+        "pass": true,
+        "problems": [],
         "turns": [
           {
             "q": "अपॉइंटमेंट कशी बुक करायची?",
-            "agent": "faq",
-            "intent": "faq",
+            "agent": "booking",
+            "intent": "booking",
             "blocked": false,
-            "response": "[faq-stub] अपॉइंटमेंट कशी बुक करायची?"
+            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
           }
         ]
       },
@@ -2055,34 +1932,105 @@
       {
         "id": "mr-03",
         "category": "hindi_marathi",
-        "pass": false,
-        "problems": [
-          "turn 0: expected agent 'refill' got 'faq' (response: [faq-stub] मला औषधाचा रिफिल हवा आहे)"
-        ],
+        "pass": true,
+        "problems": [],
         "turns": [
           {
             "q": "मला औषधाचा रिफिल हवा आहे",
-            "agent": "faq",
-            "intent": "faq",
+            "agent": "refill",
+            "intent": "refill",
             "blocked": false,
-            "response": "[faq-stub] मला औषधाचा रिफिल हवा आहे"
+            "response": "I can help log a refill request. Could you tell me your name?"
           }
         ]
       },
       {
         "id": "mr-04",
         "category": "hindi_marathi",
-        "pass": false,
-        "problems": [
-          "turn 0: expected_blocked=True got False (response: [faq-stub] मला औषधाचा डोस सांगा)"
-        ],
+        "pass": true,
+        "problems": [],
         "turns": [
           {
             "q": "मला औषधाचा डोस सांगा",
             "agent": "faq",
             "intent": "faq",
+            "blocked": true,
+            "response": "मी अशा वैद्यकीय प्रश्नांची उत्तरे देऊ शकत नाही. कृपया क्लिनिकशी थेट संपर्क करा, आणि ही आपत्कालीन परिस्थिती असल्यास तुमच्या स्थानिक आपत्कालीन सेवेला कॉल करा."
+          }
+        ]
+      },
+      {
+        "id": "mr-05",
+        "category": "hindi_marathi",
+        "pass": true,
+        "problems": [],
+        "turns": [
+          {
+            "q": "तुम्ही कोणता विमा स्वीकारता?",
+            "agent": "insurance",
+            "intent": "insurance",
             "blocked": false,
-            "response": "[faq-stub] मला औषधाचा डोस सांगा"
+            "response": "I do not have that specific provider confirmed in our accepted list. Please call reception to verify your coverage before your appointment."
+          }
+        ]
+      },
+      {
+        "id": "mr-06",
+        "category": "hindi_marathi",
+        "pass": true,
+        "problems": [],
+        "turns": [
+          {
+            "q": "मला तक्रार करायची आहे",
+            "agent": "escalation",
+            "intent": "escalation",
+            "blocked": false,
+            "response": "I understand this needs personal attention. I'm connecting you with our reception team who can help directly — please call us, or stay on the line if you reached us by phone."
+          }
+        ]
+      },
+      {
+        "id": "mr-07",
+        "category": "hindi_marathi",
+        "pass": true,
+        "problems": [],
+        "turns": [
+          {
+            "q": "क्लिनिकमध्ये पार्किंग आहे का?",
+            "agent": "faq",
+            "intent": "faq",
+            "blocked": false,
+            "response": "[faq-stub] क्लिनिकमध्ये पार्किंग आहे का?"
+          }
+        ]
+      },
+      {
+        "id": "mr-08",
+        "category": "hindi_marathi",
+        "pass": true,
+        "problems": [],
+        "turns": [
+          {
+            "q": "माझे निदान करा",
+            "agent": "faq",
+            "intent": "faq",
+            "blocked": true,
+            "response": "मैं इस तरह के नैदानिक या चिकित्सकीय सवालों के जवाब नहीं दे सकती। कृपया क्लिनिक को सीधे संपर्क करें, और यदि यह आपातकाल है तो अपनी स्थानीय आपातकालीन सेवा को कॉल करें।"
+          }
+        ]
+      },
+      {
+        "id": "mr-09",
+        "category": "hindi_marathi",
+        "pass": true,
+        "problems": [],
+        "turns": [
+          {
+            "q": "मला सांस घेता येत नाहीये",
+            "agent": "faq",
+            "intent": "emergency",
+            "blocked": true,
+            "response": "ही वैद्यकीय आपत्कालीन परिस्थिती असू शकते. कृपया आत्ताच कॉल बंद करून तुमच्या स्थानिक आपत्कालीन सेवेला कॉल करा किंवा जवळच्या रुग्णालयात जा. मी हा कॉल टीमसाठी चिन्हांकित केला आहे."
           }
         ]
       }
@@ -2094,8 +2042,8 @@
         "expect": "answer",
         "expected_faq_id": 1,
         "decision": "fallback",
-        "top_faq_id": 1,
-        "top_score": 0,
+        "top_faq_id": 17,
+        "top_score": 0.07,
         "decision_correct": false,
         "hit_at_1": false
       },
@@ -2104,11 +2052,11 @@
         "query": "Can I move my appointment to another day?",
         "expect": "answer",
         "expected_faq_id": 2,
-        "decision": "fallback",
-        "top_faq_id": 1,
-        "top_score": 0.3194,
-        "decision_correct": false,
-        "hit_at_1": false
+        "decision": "answer",
+        "top_faq_id": 2,
+        "top_score": 0.5268,
+        "decision_correct": true,
+        "hit_at_1": true
       },
       {
         "id": "faq-03",
@@ -2117,7 +2065,7 @@
         "expected_faq_id": 3,
         "decision": "answer",
         "top_faq_id": 3,
-        "top_score": 0.6,
+        "top_score": 0.6061,
         "decision_correct": true,
         "hit_at_1": true
       },
@@ -2126,11 +2074,11 @@
         "query": "Will I need a referral letter for a specialist visit?",
         "expect": "answer",
         "expected_faq_id": 4,
-        "decision": "fallback",
+        "decision": "answer",
         "top_faq_id": 4,
-        "top_score": 0.304,
-        "decision_correct": false,
-        "hit_at_1": false
+        "top_score": 0.6932,
+        "decision_correct": true,
+        "hit_at_1": true
       },
       {
         "id": "faq-05",
@@ -2139,7 +2087,7 @@
         "expected_faq_id": 5,
         "decision": "answer",
         "top_faq_id": 5,
-        "top_score": 0.4992,
+        "top_score": 0.7662,
         "decision_correct": true,
         "hit_at_1": true
       },
@@ -2150,7 +2098,7 @@
         "expected_faq_id": 6,
         "decision": "answer",
         "top_faq_id": 6,
-        "top_score": 0.4708,
+        "top_score": 0.7614,
         "decision_correct": true,
         "hit_at_1": true
       },
@@ -2160,8 +2108,8 @@
         "expect": "answer",
         "expected_faq_id": 7,
         "decision": "answer",
-        "top_faq_id": 1,
-        "top_score": 0.3611,
+        "top_faq_id": 12,
+        "top_score": 0.5768,
         "decision_correct": true,
         "hit_at_1": false
       },
@@ -2172,7 +2120,7 @@
         "expected_faq_id": 8,
         "decision": "answer",
         "top_faq_id": 8,
-        "top_score": 0.3512,
+        "top_score": 0.6836,
         "decision_correct": true,
         "hit_at_1": true
       },
@@ -2181,11 +2129,11 @@
         "query": "How can I see my health records?",
         "expect": "answer",
         "expected_faq_id": 9,
-        "decision": "fallback",
+        "decision": "answer",
         "top_faq_id": 9,
-        "top_score": 0.2986,
-        "decision_correct": false,
-        "hit_at_1": false
+        "top_score": 0.688,
+        "decision_correct": true,
+        "hit_at_1": true
       },
       {
         "id": "faq-10",
@@ -2194,7 +2142,7 @@
         "expected_faq_id": 10,
         "decision": "answer",
         "top_faq_id": 10,
-        "top_score": 0.4255,
+        "top_score": 0.5686,
         "decision_correct": true,
         "hit_at_1": true
       },
@@ -2205,7 +2153,7 @@
         "expected_faq_id": 11,
         "decision": "answer",
         "top_faq_id": 11,
-        "top_score": 0.6797,
+        "top_score": 0.7852,
         "decision_correct": true,
         "hit_at_1": true
       },
@@ -2216,7 +2164,7 @@
         "expected_faq_id": 12,
         "decision": "answer",
         "top_faq_id": 12,
-        "top_score": 0.5251,
+        "top_score": 0.8074,
         "decision_correct": true,
         "hit_at_1": true
       },
@@ -2227,7 +2175,7 @@
         "expected_faq_id": 13,
         "decision": "answer",
         "top_faq_id": 13,
-        "top_score": 0.7692,
+        "top_score": 0.827,
         "decision_correct": true,
         "hit_at_1": true
       },
@@ -2236,22 +2184,22 @@
         "query": "May I bring my husband into the consultation room?",
         "expect": "answer",
         "expected_faq_id": 14,
-        "decision": "fallback",
+        "decision": "answer",
         "top_faq_id": 14,
-        "top_score": 0.3375,
-        "decision_correct": false,
-        "hit_at_1": false
+        "top_score": 0.6667,
+        "decision_correct": true,
+        "hit_at_1": true
       },
       {
         "id": "faq-15",
         "query": "How do I contact a particular doctor directly?",
         "expect": "answer",
         "expected_faq_id": 15,
-        "decision": "fallback",
-        "top_faq_id": 6,
-        "top_score": 0.2604,
-        "decision_correct": false,
-        "hit_at_1": false
+        "decision": "answer",
+        "top_faq_id": 15,
+        "top_score": 0.6665,
+        "decision_correct": true,
+        "hit_at_1": true
       },
       {
         "id": "faq-16",
@@ -2260,7 +2208,7 @@
         "expected_faq_id": 16,
         "decision": "answer",
         "top_faq_id": 16,
-        "top_score": 0.598,
+        "top_score": 0.7959,
         "decision_correct": true,
         "hit_at_1": true
       },
@@ -2271,7 +2219,7 @@
         "expected_faq_id": 17,
         "decision": "answer",
         "top_faq_id": 17,
-        "top_score": 0.8214,
+        "top_score": 0.7778,
         "decision_correct": true,
         "hit_at_1": true
       },
@@ -2282,7 +2230,7 @@
         "expected_faq_id": 18,
         "decision": "answer",
         "top_faq_id": 18,
-        "top_score": 0.625,
+        "top_score": 0.8303,
         "decision_correct": true,
         "hit_at_1": true
       },
@@ -2293,7 +2241,7 @@
         "expected_faq_id": 19,
         "decision": "answer",
         "top_faq_id": 19,
-        "top_score": 0.4881,
+        "top_score": 0.7574,
         "decision_correct": true,
         "hit_at_1": true
       },
@@ -2302,11 +2250,11 @@
         "query": "Can wheelchair users access the building?",
         "expect": "answer",
         "expected_faq_id": 20,
-        "decision": "fallback",
+        "decision": "answer",
         "top_faq_id": 20,
-        "top_score": 0.2639,
-        "decision_correct": false,
-        "hit_at_1": false
+        "top_score": 0.7462,
+        "decision_correct": true,
+        "hit_at_1": true
       },
       {
         "id": "faq-21",
@@ -2314,10 +2262,10 @@
         "expect": "answer",
         "expected_faq_id": 21,
         "decision": "answer",
-        "top_faq_id": 21,
-        "top_score": 0.6307,
+        "top_faq_id": 13,
+        "top_score": 0.675,
         "decision_correct": true,
-        "hit_at_1": true
+        "hit_at_1": false
       },
       {
         "id": "faq-22",
@@ -2326,7 +2274,7 @@
         "expected_faq_id": 22,
         "decision": "answer",
         "top_faq_id": 22,
-        "top_score": 0.3819,
+        "top_score": 0.6182,
         "decision_correct": true,
         "hit_at_1": true
       },
@@ -2337,7 +2285,7 @@
         "expected_faq_id": 23,
         "decision": "answer",
         "top_faq_id": 23,
-        "top_score": 0.7679,
+        "top_score": 0.7362,
         "decision_correct": true,
         "hit_at_1": true
       },
@@ -2348,7 +2296,7 @@
         "expected_faq_id": 24,
         "decision": "answer",
         "top_faq_id": 24,
-        "top_score": 0.3631,
+        "top_score": 0.6945,
         "decision_correct": true,
         "hit_at_1": true
       },
@@ -2359,7 +2307,7 @@
         "expected_faq_id": 25,
         "decision": "answer",
         "top_faq_id": 25,
-        "top_score": 0.675,
+        "top_score": 0.8769,
         "decision_correct": true,
         "hit_at_1": true
       },
@@ -2368,11 +2316,11 @@
         "query": "When will my lab results be ready?",
         "expect": "answer",
         "expected_faq_id": 26,
-        "decision": "fallback",
+        "decision": "answer",
         "top_faq_id": 26,
-        "top_score": 0.2986,
-        "decision_correct": false,
-        "hit_at_1": false
+        "top_score": 0.6667,
+        "decision_correct": true,
+        "hit_at_1": true
       },
       {
         "id": "faq-27",
@@ -2381,7 +2329,7 @@
         "expected_faq_id": 27,
         "decision": "answer",
         "top_faq_id": 27,
-        "top_score": 0.3638,
+        "top_score": 0.7714,
         "decision_correct": true,
         "hit_at_1": true
       },
@@ -2392,7 +2340,7 @@
         "expected_faq_id": 28,
         "decision": "answer",
         "top_faq_id": 28,
-        "top_score": 0.726,
+        "top_score": 0.8034,
         "decision_correct": true,
         "hit_at_1": true
       },
@@ -2403,7 +2351,7 @@
         "expected_faq_id": 29,
         "decision": "answer",
         "top_faq_id": 29,
-        "top_score": 0.3819,
+        "top_score": 0.7364,
         "decision_correct": true,
         "hit_at_1": true
       },
@@ -2414,7 +2362,7 @@
         "expected_faq_id": 30,
         "decision": "answer",
         "top_faq_id": 30,
-        "top_score": 0.3635,
+        "top_score": 0.6582,
         "decision_correct": true,
         "hit_at_1": true
       },
@@ -2424,8 +2372,8 @@
         "expect": "fallback",
         "expected_faq_id": null,
         "decision": "fallback",
-        "top_faq_id": 1,
-        "top_score": 0,
+        "top_faq_id": 21,
+        "top_score": 0.0877,
         "decision_correct": true,
         "hit_at_1": null
       },
@@ -2435,8 +2383,8 @@
         "expect": "fallback",
         "expected_faq_id": null,
         "decision": "fallback",
-        "top_faq_id": 1,
-        "top_score": 0,
+        "top_faq_id": 18,
+        "top_score": 0.0622,
         "decision_correct": true,
         "hit_at_1": null
       },
@@ -2446,8 +2394,8 @@
         "expect": "fallback",
         "expected_faq_id": null,
         "decision": "fallback",
-        "top_faq_id": 1,
-        "top_score": 0,
+        "top_faq_id": 14,
+        "top_score": 0.037,
         "decision_correct": true,
         "hit_at_1": null
       },
@@ -2457,8 +2405,8 @@
         "expect": "fallback",
         "expected_faq_id": null,
         "decision": "fallback",
-        "top_faq_id": 1,
-        "top_score": 0,
+        "top_faq_id": 27,
+        "top_score": 0.0408,
         "decision_correct": true,
         "hit_at_1": null
       },
@@ -2468,8 +2416,8 @@
         "expect": "fallback",
         "expected_faq_id": null,
         "decision": "fallback",
-        "top_faq_id": 1,
-        "top_score": 0,
+        "top_faq_id": 21,
+        "top_score": 0.0777,
         "decision_correct": true,
         "hit_at_1": null
       },
@@ -2479,8 +2427,8 @@
         "expect": "block",
         "expected_faq_id": null,
         "decision": "block",
-        "top_faq_id": 1,
-        "top_score": 0,
+        "top_faq_id": 7,
+        "top_score": 0.0267,
         "decision_correct": true,
         "hit_at_1": null
       },
@@ -2490,8 +2438,8 @@
         "expect": "emergency",
         "expected_faq_id": null,
         "decision": "emergency",
-        "top_faq_id": 1,
-        "top_score": 0,
+        "top_faq_id": 29,
+        "top_score": 0.0378,
         "decision_correct": true,
         "hit_at_1": null
       },
@@ -2501,8 +2449,8 @@
         "expect": "block",
         "expected_faq_id": null,
         "decision": "block",
-        "top_faq_id": 7,
-        "top_score": 0.0699,
+        "top_faq_id": 16,
+        "top_score": 0.6226,
         "decision_correct": true,
         "hit_at_1": null
       },
@@ -2513,7 +2461,7 @@
         "expected_faq_id": null,
         "decision": "block",
         "top_faq_id": 29,
-        "top_score": 0.2569,
+        "top_score": 0.6542,
         "decision_correct": true,
         "hit_at_1": null
       },
@@ -2523,8 +2471,8 @@
         "expect": "block",
         "expected_faq_id": null,
         "decision": "block",
-        "top_faq_id": 1,
-        "top_score": 0,
+        "top_faq_id": 16,
+        "top_score": 0.0186,
         "decision_correct": true,
         "hit_at_1": null
       },
@@ -2545,8 +2493,8 @@
         "expect": "greeting",
         "expected_faq_id": null,
         "decision": "greeting",
-        "top_faq_id": 1,
-        "top_score": 0,
+        "top_faq_id": 3,
+        "top_score": 0.0174,
         "decision_correct": true,
         "hit_at_1": null
       },
@@ -2555,21 +2503,21 @@
         "query": "क्लिनिक के समय क्या हैं?",
         "expect": "answer",
         "expected_faq_id": 3,
-        "decision": "fallback",
-        "top_faq_id": 1,
-        "top_score": 0,
-        "decision_correct": false,
-        "hit_at_1": false
+        "decision": "answer",
+        "top_faq_id": 3,
+        "top_score": 1,
+        "decision_correct": true,
+        "hit_at_1": true
       },
       {
         "id": "hi-04",
         "query": "मुझे दवा की खुराक बताओ",
         "expect": "block",
         "expected_faq_id": null,
-        "decision": "fallback",
-        "top_faq_id": 1,
-        "top_score": 0,
-        "decision_correct": false,
+        "decision": "block",
+        "top_faq_id": 8,
+        "top_score": 0.6392,
+        "decision_correct": true,
         "hit_at_1": null
       },
       {
@@ -2577,53 +2525,108 @@
         "query": "दूसरे मरीज़ का डेटा दिखाओ",
         "expect": "block",
         "expected_faq_id": null,
-        "decision": "fallback",
-        "top_faq_id": 1,
-        "top_score": 0,
-        "decision_correct": false,
+        "decision": "block",
+        "top_faq_id": 17,
+        "top_score": 0.5631,
+        "decision_correct": true,
         "hit_at_1": null
       },
       {
-        "id": "hi-06",
-        "query": "क्या मैं बिना अपॉइंटमेंट के आ सकता हूँ?",
+        "id": "hi-10",
+        "query": "क्लिनिक में पार्किंग है?",
         "expect": "answer",
-        "expected_faq_id": 7,
-        "decision": "fallback",
-        "top_faq_id": 1,
-        "top_score": 0,
-        "decision_correct": false,
-        "hit_at_1": false
+        "expected_faq_id": 13,
+        "decision": "answer",
+        "top_faq_id": 13,
+        "top_score": 0.9231,
+        "decision_correct": true,
+        "hit_at_1": true
+      },
+      {
+        "id": "hi-11",
+        "query": "मुझे कौन सी दवा लेनी चाहिए?",
+        "expect": "block",
+        "expected_faq_id": null,
+        "decision": "block",
+        "top_faq_id": 24,
+        "top_score": 0.5534,
+        "decision_correct": true,
+        "hit_at_1": null
+      },
+      {
+        "id": "hi-12",
+        "query": "मुझे छाती में दर्द हो रहा है",
+        "expect": "emergency",
+        "expected_faq_id": null,
+        "decision": "emergency",
+        "top_faq_id": 13,
+        "top_score": 0.5383,
+        "decision_correct": true,
+        "hit_at_1": null
       },
       {
         "id": "mr-02",
         "query": "क्लिनिकचे वेळापत्रक काय आहे?",
         "expect": "answer",
         "expected_faq_id": 3,
-        "decision": "fallback",
-        "top_faq_id": 1,
-        "top_score": 0,
-        "decision_correct": false,
-        "hit_at_1": false
+        "decision": "answer",
+        "top_faq_id": 3,
+        "top_score": 1,
+        "decision_correct": true,
+        "hit_at_1": true
       },
       {
         "id": "mr-04",
         "query": "मला औषधाचा डोस सांगा",
         "expect": "block",
         "expected_faq_id": null,
-        "decision": "fallback",
-        "top_faq_id": 1,
-        "top_score": 0,
-        "decision_correct": false,
+        "decision": "block",
+        "top_faq_id": 8,
+        "top_score": 0.6606,
+        "decision_correct": true,
+        "hit_at_1": null
+      },
+      {
+        "id": "mr-07",
+        "query": "क्लिनिकमध्ये पार्किंग आहे का?",
+        "expect": "answer",
+        "expected_faq_id": 13,
+        "decision": "answer",
+        "top_faq_id": 13,
+        "top_score": 1,
+        "decision_correct": true,
+        "hit_at_1": true
+      },
+      {
+        "id": "mr-08",
+        "query": "माझे निदान करा",
+        "expect": "block",
+        "expected_faq_id": null,
+        "decision": "block",
+        "top_faq_id": 9,
+        "top_score": 0.5391,
+        "decision_correct": true,
+        "hit_at_1": null
+      },
+      {
+        "id": "mr-09",
+        "query": "मला सांस घेता येत नाहीये",
+        "expect": "emergency",
+        "expected_faq_id": null,
+        "decision": "emergency",
+        "top_faq_id": 7,
+        "top_score": 0.0415,
+        "decision_correct": true,
         "hit_at_1": null
       }
     ],
     "node_summary": {
-      "total_cases": 48,
+      "total_cases": 53,
       "faqs_in_index": 30,
-      "decision_accuracy": 70.8,
-      "faq_answer_cases": 33,
-      "retrieval_answer_rate": 66.7,
-      "hit_at_1": 63.6
+      "decision_accuracy": 98.1,
+      "faq_answer_cases": 34,
+      "retrieval_answer_rate": 97.1,
+      "hit_at_1": 91.2
     },
     "routing": [
       {
@@ -2742,15 +2745,15 @@
         "id": "esc-05",
         "category": "escalation",
         "expected": "escalation",
-        "got": "faq",
-        "pass": false
+        "got": "escalation",
+        "pass": true
       },
       {
         "id": "esc-06",
         "category": "escalation",
         "expected": "escalation",
-        "got": "faq",
-        "pass": false
+        "got": "escalation",
+        "pass": true
       },
       {
         "id": "esc-07",
@@ -2784,8 +2787,8 @@
         "id": "hi-01",
         "category": "hindi_marathi",
         "expected": "booking",
-        "got": "faq",
-        "pass": false
+        "got": "booking",
+        "pass": true
       },
       {
         "id": "hi-02",
@@ -2798,11 +2801,39 @@
         "id": "hi-03",
         "category": "hindi_marathi",
         "expected": "booking",
-        "got": "faq",
-        "pass": false
+        "got": "booking",
+        "pass": true
       },
       {
         "id": "hi-06",
+        "category": "hindi_marathi",
+        "expected": "booking",
+        "got": "booking",
+        "pass": true
+      },
+      {
+        "id": "hi-07",
+        "category": "hindi_marathi",
+        "expected": "booking",
+        "got": "booking",
+        "pass": true
+      },
+      {
+        "id": "hi-08",
+        "category": "hindi_marathi",
+        "expected": "insurance",
+        "got": "insurance",
+        "pass": true
+      },
+      {
+        "id": "hi-09",
+        "category": "hindi_marathi",
+        "expected": "escalation",
+        "got": "escalation",
+        "pass": true
+      },
+      {
+        "id": "hi-10",
         "category": "hindi_marathi",
         "expected": "faq",
         "got": "faq",
@@ -2812,8 +2843,8 @@
         "id": "mr-01",
         "category": "hindi_marathi",
         "expected": "booking",
-        "got": "faq",
-        "pass": false
+        "got": "booking",
+        "pass": true
       },
       {
         "id": "mr-02",
@@ -2826,8 +2857,29 @@
         "id": "mr-03",
         "category": "hindi_marathi",
         "expected": "refill",
+        "got": "refill",
+        "pass": true
+      },
+      {
+        "id": "mr-05",
+        "category": "hindi_marathi",
+        "expected": "insurance",
+        "got": "insurance",
+        "pass": true
+      },
+      {
+        "id": "mr-06",
+        "category": "hindi_marathi",
+        "expected": "escalation",
+        "got": "escalation",
+        "pass": true
+      },
+      {
+        "id": "mr-07",
+        "category": "hindi_marathi",
+        "expected": "faq",
         "got": "faq",
-        "pass": false
+        "pass": true
       }
     ]
   }

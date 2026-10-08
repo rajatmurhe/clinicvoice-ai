@@ -7,6 +7,7 @@ redacted before anything is written.
 
 import json
 import re
+import sys
 import time
 import uuid
 from contextvars import ContextVar
@@ -51,4 +52,6 @@ def log_event(event, **fields):
     }
     for key, value in fields.items():
         record[key] = redact(value) if isinstance(value, str) else value
-    print(json.dumps(record), flush=True)
+    # Structured logs go to stderr so stdout stays clean for API data and
+    # harness output; container log collectors read both streams.
+    print(json.dumps(record, ensure_ascii=False), file=sys.stderr, flush=True)

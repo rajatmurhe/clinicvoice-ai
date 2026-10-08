@@ -21,7 +21,14 @@ const BLOCKED_PATTERNS_INPUT = [
   /skip (the )?(verification|questions)/i,
   /look me up by (name|phone)|look up (my|the) records/i,
   /(do not|don.?t) need to verify/i,
-  /allowed to give medical advice|give medical advice/i
+  /allowed to give medical advice|give medical advice/i,
+  /खुराक|डोस/i, /निदान/i,
+  /कौन स[ीा] दवा|कोणत[ेी] औषध|कोणत्या औषध/i,
+  /कितन[ीा] दवा|कितनी खुराक/i,
+  /क्या बीमारी|कौन सी बीमारी|मेरी बीमारी|काय आजार|माझा आजार/i,
+  /मुझे क्या हुआ/i,
+  /दूसरे मरीज़|दुसऱ्या रुग्णाचा|मरीज़ का डेटा|रुग्णाची माहिती/i,
+  /मरीज़ों की लिस्ट|रुग्णांची यादी/i
 ];
 
 // Kept in sync with EMERGENCY_PATTERNS in python-agents/safety.py. These get a
@@ -29,7 +36,9 @@ const BLOCKED_PATTERNS_INPUT = [
 const EMERGENCY_PATTERNS = [
   /chest pain/i, /can.?t breathe|cannot breathe/i, /heart attack/i,
   /\bstroke\b/i, /severe bleeding/i, /unconscious/i, /\bsuicid/i,
-  /kill myself/i, /end my life/i, /overdos/i
+  /kill myself/i, /end my life/i, /overdos/i,
+  /छाती में दर्द|छातीत दुखत/i, /सांस (नहीं|लेने में)|सांस घेता येत नाही|दम बांधत नाही/i,
+  /हृदयाचा झटका|हार्ट अटैक/i, /खूप रक्तस्राव|बहुत खून/i
 ];
 
 const BLOCKED_RESPONSE = 'I am not able to answer clinical or medical questions like that. Please contact the clinic directly or, if this is an emergency, call your local emergency number.';
@@ -45,7 +54,7 @@ const BLOCKED_PATTERNS_OUTPUT = [
 
 const GREETING_ONLY_PATTERN = /^((hi|hello|hey|good morning|good afternoon|good evening)[\s,!.]*)?(my name is [a-z ]+[.!]?|i(.?m| am) [a-z ]+[.!]?)?[\s,!.]*(i(.?m| am) (studying|a student)( at| in) [a-z ]+[.!]?)?[\s,!.]*$/i;
 
-const CONFIDENCE_THRESHOLD = 0.35;
+const CONFIDENCE_THRESHOLD = parseFloat(process.env.CLINICVOICE_CONFIDENCE_THRESHOLD || '0.35');
 
 function checkSafety(query) {
   return BLOCKED_PATTERNS_INPUT.some(function(pattern) { return pattern.test(query); });

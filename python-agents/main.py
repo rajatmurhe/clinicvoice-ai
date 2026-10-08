@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from agents.router import classify_intent
+from agents.router import classify_intent, classify_intent_with_confidence
 from agents.faq_agent import handle_faq
 from agents.booking_agent import handle_booking
 from agents.escalation_agent import handle_escalation
@@ -16,7 +16,12 @@ from agents.refill_agent import handle_refill
 from agents.insurance_agent import handle_insurance
 from agents.intake_agent import handle_intake
 from self_service import maybe_add_nudge
-from safety import check_input_safety, check_emergency, BLOCKED_RESPONSE, EMERGENCY_RESPONSE
+from safety import (
+    check_input_safety,
+    check_emergency,
+    blocked_response_for,
+    emergency_response_for,
+)
 from dashboard_log import log_query, get_stats
 import sessions as session_store
 import obs
@@ -51,6 +56,35 @@ RATE_LIMITER = SlidingWindowLimiter(
     max_requests=int(os.environ.get("CLINICVOICE_RATE_LIMIT", "60")),
     window_seconds=60,
 )
+
+# Hybrid router: the regex router stays the fast path; when a message matches
+# nothing (low confidence) an LLM classifier can decide the intent instead.
+# Off by default; the offline eval measures the regex plus keyword path.
+HYBRID_ROUTER_ENABLED = os.environ.get("CLINICVOICE_HYBRID_ROUTER", "false").lower() == "true"
+ROUTER_CLASSIFY_URL = os.environ.get(
+    "CLINICVOICE_ROUTER_URL",
+    os.environ.get("FAQ_BACKEND_URL", "http://localhost:5050/api/text-query").rsplit("/", 1)[0] + "/api/router-classify",
+)
+
+VALID_INTENTS = ("booking", "refill", "insurance", "intake", "escalation", "faq")
+
+
+def llm_classify_intent(query):
+    try:
+        r = http_requests.post(
+            ROUTER_CLASSIFY_URL,
+            json={"query": query},
+            headers={"X-Request-ID": obs.get_request_id()},
+            timeout=(2, 4),
+        )
+        r.raise_for_status()
+        intent = r.json().get("intent")
+        if intent in VALID_INTENTS:
+            obs.log_event("hybrid_router", decision=intent)
+            return intent
+    except Exception as e:
+        obs.log_event("hybrid_router_failed", error_type=type(e).__name__)
+    return None
 
 REPEAT_PATTERN = re.compile(r"(what did you say|say that again|repeat that|can you repeat|pardon|come again|sorry what)", re.IGNORECASE)
 
@@ -168,8 +202,9 @@ def process_query(req: QueryRequest, session: dict, start: float):
 
     if check_emergency(query):
         clear_pending_flows(session)
+        emergency_response = emergency_response_for(query)
         result = {
-            "response": EMERGENCY_RESPONSE,
+            "response": emergency_response,
             "guardrailTriggered": True,
             "agent": "faq",
             "intent": "emergency",
@@ -191,8 +226,9 @@ def process_query(req: QueryRequest, session: dict, start: float):
 
     if check_input_safety(query):
         clear_pending_flows(session)
+        blocked_response = blocked_response_for(query)
         result = {
-            "response": BLOCKED_RESPONSE,
+            "response": blocked_response,
             "guardrailTriggered": True,
             "agent": "faq",
             "intent": "faq",
@@ -212,7 +248,11 @@ def process_query(req: QueryRequest, session: dict, start: float):
         )
         return result
 
-    intent = classify_intent(query)
+    intent, intent_confidence = classify_intent_with_confidence(query)
+    if HYBRID_ROUTER_ENABLED and intent_confidence < 0.5:
+        llm_intent = llm_classify_intent(query)
+        if llm_intent:
+            intent = llm_intent
 
     STRONG_INTENTS = ("booking", "refill", "insurance", "intake", "escalation")
 

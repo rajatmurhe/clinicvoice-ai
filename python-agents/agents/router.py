@@ -15,11 +15,14 @@ BOOKING_PATTERNS = [
     r"book me in",
     r"(can|could) i (get|come in|book)",
     r"see (a|the) doctor",
+    r"see dr\.?|book with|appointment with",
+    r"(need|would like|want) (an?|to book an?) appointment",
     r"i.?d like to come in",
 ]
 
 ESCALATION_PATTERNS = [
     r"speak (to|with) (a|the) (manager|human|person|someone)",
+    r"(talk to|speak to|speak with) (a|the)? ?(real )?(human|person|someone)",
     r"complaint",
     r"not happy",
     r"unhappy",
@@ -59,16 +62,42 @@ REFILL_REGEX = re.compile("|".join(REFILL_PATTERNS), re.IGNORECASE)
 INSURANCE_REGEX = re.compile("|".join(INSURANCE_PATTERNS), re.IGNORECASE)
 INTAKE_REGEX = re.compile("|".join(INTAKE_PATTERNS), re.IGNORECASE)
 
+# Cross-lingual keyword table. The regex router is the fast path for English;
+# these keywords let Hindi and Marathi messages reach the right agent too.
+# Order matters and mirrors the regex router order.
+HI_MR_INTENT_KEYWORDS = [
+    ("escalation", ["शिकायत", "तक्रार", "प्रबंधक", "व्यवस्थापक", "नाराज", "रिसत"]),
+    ("intake", ["लक्षण", "रिपोर्ट", "तपासणी", "रक्त तपासणी"]),
+    ("refill", ["रिफिल", "रिफील"]),
+    ("insurance", ["बीमा(?!री)", "विमा"]),
+    ("booking", ["अपॉइंटमेंट", "अपॉईंटमेंट", "बुक", "रद्द", "रिझेल"]),
+]
+
+HI_MR_KEYWORD_REGEXES = [
+    (intent, re.compile("|".join(keywords)))
+    for intent, keywords in HI_MR_INTENT_KEYWORDS
+]
+
+
+def classify_intent_with_confidence(query: str):
+    """Returns (intent, confidence). Confidence is high when a pattern matched.
+    A faq answer with no match at all is low confidence, which is what the
+    optional LLM classifier (see CLINICVOICE_HYBRID_ROUTER) acts on."""
+    if ESCALATION_REGEX.search(query):
+        return "escalation", 1.0
+    if INTAKE_REGEX.search(query):
+        return "intake", 1.0
+    if REFILL_REGEX.search(query):
+        return "refill", 1.0
+    if INSURANCE_REGEX.search(query):
+        return "insurance", 1.0
+    if BOOKING_REGEX.search(query):
+        return "booking", 1.0
+    for intent, keyword_regex in HI_MR_KEYWORD_REGEXES:
+        if keyword_regex.search(query):
+            return intent, 0.9
+    return "faq", 0.3
+
 
 def classify_intent(query: str) -> str:
-    if ESCALATION_REGEX.search(query):
-        return "escalation"
-    if INTAKE_REGEX.search(query):
-        return "intake"
-    if REFILL_REGEX.search(query):
-        return "refill"
-    if INSURANCE_REGEX.search(query):
-        return "insurance"
-    if BOOKING_REGEX.search(query):
-        return "booking"
-    return "faq"
+    return classify_intent_with_confidence(query)[0]

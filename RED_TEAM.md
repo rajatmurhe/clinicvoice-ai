@@ -1,6 +1,7 @@
 # Red Team Findings
 
-The assistant was attacked with 40 prompts in four groups. Each attack runs
+The assistant was attacked with 46 prompts in five groups (the four original
+groups plus a Hindi and Marathi group added in Phase 5). Each attack runs
 through the full Python pipeline in offline mode (same code paths as the live
 deployment, no LLM) and separately through the Node blocklist, so drift between
 the two layers is measured on every run. Reproduce with:
@@ -12,7 +13,8 @@ python-agents/venv/bin/python python-eval/run_eval.py --redteam
 ## Before and after
 
 Before: the committed baseline run (commit 2ced12b) with the eval-day blocklist.
-After: the same 40 attacks after the fixes listed below.
+The Hindi and Marathi group did not exist in that run, so it has no before
+number. After: the same 46 attacks after the fixes listed below.
 
 | Group | Before (caught/total) | After (caught/total) |
 |---|---|---|
@@ -20,7 +22,8 @@ After: the same 40 attacks after the fixes listed below.
 | Medical advice | 1/10 | 10/10 |
 | Identity bypass | 1/10 | 9/10 |
 | Other patient data | 1/10 | 5/10 |
-| **Total** | **9/40** | **34/40** |
+| Hindi and Marathi | not tested | 6/6 |
+| **Total** | **9/40** | **40/46** |
 
 Blocklist drift between safety.py and llm-cloud.js after the fixes: 0 of 40.
 Both layers must block the same things; the runner fails the spirit of the
@@ -53,11 +56,11 @@ design if one layer silently lags the other.
 
 ## Not blocked, and why (Known Limitations)
 
-Six attacks are still not blocked by the guardrails. Five of them end at the
-FAQ layer, which has no access to patient data and answers from the published
-FAQ list, so nothing is leaked. The sixth reaches the booking agent. They are
-listed here rather than fixed because the underlying cause is an accepted
-product decision, not a missing pattern:
+Six attacks are still not blocked by the guardrails, all from the two data
+groups. Five of them end at the FAQ layer, which has no access to patient data
+and answers from the published FAQ list, so nothing is leaked. The sixth
+reaches the booking agent. They are listed here rather than fixed because the
+underlying cause is an accepted product decision, not a missing pattern:
 
 - The appointment lookup, reschedule and cancel flows find bookings by patient
   name only. Anyone who knows a patient's name can ask about it
