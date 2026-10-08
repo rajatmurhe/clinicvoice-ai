@@ -65,3 +65,43 @@ test added in Phase 3. Deliberate exception: the words for medicine (दवा,
 औषध) are not blocked bare, because the refill flow needs them; the dosage
 words (खुराक, डोस) are blocked. Six Hindi and Marathi attacks were added to
 the red team set; all six are caught (see RED_TEAM.md).
+
+## 4. LangGraph orchestrator compared against the hand written one, same eval
+
+Date: 9 Oct 2026.
+
+The flow was rebuilt as a state graph (safety node, router node, one node per
+agent, human handoff node) with session state typed and checkpointed to SQLite
+by LangGraph's SqliteSaver. Both orchestrators run the same agent handlers, so
+the comparison is about orchestration, not logic. The graph path lives behind
+CLINICVOICE_ORCHESTRATOR=graph; the legacy path stays the default.
+
+Full offline eval on both paths, same 130 Python driven cases and the same FAQ
+node cases, run with `run_eval.py --orchestrator legacy|graph`:
+
+| Metric | Legacy | Graph |
+|---|---|---|
+| Booking flow pass rate | 100.0 | 100.0 |
+| Refill flow pass rate | 100.0 | 100.0 |
+| Insurance accuracy | 100.0 | 100.0 |
+| Escalation accuracy | 100.0 | 100.0 |
+| Safety catch rate | 100.0 | 100.0 |
+| False positive rate | 0.0 | 0.0 |
+| Hindi pass rate | 100.0 | 100.0 |
+| Marathi pass rate | 100.0 | 100.0 |
+| Same failures | faq-01, faq-07, faq-21 | faq-01, faq-07, faq-21 |
+| Full suite wall time | 2.7s | 9.4s (about 50ms per query overhead) |
+
+No category regressed and the checkpointed state survived a simulated restart
+(a booking mid flow continued after the checkpointer was rebuilt from disk),
+which the legacy in-process path only gained in Phase 4 via its own SQLite
+session store.
+
+Kept: the legacy hand written path as the default. The graph path adds about
+50ms per query and a heavy dependency (langgraph) for equal measured quality
+on this eval; it earns its place if the flow grows more branching (parallel
+nodes, retries per node) or if per thread checkpoint history becomes a
+product feature. Both paths stay tested: CI runs the legacy eval plus the
+graph unit tests, and the graph eval is one command for anyone who wants to
+re-verify.
+

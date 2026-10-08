@@ -88,6 +88,11 @@ def llm_classify_intent(query):
 
 REPEAT_PATTERN = re.compile(r"(what did you say|say that again|repeat that|can you repeat|pardon|come again|sorry what)", re.IGNORECASE)
 
+# Graph orchestrator (LangGraph) runs the same agent handlers behind a state
+# graph with a SQLite checkpointer. Default stays the legacy hand written path;
+# both are compared on the same eval (see DECISIONS.md).
+ORCHESTRATOR_MODE = os.environ.get("CLINICVOICE_ORCHESTRATOR", "legacy")
+
 
 def clear_pending_flows(session):
     session["booking_in_progress"] = False
@@ -328,6 +333,48 @@ def process_query(req: QueryRequest, session: dict, start: float):
 @app.post("/api/agent-query")
 def agent_query(req: QueryRequest):
     start = time.time()
+
+    if ORCHESTRATOR_MODE == "graph":
+        import graph_orchestrator
+
+        session = session_store.get_session(req.session_id)
+
+        if REPEAT_PATTERN.search(req.query) and session.get("last_response"):
+            return {
+                "response": session["last_response"],
+                "guardrailTriggered": False,
+                "agent": "repeat",
+                "intent": "repeat",
+                "query": req.query,
+            }
+
+        result = graph_orchestrator.run_query(req.query, req.session_id)
+        result["response"] = maybe_add_nudge(req.query, result.get("response", ""), result.get("agent", "faq"))
+        session["last_response"] = result.get("response", "")
+        session_store.save_session(req.session_id, session)
+
+        log_query(
+            query=req.query,
+            response=result.get("response", ""),
+            intent=result.get("intent", "faq"),
+            agent=result.get("agent", "faq"),
+            guardrail_triggered=result.get("guardrailTriggered", False),
+            cache_hit=False,
+            latency_ms=round((time.time() - start) * 1000, 1),
+            request_id=obs.get_request_id(),
+            error_type=result.get("error_type"),
+        )
+        obs.log_event(
+            "query",
+            orchestrator="graph",
+            intent=result.get("intent"),
+            agent=result.get("agent"),
+            guardrail=result.get("guardrailTriggered", False),
+            latency_ms=round((time.time() - start) * 1000, 1),
+            error_type=result.get("error_type"),
+        )
+        return result
+
     session = session_store.get_session(req.session_id)
     try:
         return process_query(req, session, start)

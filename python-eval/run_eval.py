@@ -78,12 +78,14 @@ def git_commit():
 
 
 class OfflineHarness:
-    def __init__(self):
+    def __init__(self, orchestrator="legacy"):
         self.tmp_data_dir = tempfile.mkdtemp(prefix="clinicvoice-eval-")
         os.environ["CLINICVOICE_DATA_DIR"] = self.tmp_data_dir
         os.environ["VOICE_CLONING_ENABLED"] = "false"
         os.environ["FAQ_BACKEND_URL"] = "http://127.0.0.1:1/unreachable"
         os.environ["CLINICVOICE_RATE_LIMIT"] = "100000"
+        os.environ["CLINICVOICE_ORCHESTRATOR"] = orchestrator
+        self.orchestrator = orchestrator
 
         sys.path.insert(0, str(AGENTS_DIR))
         os.chdir(AGENTS_DIR)
@@ -113,11 +115,19 @@ class OfflineHarness:
 
         main_module.handle_faq = stub_faq
 
+        from agents import faq_agent as faq_agent_module  # noqa: E402
+
+        faq_agent_module.handle_faq = stub_faq  # used by the graph orchestrator path
+
         from fastapi.testclient import TestClient  # noqa: E402
 
         self.client = TestClient(main_module.app)
 
     def _post(self, query, session_id):
+        if self.orchestrator == "graph":
+            import graph_orchestrator
+
+            return graph_orchestrator.run_query(query, session_id)
         response = self.client.post(
             "/api/agent-query",
             json={"query": query, "session_id": session_id},
@@ -476,9 +486,9 @@ def load_cases(filename):
     return _CASE_CACHE[filename]
 
 
-def run_offline(out_dir):
+def run_offline(out_dir, orchestrator="legacy"):
     started = time.time()
-    harness = OfflineHarness()
+    harness = OfflineHarness(orchestrator=orchestrator)
 
     all_cases = []
     for _cat, fname in CATEGORY_FILES:
@@ -511,6 +521,7 @@ def run_offline(out_dir):
     doc = {
         "meta": {
             "mode": "offline",
+            "orchestrator": orchestrator,
             "date": datetime.datetime.now().isoformat(timespec="seconds"),
             "commit": git_commit(),
             "python_seconds": round(time.time() - started, 1),
@@ -529,8 +540,9 @@ def run_offline(out_dir):
     }
 
     out_dir.mkdir(parents=True, exist_ok=True)
-    json_path = out_dir / "eval-offline.json"
-    md_path = out_dir / "eval-offline.md"
+    suffix = "" if orchestrator == "legacy" else "-" + orchestrator
+    json_path = out_dir / ("eval-offline%s.json" % suffix)
+    md_path = out_dir / ("eval-offline%s.md" % suffix)
     json_path.write_text(json.dumps(doc, indent=2, ensure_ascii=False), encoding="utf-8")
     md_path.write_text(render_offline_md(doc), encoding="utf-8")
     return doc, md_path
@@ -762,6 +774,8 @@ def main():
     parser = argparse.ArgumentParser(description="ClinicVoice AI eval harness")
     parser.add_argument("--live", action="store_true", help="measure latency against deployed services")
     parser.add_argument("--redteam", action="store_true", help="run the red team attack set")
+    parser.add_argument("--orchestrator", choices=["legacy", "graph"], default="legacy",
+                        help="which orchestrator to drive (graph = LangGraph path)")
     parser.add_argument("--runs", type=int, default=5, help="sample count per stage in live mode")
     parser.add_argument("--out-dir", default=str(Path(__file__).resolve().parent / "results"))
     args = parser.parse_args()
@@ -772,7 +786,7 @@ def main():
     elif args.redteam:
         run_redteam(out_dir)
     else:
-        doc, md_path = run_offline(out_dir)
+        doc, md_path = run_offline(out_dir, orchestrator=args.orchestrator)
         print(md_path.read_text(encoding="utf-8"))
 
 
