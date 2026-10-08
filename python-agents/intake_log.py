@@ -2,7 +2,8 @@ import sqlite3
 import time
 import os
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "intake.db")
+_DATA_DIR = os.environ.get("CLINICVOICE_DATA_DIR") or os.path.dirname(__file__)
+DB_PATH = os.path.join(_DATA_DIR, "intake.db")
 
 
 def init_db():

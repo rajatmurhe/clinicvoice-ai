@@ -1,0 +1,173 @@
+[
+  {"id": "bk-01", "category": "booking",
+   "turns": [
+     {"q": "I want to book an appointment", "expect_contains": ["what date"], "expect_agent": "booking"}
+   ]},
+
+  {"id": "bk-02", "category": "booking",
+   "turns": [
+     {"q": "I want to book an appointment", "expect_agent": "booking"},
+     {"q": "tomorrow", "expect_contains": ["we have availability at"]},
+     {"q": "10:00 AM, my name is Raj", "expect_contains": ["You are all set"]}
+   ],
+   "expect_calendar": {"date_key": "tomorrow", "time": "10:00 AM", "name_contains": "raj"}},
+
+  {"id": "bk-03", "category": "booking",
+   "turns": [
+     {"q": "Book an appointment with Dr. Patel tomorrow", "expect_contains": ["we have availability at"]},
+     {"q": "11:00 AM my name is Sana", "expect_contains": ["You are all set"]}
+   ],
+   "expect_calendar": {"date_key": "tomorrow", "time": "11:00 AM", "name_contains": "sana", "doctor": "Dr. Patel"}},
+
+  {"id": "bk-04", "category": "booking",
+   "setup": {"appointments": [{"date_key": "tomorrow", "time": "10:00 AM", "name": "Meera", "doctor": "Dr. Patel"}]},
+   "turns": [
+     {"q": "I want to see Dr. Patel tomorrow", "expect_contains": ["availability"], "expect_not_contains": ["10:00 AM"]},
+     {"q": "11:00 AM my name is Sana", "expect_contains": ["You are all set"]}
+   ],
+   "expect_calendar": {"date_key": "tomorrow", "time": "11:00 AM", "name_contains": "sana", "doctor": "Dr. Patel"}},
+
+  {"id": "bk-05", "category": "booking",
+   "turns": [
+     {"q": "Can I book with Dr. Modi?", "expect_contains": ["do not have a doctor named modi"]}
+   ]},
+
+  {"id": "bk-06", "category": "booking",
+   "setup": {"full_days": ["2031-03-10"]},
+   "turns": [
+     {"q": "I need an appointment on 2031-03-10", "expect_contains": ["no available slots", "waitlist"]},
+     {"q": "yes", "expect_contains": ["what name"]},
+     {"q": "Priya", "expect_contains": ["You are on the waitlist for 2031-03-10"]}
+   ],
+   "expect_waitlist": {"date_key": "2031-03-10", "name_contains": "priya"}},
+
+  {"id": "bk-07", "category": "booking",
+   "setup": {"full_days": ["2031-04-20"]},
+   "turns": [
+     {"q": "Book me in on 2031-04-20", "expect_contains": ["no available slots"]},
+     {"q": "no", "expect_contains": ["what date"]}
+   ]},
+
+  {"id": "bk-08", "category": "booking",
+   "setup": {"appointments": [{"date_key": "today+2", "time": "02:00 PM", "name": "Priya"}]},
+   "turns": [
+     {"q": "Cancel my appointment", "expect_contains": ["name the appointment is booked under"]},
+     {"q": "Priya", "expect_contains": ["has been cancelled"]}
+   ],
+   "expect_calendar_absent": {"date_key": "today+2", "time": "02:00 PM", "name_contains": "priya"}},
+
+  {"id": "bk-09", "category": "booking",
+   "turns": [
+     {"q": "cancel my appointment", "expect_contains": ["name the appointment is booked under"]},
+     {"q": "Zebra", "expect_contains": ["could not find an upcoming appointment under the name zebra"]}
+   ]},
+
+  {"id": "bk-10", "category": "booking",
+   "setup": {"appointments": [{"date_key": "today+2", "time": "02:00 PM", "name": "Priya"}]},
+   "turns": [
+     {"q": "When is my appointment?", "expect_contains": ["name the appointment is booked under"]},
+     {"q": "Priya", "expect_contains": ["Your appointment is on"]}
+   ]},
+
+  {"id": "bk-11", "category": "booking",
+   "setup": {"appointments": [{"date_key": "today+3", "time": "11:30 AM", "name": "Priya"}]},
+   "turns": [
+     {"q": "I need to reschedule", "expect_contains": ["name the appointment is booked under"]},
+     {"q": "Priya", "expect_contains": ["I found your appointment on"]}
+   ]},
+
+  {"id": "bk-12", "category": "booking",
+   "setup": {"appointments": [{"date_key": "today+1", "time": "09:30 AM", "name": "Priya"}]},
+   "turns": [
+     {"q": "I want to cancel, this is Priya", "expect_contains": ["has been cancelled"]}
+   ],
+   "expect_calendar_absent": {"date_key": "today+1", "time": "09:30 AM", "name_contains": "priya"}},
+
+  {"id": "bk-13", "category": "booking",
+   "turns": [
+     {"q": "Book an appointment tomorrow", "expect_contains": ["we have availability at"]},
+     {"q": "half past ten", "expect_contains": ["what date"]}
+   ]},
+
+  {"id": "bk-14", "category": "booking",
+   "turns": [
+     {"q": "Book an appointment tomorrow", "expect_contains": ["we have availability at"]},
+     {"q": "7:30 AM", "expect_contains": ["is not available", "open times are"]}
+   ]},
+
+  {"id": "bk-15", "category": "booking",
+   "turns": [
+     {"q": "Book an appointment tomorrow", "expect_contains": ["we have availability at"]},
+     {"q": "2:00 PM", "expect_contains": ["You are all set"]}
+   ],
+   "expect_calendar": {"date_key": "tomorrow", "time": "02:00 PM", "name_contains": "patient"}},
+
+  {"id": "bk-16", "category": "booking",
+   "turns": [
+     {"q": "When is my appointment?", "expect_contains": ["name the appointment is booked under"]},
+     {"q": "Ravi", "expect_contains": ["could not find an upcoming appointment"]}
+   ]},
+
+  {"id": "bk-17", "category": "booking",
+   "turns": [
+     {"q": "Are there any available slots tomorrow?", "expect_contains": ["we have availability at"]}
+   ]},
+
+  {"id": "bk-18", "category": "booking",
+   "turns": [
+     {"q": "I want to book an appointment", "expect_agent": "booking"},
+     {"q": "tomorrow", "expect_contains": ["we have availability at"]},
+     {"q": "this is urgent and I am very frustrated", "expect_agent": "escalation", "expect_contains": ["personal attention"]},
+     {"q": "10:00 AM", "expect_agent": "faq"}
+   ]},
+
+  {"id": "bk-19", "category": "booking",
+   "turns": [
+     {"q": "Can I come in today?", "expect_contains": ["we have availability at"]}
+   ]},
+
+  {"id": "bk-20", "category": "booking",
+   "turns": [
+     {"q": "I would like an appointment on 12 November", "expect_contains": ["we have availability at"]}
+   ]},
+
+  {"id": "bk-21", "category": "booking",
+   "setup": {"appointments": [{"date_key": "today+2", "time": "04:00 PM", "name": "Priya"}]},
+   "turns": [
+     {"q": "reschedule my appointment", "expect_contains": ["name the appointment is booked under"]},
+     {"q": "Priya", "expect_contains": ["I found your appointment on"]},
+     {"q": "I want 2031-06-01 at 10:00 AM", "expect_contains": ["we have availability at"]}
+   ]},
+
+  {"id": "bk-22", "category": "booking",
+   "turns": [
+     {"q": "Book an appointment tomorrow", "expect_contains": ["we have availability at"]},
+     {"q": "10:00 AM, my name is Rajesh Kumar", "expect_contains": ["You are all set"]}
+   ],
+   "expect_calendar": {"date_key": "tomorrow", "time": "10:00 AM", "name_contains": "rajesh kumar"}},
+
+  {"id": "bk-23", "category": "booking",
+   "setup": {
+     "appointments": [{"date_key": "today+2", "time": "02:00 PM", "name": "Priya"}],
+     "waitlist": [{"date_key": "today+2", "name": "Amit"}]
+   },
+   "turns": [
+     {"q": "Cancel my appointment", "expect_contains": ["booked under"]},
+     {"q": "Priya", "expect_contains": ["has been cancelled", "waitlisted"]}
+   ]},
+
+  {"id": "bk-24", "category": "booking",
+   "turns": [
+     {"q": "I want to book an appointment", "expect_agent": "booking"},
+     {"q": "tomorrow", "expect_contains": ["we have availability at"]},
+     {"q": "actually I need a refill for metformin", "expect_agent": "refill", "expect_contains": ["your name"]},
+     {"q": "my name is Raj", "expect_contains": ["logged a refill request for metformin under Raj"]}
+   ]},
+
+  {"id": "bk-25", "category": "booking",
+   "turns": [
+     {"q": "I want to book with Dr. Khan on 2031-07-15 at 10:00 AM, my name is Aditi", "expect_contains": ["we have availability at"]},
+     {"q": "10:00 AM", "expect_contains": ["You are all set"]}
+   ],
+   "expect_calendar": {"date_key": "2031-07-15", "time": "10:00 AM", "name_contains": "patient", "doctor": "Dr. Khan"}}
+]

@@ -1,0 +1,36 @@
+{
+  "meta": {
+    "mode": "live",
+    "date": "2026-10-08T13:31:34",
+    "commit": "3691e77",
+    "faq_url": "https://clinicvoice-ai-1.onrender.com",
+    "agents_url": "not configured",
+    "runs": 3,
+    "note": "Speech to text runs in the browser on the cloud variant, so STT latency is client side and not measured here."
+  },
+  "stages": {
+    "llm": {
+      "p50_ms": 529,
+      "p95_ms": 845,
+      "samples": [
+        406,
+        529,
+        880
+      ]
+    },
+    "tts": {
+      "p50_ms": 817,
+      "p95_ms": 832,
+      "samples": [
+        376,
+        817,
+        834
+      ]
+    },
+    "total": {
+      "p50_ms": "not measured",
+      "p95_ms": "not measured",
+      "error": null
+    }
+  }
+}

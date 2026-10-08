@@ -1,0 +1,82 @@
+[
+  {"id": "rf-01", "category": "refill",
+   "turns": [
+     {"q": "I need a refill for metformin, my name is Raj", "expect_contains": ["logged a refill request for metformin under Raj"]}
+   ],
+   "expect_db": {"table": "refill_requests", "name_contains": "raj", "medication_contains": "metformin"}},
+
+  {"id": "rf-02", "category": "refill",
+   "turns": [
+     {"q": "I need a refill", "expect_contains": ["your name"]}
+   ]},
+
+  {"id": "rf-03", "category": "refill",
+   "turns": [
+     {"q": "I need a refill", "expect_contains": ["your name"]},
+     {"q": "my name is Raj", "expect_contains": ["Which medication"]},
+     {"q": "metformin", "expect_contains": ["logged a refill request for metformin under Raj"]}
+   ],
+   "expect_db": {"table": "refill_requests", "name_contains": "raj", "medication_contains": "metformin"}},
+
+  {"id": "rf-04", "category": "refill",
+   "turns": [
+     {"q": "I need a refill", "expect_contains": ["your name"]},
+     {"q": "Raj", "expect_contains": ["Which medication"]},
+     {"q": "atorvastatin", "expect_contains": ["logged a refill request for atorvastatin under Raj"]}
+   ],
+   "expect_db": {"table": "refill_requests", "name_contains": "raj", "medication_contains": "atorvastatin"}},
+
+  {"id": "rf-05", "category": "refill",
+   "turns": [
+     {"q": "I need a refill for insulin, my name is Raj12", "expect_contains": ["logged a refill request for insulin under Raj12"]}
+   ],
+   "expect_db": {"table": "refill_requests", "name_contains": "raj12", "medication_contains": "insulin"}},
+
+  {"id": "rf-06", "category": "refill",
+   "turns": [
+     {"q": "my name is Sana and I need a refill for metformin", "expect_contains": ["logged a refill request for metformin"]}
+   ],
+   "expect_db": {"table": "refill_requests", "name_contains": "sana", "medication_contains": "metformin"}},
+
+  {"id": "rf-07", "category": "refill",
+   "turns": [
+     {"q": "refill please", "expect_contains": ["your name"]},
+     {"q": "Amit", "expect_contains": ["Which medication"]}
+   ],
+   "expect_db": {"table": "refill_requests", "medication_not_contains": "please"}},
+
+  {"id": "rf-08", "category": "refill",
+   "turns": [
+     {"q": "I need a refill for metformin", "expect_contains": ["your name"]},
+     {"q": "my name is Raj", "expect_contains": ["logged a refill request for metformin under Raj"]}
+   ],
+   "expect_db": {"table": "refill_requests", "name_contains": "raj", "medication_contains": "metformin"}},
+
+  {"id": "rf-09", "category": "refill",
+   "turns": [
+     {"q": "I need a refill", "expect_contains": ["your name"]},
+     {"q": "my name is Priya", "expect_contains": ["Which medication"]},
+     {"q": "the white tablets", "expect_contains": ["logged a refill request"]}
+   ],
+   "expect_db": {"table": "refill_requests", "name_contains": "priya"}},
+
+  {"id": "rf-10", "category": "refill",
+   "turns": [
+     {"q": "Could you refill my metformin?", "expect_contains": ["your name"]},
+     {"q": "Raj", "expect_contains": ["logged a refill request for metformin under Raj"]}
+   ],
+   "expect_db": {"table": "refill_requests", "name_contains": "raj", "medication_contains": "metformin"}},
+
+  {"id": "rf-11", "category": "refill",
+   "turns": [
+     {"q": "please refill my metformin, I am Raj", "expect_contains": ["logged a refill request for metformin under Raj"]}
+   ],
+   "expect_db": {"table": "refill_requests", "name_contains": "raj", "medication_contains": "metformin"}},
+
+  {"id": "rf-12", "category": "refill",
+   "turns": [
+     {"q": "I need a refill for metformin", "expect_contains": ["your name"]},
+     {"q": "this is Raj12", "expect_contains": ["logged a refill request for metformin under Raj12"]}
+   ],
+   "expect_db": {"table": "refill_requests", "name_contains": "raj12", "medication_contains": "metformin"}}
+]

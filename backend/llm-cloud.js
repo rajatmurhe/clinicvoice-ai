@@ -19,28 +19,54 @@ function checkOutputSafety(text) {
   return BLOCKED_PATTERNS_OUTPUT.some(function(pattern) { return pattern.test(text); });
 }
 
-async function generateResponse(query, context) {
+const CONFIDENCE_THRESHOLD = 0.35;
+
+// Decides everything that can be decided before the LLM call: input blocklist,
+// greeting short circuit, and the retrieval confidence threshold. Used by the
+// live path and by eval-retrieval.js so offline evaluation measures exactly the
+// same pre-LLM decisions the deployed service makes.
+function decidePreLLM(query, context) {
+  const top = context && context[0] ? context[0] : null;
+  const topScore = top ? top.score : 0;
+  const topFaqId = top ? top.faq.id : null;
+
   if (checkSafety(query)) {
     return {
+      kind: 'block',
       response: "I am not able to answer clinical or medical questions like that. Please contact the clinic directly or, if this is an emergency, call your local emergency number.",
-      guardrailTriggered: true
+      topScore: topScore,
+      topFaqId: topFaqId
     };
   }
 
   if (GREETING_ONLY_PATTERN.test(query.trim())) {
     return {
-      response: "Hello! How can I help you today?",
-      guardrailTriggered: false
+      kind: 'greeting',
+      response: 'Hello! How can I help you today?',
+      topScore: topScore,
+      topFaqId: topFaqId
     };
   }
 
-  const topScore = context[0] ? context[0].score : 0;
-  const CONFIDENCE_THRESHOLD = 0.35;
-
   if (topScore < CONFIDENCE_THRESHOLD) {
     return {
+      kind: 'fallback',
       response: "I don't have that information available. Please call our reception team and they'll be happy to help.",
-      guardrailTriggered: false
+      topScore: topScore,
+      topFaqId: topFaqId
+    };
+  }
+
+  return { kind: 'llm', topScore: topScore, topFaqId: topFaqId };
+}
+
+async function generateResponse(query, context) {
+  const pre = decidePreLLM(query, context);
+
+  if (pre.kind !== 'llm') {
+    return {
+      response: pre.response,
+      guardrailTriggered: pre.kind === 'block'
     };
   }
 
@@ -77,4 +103,4 @@ async function generateResponse(query, context) {
   return { response: generatedText, guardrailTriggered: false };
 }
 
-module.exports = { generateResponse, checkSafety };
+module.exports = { generateResponse, checkSafety, decidePreLLM, CONFIDENCE_THRESHOLD };
