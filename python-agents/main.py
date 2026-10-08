@@ -9,7 +9,7 @@ from agents.refill_agent import handle_refill
 from agents.insurance_agent import handle_insurance
 from agents.intake_agent import handle_intake
 from self_service import maybe_add_nudge
-from safety import check_input_safety, BLOCKED_RESPONSE
+from safety import check_input_safety, check_emergency, BLOCKED_RESPONSE, EMERGENCY_RESPONSE
 from dashboard_log import log_query, get_stats
 import time
 import re
@@ -87,6 +87,31 @@ def agent_query(req: QueryRequest):
             "intent": "repeat",
             "query": req.query
         }
+
+    if check_emergency(req.query):
+        session["booking_in_progress"] = False
+        session["lookup_pending"] = None
+        session["waitlist_offer"] = None
+        session["refill_pending"] = None
+        session["intake_pending"] = None
+        result = {
+            "response": EMERGENCY_RESPONSE,
+            "guardrailTriggered": True,
+            "agent": "faq",
+            "intent": "emergency",
+            "query": req.query
+        }
+        session["last_response"] = result["response"]
+        log_query(
+            query=req.query,
+            response=result["response"],
+            intent="emergency",
+            agent="emergency",
+            guardrail_triggered=True,
+            cache_hit=False,
+            latency_ms=round((time.time() - start) * 1000, 1)
+        )
+        return result
 
     if check_input_safety(req.query):
         session["booking_in_progress"] = False

@@ -663,9 +663,102 @@ def run_live(out_dir, runs):
     return doc
 
 
+def run_redteam(out_dir):
+    harness = OfflineHarness()
+    attacks = load_cases("red_team.json")
+
+    results = []
+    for a in attacks:
+        res = harness._post(a["q"], "redteam-" + a["id"])
+        results.append({
+            "id": a["id"],
+            "group": a["group"],
+            "q": a["q"],
+            "py_blocked": bool(res.get("guardrailTriggered")),
+            "agent": res.get("agent"),
+            "response": (res.get("response") or "")[:220],
+        })
+
+    node_blocked = {}
+    node_bin = shutil.which("node")
+    if node_bin:
+        queries = {"queries": [{"id": a["id"], "q": a["q"]} for a in attacks]}
+        try:
+            proc = subprocess.run(
+                [node_bin, "check-safety.js"],
+                cwd=str(BACKEND_DIR),
+                input=json.dumps(queries),
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+            if proc.returncode == 0:
+                node_blocked = {r["id"]: r["blocked"] for r in json.loads(proc.stdout)["results"]}
+        except Exception as e:
+            print("node check-safety failed: " + str(e), file=sys.stderr)
+
+    for r in results:
+        nb = node_blocked.get(r["id"])
+        r["node_blocked"] = nb
+        if r["py_blocked"]:
+            r["verdict"] = "caught"
+            r["drift"] = (nb is False)
+        elif nb:
+            r["verdict"] = "partial"
+        else:
+            r["verdict"] = "not blocked"
+
+    groups = {}
+    for r in results:
+        g = groups.setdefault(r["group"], {"caught": 0, "partial": 0, "not_blocked": 0, "total": 0, "ids": []})
+        g["total"] += 1
+        g[r["verdict"].replace(" ", "_")] += 1
+        if r["verdict"] != "caught":
+            g["ids"].append(r["id"])
+
+    doc = {
+        "meta": {
+            "mode": "redteam",
+            "date": datetime.datetime.now().isoformat(timespec="seconds"),
+            "commit": git_commit(),
+        },
+        "summary": {
+            "total": len(results),
+            "caught": sum(1 for r in results if r["verdict"] == "caught"),
+            "partial": sum(1 for r in results if r["verdict"] == "partial"),
+            "not_blocked": sum(1 for r in results if r["verdict"] == "not blocked"),
+            "blocklist_drift": sum(1 for r in results if r.get("drift")),
+            "groups": groups,
+        },
+        "results": results,
+    }
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "red-team.json").write_text(json.dumps(doc, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    lines = ["# Red team run", ""]
+    lines.append("Date: %s · commit: %s" % (doc["meta"]["date"], doc["meta"]["commit"]))
+    lines.append("")
+    lines.append("| Group | Caught | Partial | Not blocked |")
+    lines.append("|---|---|---|---|")
+    for g, s in groups.items():
+        lines.append("| %s | %d/%d | %d | %d |" % (g, s["caught"], s["total"], s["partial"], s["not_blocked"]))
+    lines.append("")
+    lines.append("## Not caught by the first layer")
+    lines.append("")
+    for r in results:
+        if r["verdict"] != "caught":
+            lines.append("- **%s** (%s, verdict %s): %s -> agent %s said: %.140s" % (r["id"], r["group"], r["verdict"], r["q"], r["agent"], r["response"]))
+    md = "\n".join(lines)
+    (out_dir / "red-team.md").write_text(md, encoding="utf-8")
+    print(md)
+    return doc
+
+
 def main():
     parser = argparse.ArgumentParser(description="ClinicVoice AI eval harness")
     parser.add_argument("--live", action="store_true", help="measure latency against deployed services")
+    parser.add_argument("--redteam", action="store_true", help="run the red team attack set")
     parser.add_argument("--runs", type=int, default=5, help="sample count per stage in live mode")
     parser.add_argument("--out-dir", default=str(Path(__file__).resolve().parent / "results"))
     args = parser.parse_args()
@@ -673,6 +766,8 @@ def main():
     out_dir = Path(args.out_dir)
     if args.live:
         run_live(out_dir, args.runs)
+    elif args.redteam:
+        run_redteam(out_dir)
     else:
         doc, md_path = run_offline(out_dir)
         print(md_path.read_text(encoding="utf-8"))

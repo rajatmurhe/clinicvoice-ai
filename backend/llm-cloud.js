@@ -1,8 +1,38 @@
 const BLOCKED_PATTERNS_INPUT = [
-  /diagnos/i, /prescri/i, /medication/i, /dose/i, /dosage/i, /how much .* (take|dose)/i,
+  /diagnos/i, /\bprescrib/i, /medication/i, /dose/i, /dosage/i, /how much .* (take|dose)/i,
   /is it (cancer|serious|an emergency)/i, /chest pain/i, /cant breathe/i,
-  /symptoms of/i, /what disease/i, /am i dying/i, /nhs number/i, /date of birth/i, /social security/i, /verify your identity/i
+  /symptoms of/i, /what disease/i, /am i dying/i, /nhs number/i, /date of birth/i, /social security/i, /verify your identity/i,
+  /\bmedicine\b/i, /\bsurgery\b/i, /sore throat|throat is sore/i,
+  /\bantibiotic/i, /side effects/i, /\bdizzy\b/i, /\bfever\b/i, /\brash\b/i,
+  /what (could it be|is wrong with me)/i,
+  /how (do|to) i (treat|cure)/i, /is it safe to/i,
+  /\d+\s?mg\b/i,
+  /ignore (all|your|the|previous|my) (previous )?(instructions|rules|guidelines|safety)/i,
+  /forget your (rules|instructions)/i, /new instructions/i,
+  /system prompt|you are now/i, /pretend (you are|to be)|act as/i,
+  /(patient|appointment|booking) list/i,
+  /appointment details|patient details|patient data|patient records/i,
+  /medical records (of|for)/i,
+  /(phone number|address|date of birth) of (the )?patient/i,
+  /(show|read|give|tell) me (the )?waitlist/i,
+  /today'?s bookings/i, /share the clinic schedule|clinic schedule with me/i,
+  /skip (the )?(verification|questions)/i,
+  /look me up by (name|phone)|look up (my|the) records/i,
+  /(do not|don.?t) need to verify/i,
+  /allowed to give medical advice|give medical advice/i
 ];
+
+// Kept in sync with EMERGENCY_PATTERNS in python-agents/safety.py. These get a
+// dedicated emergency message instead of the generic block, in both layers.
+const EMERGENCY_PATTERNS = [
+  /chest pain/i, /can.?t breathe|cannot breathe/i, /heart attack/i,
+  /\bstroke\b/i, /severe bleeding/i, /unconscious/i, /\bsuicid/i,
+  /kill myself/i, /end my life/i, /overdos/i
+];
+
+const BLOCKED_RESPONSE = 'I am not able to answer clinical or medical questions like that. Please contact the clinic directly or, if this is an emergency, call your local emergency number.';
+
+const EMERGENCY_RESPONSE = 'This sounds like it could be a medical emergency. Please hang up and call your local emergency number, or go to the nearest emergency room right away. I have flagged this call for our team to review.';
 
 const BLOCKED_PATTERNS_OUTPUT = [
   /you should take/i, /take \d+/i, /recommended dose/i, /i diagnose/i, /you have (cancer|a disease)/i,
@@ -13,6 +43,10 @@ const GREETING_ONLY_PATTERN = /^((hi|hello|hey|good morning|good afternoon|good 
 
 function checkSafety(query) {
   return BLOCKED_PATTERNS_INPUT.some(function(pattern) { return pattern.test(query); });
+}
+
+function checkEmergency(query) {
+  return EMERGENCY_PATTERNS.some(function(pattern) { return pattern.test(query); });
 }
 
 function checkOutputSafety(text) {
@@ -30,10 +64,19 @@ function decidePreLLM(query, context) {
   const topScore = top ? top.score : 0;
   const topFaqId = top ? top.faq.id : null;
 
+  if (checkEmergency(query)) {
+    return {
+      kind: 'emergency',
+      response: EMERGENCY_RESPONSE,
+      topScore: topScore,
+      topFaqId: topFaqId
+    };
+  }
+
   if (checkSafety(query)) {
     return {
       kind: 'block',
-      response: "I am not able to answer clinical or medical questions like that. Please contact the clinic directly or, if this is an emergency, call your local emergency number.",
+      response: BLOCKED_RESPONSE,
       topScore: topScore,
       topFaqId: topFaqId
     };
@@ -66,7 +109,7 @@ async function generateResponse(query, context) {
   if (pre.kind !== 'llm') {
     return {
       response: pre.response,
-      guardrailTriggered: pre.kind === 'block'
+      guardrailTriggered: pre.kind === 'block' || pre.kind === 'emergency'
     };
   }
 
@@ -103,4 +146,4 @@ async function generateResponse(query, context) {
   return { response: generatedText, guardrailTriggered: false };
 }
 
-module.exports = { generateResponse, checkSafety, decidePreLLM, CONFIDENCE_THRESHOLD };
+module.exports = { generateResponse, checkSafety, checkEmergency, decidePreLLM, CONFIDENCE_THRESHOLD };
