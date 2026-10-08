@@ -142,6 +142,7 @@ function App() {
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const conversationEndRef = useRef(null);
+  const playerRef = useRef(new Audio());
 
   useEffect(() => {
     conversationEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -167,6 +168,8 @@ function App() {
   };
 
   const startRecording = async () => {
+    playerRef.current.pause();
+    playerRef.current.currentTime = 0;
     setError('');
     audioChunksRef.current = [];
 
@@ -199,6 +202,8 @@ function App() {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
       setLoading(true);
+      playerRef.current.play().catch(function() {});
+      playerRef.current.pause();
     }
   };
 
@@ -229,8 +234,10 @@ function App() {
       });
 
       const audioSrc = 'data:audio/aiff;base64,' + data.audioBase64;
-      const audio = new Audio(audioSrc);
-      audio.play();
+      playerRef.current.src = audioSrc;
+      playerRef.current.play().catch(function(err) {
+        setError('Audio playback failed: ' + err.message);
+      });
     } catch (err) {
       setError(err.message);
     } finally {

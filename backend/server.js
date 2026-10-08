@@ -72,7 +72,7 @@ app.post('/api/voice/query', voiceLimiter, upload.single('audio'), async (req, r
 
     const speechPath = 'uploads/' + Date.now() + '_response.aiff';
     const t5 = Date.now();
-    execSync('say "' + result.response.replace(/"/g, '') + '" -o ' + speechPath);
+    execSync('say -v Samantha "' + result.response.replace(/"/g, '') + '" -o ' + speechPath);
     console.log('tts:', Date.now() - t5, 'ms');
 
     const audioData = fs.readFileSync(speechPath);
