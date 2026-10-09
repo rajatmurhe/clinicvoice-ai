@@ -1,8 +1,9 @@
 {
   "meta": {
     "mode": "offline",
-    "date": "2026-10-09T01:40:39",
-    "commit": "0c4c59b",
+    "orchestrator": "legacy",
+    "date": "2026-10-09T15:41:37",
+    "commit": "3536f07",
     "python_seconds": 2.7,
     "node_error": null,
     "fake_calendar": true,
@@ -85,7 +86,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date. You can also manage this anytime through our online patient portal."
+            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date. You can also manage this anytime through our online patient portal."
           }
         ]
       },
@@ -100,7 +101,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date. You can also manage this anytime through our online patient portal."
+            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date. You can also manage this anytime through our online patient portal."
           },
           {
             "q": "tomorrow",
@@ -224,7 +225,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
+            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
           }
         ]
       },
@@ -349,7 +350,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
+            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
           }
         ]
       },
@@ -445,7 +446,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date. You can also manage this anytime through our online patient portal."
+            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date. You can also manage this anytime through our online patient portal."
           },
           {
             "q": "tomorrow",
@@ -584,7 +585,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date. You can also manage this anytime through our online patient portal."
+            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date. You can also manage this anytime through our online patient portal."
           },
           {
             "q": "tomorrow",
@@ -1192,7 +1193,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date. You can also manage this anytime through our online patient portal."
+            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date. You can also manage this anytime through our online patient portal."
           },
           {
             "q": "I am very frustrated with this",
@@ -1625,7 +1626,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date. You can also manage this anytime through our online patient portal."
+            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date. You can also manage this anytime through our online patient portal."
           }
         ]
       },
@@ -1730,7 +1731,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
+            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
           }
         ]
       },
@@ -1760,7 +1761,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
+            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
           }
         ]
       },
@@ -1805,7 +1806,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
+            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
           }
         ]
       },
@@ -1820,7 +1821,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
+            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
           }
         ]
       },
@@ -1910,7 +1911,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
+            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
           }
         ]
       },

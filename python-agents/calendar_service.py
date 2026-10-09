@@ -2,8 +2,7 @@ import datetime
 import os
 import time
 
-from google.oauth2 import service_account
-from googleapiclient.discovery import build
+CALENDAR_MODE = os.environ.get("CLINICVOICE_CALENDAR_MODE", "google")
 
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
 _RENDER_SECRET_PATH = "/etc/secrets/service-account-key.json"
@@ -15,6 +14,17 @@ CALENDAR_ID = os.environ.get(
 )
 
 DOCTORS = ["Dr. Sharma", "Dr. Patel", "Dr. Khan"]
+
+_fake_calendar = None
+
+
+def _get_fake():
+    global _fake_calendar
+    if _fake_calendar is None:
+        from fake_calendar import FakeCalendar
+
+        _fake_calendar = FakeCalendar()
+    return _fake_calendar
 
 
 def _with_retries(call, attempts=3):
@@ -32,6 +42,11 @@ def _with_retries(call, attempts=3):
 
 
 def get_calendar_service():
+    # Imported lazily so test and CI environments without the Google client
+    # libraries can still run everything except live calendar calls.
+    from google.oauth2 import service_account
+    from googleapiclient.discovery import build
+
     credentials = service_account.Credentials.from_service_account_file(
         SERVICE_ACCOUNT_FILE, scopes=SCOPES
     )
@@ -39,6 +54,9 @@ def get_calendar_service():
 
 
 def get_available_slots(date_str, duration_minutes=30, doctor=None):
+    if CALENDAR_MODE == "fake":
+        return _get_fake().get_available_slots(date_str, duration_minutes=duration_minutes, doctor=doctor)
+
     service = get_calendar_service()
 
     day_start = datetime.datetime.fromisoformat(date_str + "T09:00:00+05:30")
@@ -81,6 +99,9 @@ def get_available_slots(date_str, duration_minutes=30, doctor=None):
 
 
 def book_appointment(date_str, time_str, patient_name, duration_minutes=30, doctor=None):
+    if CALENDAR_MODE == "fake":
+        return _get_fake().book_appointment(date_str, time_str, patient_name, duration_minutes=duration_minutes, doctor=doctor)
+
     service = get_calendar_service()
 
     start_dt = datetime.datetime.strptime(date_str + " " + time_str, "%Y-%m-%d %I:%M %p")
@@ -116,6 +137,9 @@ def book_appointment(date_str, time_str, patient_name, duration_minutes=30, doct
 
 
 def find_appointments_by_name(patient_name, days_ahead=30):
+    if CALENDAR_MODE == "fake":
+        return _get_fake().find_appointments_by_name(patient_name, days_ahead=days_ahead)
+
     service = get_calendar_service()
     now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=5, minutes=30)))
     time_max = now + datetime.timedelta(days=days_ahead)
@@ -145,6 +169,9 @@ def find_appointments_by_name(patient_name, days_ahead=30):
 
 
 def cancel_appointment(event_id):
+    if CALENDAR_MODE == "fake":
+        return _get_fake().cancel_appointment(event_id)
+
     service = get_calendar_service()
     _with_retries(lambda: service.events().delete(calendarId=CALENDAR_ID, eventId=event_id).execute())
     return True

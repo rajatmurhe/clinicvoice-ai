@@ -1,6 +1,7 @@
 import re
 from datetime import datetime, timedelta
-from calendar_service import get_available_slots, book_appointment, find_appointments_by_name, cancel_appointment, DOCTORS
+from calendar_service import DOCTORS
+from tools_backend import get_available_slots, book_appointment, find_appointments_by_name, cancel_appointment
 from clinic_hours import is_clinic_open, hours_message
 from waitlist import add_to_waitlist, notify_waitlist
 from agents.extract import extract_person_name

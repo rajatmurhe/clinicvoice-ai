@@ -105,3 +105,42 @@ product feature. Both paths stay tested: CI runs the legacy eval plus the
 graph unit tests, and the graph eval is one command for anyone who wants to
 re-verify.
 
+## 5. Tools behind MCP
+
+Date: 9 Oct 2026.
+
+The calendar operations, the refill and intake logs, and FAQ search are exposed
+as an MCP tool server (python-agents/mcp_tools_server.py, seven tools with
+typed JSON schemas, stdio transport). The agents reach them through
+tools_backend.py, which calls the same functions directly by default and goes
+through an MCP client session when CLINICVOICE_TOOLS=mcp. Every tool call is
+logged with its request id and counted on the dashboard.
+
+The full offline eval was run with CLINICVOICE_TOOLS=mcp (committed as
+results/eval-offline-mcp.json): every category matches the direct-call run
+exactly (booking, refills, insurance, escalation, safety, both languages and
+routing all 100, FAQ 91.2 hit at 1 with the same 3 residuals). Measured cost of
+the one-shot stdio transport: about 0.7 to 2.2 seconds per tool call for
+process spawn plus initialize, which is logged and visible on the dashboard.
+Production would use a persistent session over the streamable HTTP transport;
+the per-call one-shot exists because the stdio transport's async context
+managers must stay entered inside one live task, which does not compose with
+the synchronous agent call path.
+
+Kept: direct calls as the default (no measured quality gain, real latency
+cost), MCP available behind the flag and proven equivalent on the same eval.
+
+## 6. Compliance reviewer agent
+
+Date: 9 Oct 2026.
+
+A rule based reviewer screens each reply against output policy (clinical
+advice phrasings, diagnosis statements, identity fishing) before it is spoken,
+behind CLINICVOICE_COMPLIANCE_REVIEWER. On the full eval with the reviewer on:
+zero false blocks and zero extra catches, because the input blocklist already
+stops every unsafe message before a reply exists. Per the phase gate (keep
+only if it shows fewer unsafe replies without extra false blocks) it stays off
+by default. Its value is defense in depth on the output side, mainly if the
+LLM path ever produced a policy violating answer that the input filter could
+not have anticipated; the code and tests stay in the repo, one environment
+variable turns it on.

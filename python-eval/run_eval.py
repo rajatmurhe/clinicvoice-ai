@@ -85,6 +85,8 @@ class OfflineHarness:
         os.environ["FAQ_BACKEND_URL"] = "http://127.0.0.1:1/unreachable"
         os.environ["CLINICVOICE_RATE_LIMIT"] = "100000"
         os.environ["CLINICVOICE_ORCHESTRATOR"] = orchestrator
+        os.environ["CLINICVOICE_CALENDAR_MODE"] = "fake"
+        os.environ["CLINICVOICE_TOOLS"] = os.environ.get("EVAL_TOOLS_MODE", "direct")
         self.orchestrator = orchestrator
 
         sys.path.insert(0, str(AGENTS_DIR))
@@ -96,15 +98,14 @@ class OfflineHarness:
 
         import main as main_module  # noqa: E402
         import agents.booking_agent as booking_agent  # noqa: E402
+        import calendar_service  # noqa: E402
         from agents.router import classify_intent  # noqa: E402
 
         self.classify_intent = classify_intent
         self.main_module = main_module
 
-        booking_agent.get_available_slots = self.fake_cal.get_available_slots
-        booking_agent.book_appointment = self.fake_cal.book_appointment
-        booking_agent.find_appointments_by_name = self.fake_cal.find_appointments_by_name
-        booking_agent.cancel_appointment = self.fake_cal.cancel_appointment
+        # Calendar state lives in SQLite under CLINICVOICE_CALENDAR_MODE=fake,
+        # so the MCP tool server subprocess (if used) shares it.
 
         def stub_faq(query):
             return {

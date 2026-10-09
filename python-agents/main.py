@@ -93,6 +93,14 @@ REPEAT_PATTERN = re.compile(r"(what did you say|say that again|repeat that|can y
 # both are compared on the same eval (see DECISIONS.md).
 ORCHESTRATOR_MODE = os.environ.get("CLINICVOICE_ORCHESTRATOR", "legacy")
 
+# Compliance reviewer screens each reply against output policy before it is
+# spoken. Off by default; the eval decides whether it earns its place
+# (fewer unsafe replies, no extra false blocks). See DECISIONS.md.
+COMPLIANCE_REVIEWER = os.environ.get("CLINICVOICE_COMPLIANCE_REVIEWER", "false").lower() == "true"
+
+if COMPLIANCE_REVIEWER:
+    from compliance_reviewer import review_reply
+
 
 def clear_pending_flows(session):
     session["booking_in_progress"] = False
@@ -299,6 +307,14 @@ def process_query(req: QueryRequest, session: dict, start: float):
 
     result["intent"] = intent
     result["query"] = query
+
+    if COMPLIANCE_REVIEWER and not result.get("guardrailTriggered"):
+        review = review_reply(result.get("response", ""))
+        if review["verdict"] == "blocked":
+            result["response"] = review["response"]
+            result["guardrailTriggered"] = True
+            result["compliance_violation"] = review["violation"]
+
     result["response"] = maybe_add_nudge(query, result.get("response", ""), result.get("agent", intent))
 
     session["last_response"] = result.get("response", "")
@@ -349,6 +365,14 @@ def agent_query(req: QueryRequest):
             }
 
         result = graph_orchestrator.run_query(req.query, req.session_id)
+
+        if COMPLIANCE_REVIEWER and not result.get("guardrailTriggered"):
+            review = review_reply(result.get("response", ""))
+            if review["verdict"] == "blocked":
+                result["response"] = review["response"]
+                result["guardrailTriggered"] = True
+                result["compliance_violation"] = review["violation"]
+
         result["response"] = maybe_add_nudge(req.query, result.get("response", ""), result.get("agent", "faq"))
         session["last_response"] = result.get("response", "")
         session_store.save_session(req.session_id, session)

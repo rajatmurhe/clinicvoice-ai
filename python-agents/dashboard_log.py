@@ -30,8 +30,39 @@ def init_db():
         )
     ''')
     conn.commit()
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS tool_calls (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp REAL,
+            tool TEXT,
+            latency_ms REAL,
+            ok INTEGER,
+            request_id TEXT
+        )
+    ''')
+    conn.commit()
     _migrate(conn)
     conn.close()
+
+
+def log_tool_call(tool, latency_ms, ok, request_id=None):
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute(
+        'INSERT INTO tool_calls (timestamp, tool, latency_ms, ok, request_id) VALUES (?, ?, ?, ?, ?)',
+        (time.time(), tool, latency_ms, int(ok), request_id)
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_tool_stats():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    rows = conn.execute(
+        'SELECT tool, COUNT(*) as calls, AVG(latency_ms) as avg_ms, SUM(CASE WHEN ok = 0 THEN 1 ELSE 0 END) as failures FROM tool_calls GROUP BY tool'
+    ).fetchall()
+    conn.close()
+    return {row['tool']: {'calls': row['calls'], 'avg_ms': round(row['avg_ms'] or 0, 1), 'failures': row['failures']} for row in rows}
 
 
 def _migrate(conn):
@@ -118,6 +149,7 @@ def get_stats():
         'failure_count': failures,
         'tokens_total': tokens_total,
         'estimated_cost_usd': round(tokens_total / 1_000_000 * COST_PER_MTOKEN, 4),
+        'tool_calls': get_tool_stats(),
         'recent_queries': [dict(row) for row in recent]
     }
 

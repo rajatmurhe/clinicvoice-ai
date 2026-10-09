@@ -1,6 +1,6 @@
 # ClinicVoice AI eval results (offline mode)
 
-Run date: 2026-10-09T01:40:39 · commit: 0c4c59b · no network, no LLM calls, fake calendar
+Run date: 2026-10-09T15:41:37 · commit: 3536f07 · no network, no LLM calls, fake calendar
 
 | Category | Metric | Value |
 |---|---|---|

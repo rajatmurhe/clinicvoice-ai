@@ -15,6 +15,8 @@ os.environ["VOICE_CLONING_ENABLED"] = "false"
 # Deterministic FAQ failures in pipeline tests: instant connection refused.
 os.environ["FAQ_BACKEND_URL"] = "http://127.0.0.1:1/unreachable"
 os.environ["CLINICVOICE_RATE_LIMIT"] = "100000"
+# Tests run against the shared SQLite fake calendar, not Google.
+os.environ["CLINICVOICE_CALENDAR_MODE"] = "fake"
 
 # main.py mounts ./static relative to the cwd at import time.
 os.chdir(ROOT)
