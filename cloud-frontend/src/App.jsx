@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import './App.css';
 
-const API_URL = 'https://clinicvoice-ai.onrender.com';
-const AGENT_URL = 'https://clinicvoice-ai-agents.onrender.com';
+// Point at your local stack with VITE_API_URL / VITE_AGENT_URL when developing;
+// defaults are the deployed services.
+const API_URL = import.meta.env.VITE_API_URL || 'https://clinicvoice-ai.onrender.com';
+const AGENT_URL = import.meta.env.VITE_AGENT_URL || 'https://clinicvoice-ai-agents.onrender.com';
 
 function MicIcon() {
   return (
