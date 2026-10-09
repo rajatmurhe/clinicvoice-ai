@@ -107,7 +107,7 @@ class OfflineHarness:
         # Calendar state lives in SQLite under CLINICVOICE_CALENDAR_MODE=fake,
         # so the MCP tool server subprocess (if used) shares it.
 
-        def stub_faq(query):
+        def stub_faq(query, clinic_id=None):
             return {
                 "response": "[faq-stub] " + query,
                 "guardrailTriggered": False,
