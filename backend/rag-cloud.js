@@ -117,8 +117,8 @@ function hybridScores(query, faqs) {
   return scored;
 }
 
-async function retrieveContext(query, topK = 2) {
-  const faqs = getAllFaqs();
+async function retrieveContext(query, topK = 2, clinicId) {
+  const faqs = getAllFaqs(clinicId);
   const scored = hybridScores(query, faqs);
   scored.sort(function(a, b) { return b.score - a.score; });
   return scored.slice(0, topK);

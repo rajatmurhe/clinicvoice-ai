@@ -124,7 +124,7 @@ def intake_node(state: OrchestratorState) -> dict:
 def faq_node(state: OrchestratorState) -> dict:
     # Module attribute access so the eval harness can stub the FAQ backend the
     # same way it does for the legacy path.
-    result = faq_agent.handle_faq(state["query"])
+    result = faq_agent.handle_faq(state["query"], state.get("session", {}).get("clinic_id"))
     return {"response": result.get("response", ""), "agent": result.get("agent", "faq"), "guardrail_triggered": result.get("guardrailTriggered", False), "error_type": result.get("error_type")}
 
 

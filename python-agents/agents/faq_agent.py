@@ -16,7 +16,7 @@ FAQ_UNREACHABLE_RESPONSE = (
 RETRYABLE_STATUS = (500, 502, 503, 504)
 
 
-def _post_with_retries(query):
+def _post_with_retries(query, clinic_id=None):
     """Calls the FAQ backend with short timeouts and two retries with backoff.
 
     Raises the last exception only after all attempts fail, so the caller can
@@ -28,7 +28,7 @@ def _post_with_retries(query):
         try:
             response = requests.post(
                 FAQ_BACKEND_URL,
-                json={"query": query},
+                json={"query": query, "clinic_id": clinic_id or "default"},
                 headers=headers,
                 timeout=(3, 10),
             )
@@ -44,10 +44,10 @@ def _post_with_retries(query):
     raise last_error
 
 
-def handle_faq(query: str) -> dict:
+def handle_faq(query: str, clinic_id=None) -> dict:
     start = time.time()
 
-    cached = check_cache(query)
+    cached = check_cache(query, clinic_id)
     if cached:
         elapsed_ms = round((time.time() - start) * 1000, 1)
         return {
@@ -61,7 +61,7 @@ def handle_faq(query: str) -> dict:
         }
 
     try:
-        data = _post_with_retries(query)
+        data = _post_with_retries(query, clinic_id)
     except Exception as e:
         obs.log_event("faq_backend_failed", error_type=type(e).__name__)
         return {
@@ -77,7 +77,7 @@ def handle_faq(query: str) -> dict:
     guardrail_triggered = data.get("guardrailTriggered", False)
 
     if not guardrail_triggered:
-        store_in_cache(query, result_response, guardrail_triggered)
+        store_in_cache(query, result_response, guardrail_triggered, clinic_id)
 
     elapsed_ms = round((time.time() - start) * 1000, 1)
     return {

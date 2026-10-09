@@ -1,0 +1,23 @@
+{
+  "id": "smilecare",
+  "name": "SmileCare Dental",
+  "timezone_offset_minutes": 330,
+  "hours": {
+    "monday_friday": {"open": "10:00", "close": "19:00"},
+    "saturday": {"open": "10:00", "close": "16:00"},
+    "sunday": null
+  },
+  "hours_message": "SmileCare Dental is open Monday to Friday, 10am to 7pm, and Saturday 10am to 4pm. We're closed on Sundays.",
+  "doctors": ["Dr. Mehta", "Dr. Iyer"],
+  "insurance_providers": ["aetna", "cigna", "delta dental", "metlife"],
+  "languages": ["en"],
+  "faqs": [
+    {"id": 1, "question": "Do you accept walk-in patients?", "answer": "SmileCare accepts walk-ins for dental emergencies until one hour before closing."},
+    {"id": 2, "question": "What are your opening hours?", "answer": "SmileCare Dental is open Monday to Friday, 10am to 7pm, and Saturday 10am to 4pm. We're closed on Sundays."},
+    {"id": 3, "question": "Is parking available?", "answer": "Yes, SmileCare has free parking in the basement level of the building."},
+    {"id": 4, "question": "How do I book a cleaning?", "answer": "Call reception or use the online portal to book a cleaning; hygienist slots are usually available within a week."},
+    {"id": 5, "question": "Do you treat children?", "answer": "Yes, SmileCare treats patients of all ages, including children's dentistry."}
+  ],
+  "scheduling": {"adapter": "fake"},
+  "webhooks": []
+}

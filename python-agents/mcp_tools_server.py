@@ -22,25 +22,25 @@ import intake_log
 server = MCPServer("clinic-tools")
 
 
-def calendar_get_available_slots(date: str, doctor: str | None = None) -> list[str]:
+def calendar_get_available_slots(date: str, doctor: str | None = None, clinic_id: str | None = None) -> list[str]:
     """List free 30 minute slots on a date (YYYY-MM-DD), optionally for one doctor (e.g. 'Dr. Patel')."""
-    return calendar_service.get_available_slots(date, doctor=doctor)
+    return calendar_service.get_available_slots(date, doctor=doctor, clinic_id=clinic_id)
 
 
-def calendar_book_appointment(date: str, time: str, patient_name: str, doctor: str | None = None) -> str:
+def calendar_book_appointment(date: str, time: str, patient_name: str, doctor: str | None = None, clinic_id: str | None = None) -> str:
     """Book a 30 minute appointment at a date (YYYY-MM-DD) and time (hh:mm AM/PM) for a patient. Idempotent for the same name, date, time and doctor."""
-    event_id = calendar_service.book_appointment(date, time, patient_name, doctor=doctor)
+    event_id = calendar_service.book_appointment(date, time, patient_name, doctor=doctor, clinic_id=clinic_id)
     return event_id
 
 
-def calendar_find_appointments_by_name(patient_name: str) -> list[dict]:
+def calendar_find_appointments_by_name(patient_name: str, clinic_id: str | None = None) -> list[dict]:
     """Find upcoming appointments (next 30 days) whose summary contains the patient name."""
-    return calendar_service.find_appointments_by_name(patient_name)
+    return calendar_service.find_appointments_by_name(patient_name, clinic_id=clinic_id)
 
 
-def calendar_cancel_appointment(event_id: str) -> bool:
+def calendar_cancel_appointment(event_id: str, clinic_id: str | None = None) -> bool:
     """Cancel (delete) the appointment with this event id."""
-    return calendar_service.cancel_appointment(event_id)
+    return calendar_service.cancel_appointment(event_id, clinic_id=clinic_id)
 
 
 def records_log_refill_request(patient_name: str, medication: str) -> bool:

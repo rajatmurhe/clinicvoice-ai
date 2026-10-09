@@ -1,23 +1,22 @@
 import re
 
-ACCEPTED_PROVIDERS = [
-    "united healthcare", "aetna", "cigna", "blue cross blue shield",
-    "star health", "hdfc ergo", "icici lombard", "care health insurance",
-    "national insurance", "new india assurance"
-]
+def accepted_providers(clinic_id=None):
+    from clinic_config import load_clinic
+
+    return load_clinic(clinic_id).get("insurance_providers", [])
 
 
-def check_provider(query: str):
+def check_provider(query: str, clinic_id=None):
     # Normalise spacing so "UnitedHealthcare" matches "united healthcare".
     query_norm = query.lower().replace(" ", "")
-    for provider in ACCEPTED_PROVIDERS:
+    for provider in accepted_providers(clinic_id):
         if provider.replace(" ", "") in query_norm:
             return provider
     return None
 
 
 def handle_insurance(query: str, session: dict) -> dict:
-    matched = check_provider(query)
+    matched = check_provider(query, session.get("clinic_id"))
 
     if matched:
         return {

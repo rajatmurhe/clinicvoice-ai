@@ -141,45 +141,45 @@ def _call(tool_name, arguments, direct_fn, list_result=False):
 # --- Public API: same names and shapes the agents used to import directly. ---
 
 
-def get_available_slots(date_str, duration_minutes=30, doctor=None):
+def get_available_slots(date_str, duration_minutes=30, doctor=None, clinic_id=None):
     import calendar_service
 
     return _call(
         "calendar_get_available_slots",
         {"date": date_str, **({"doctor": doctor} if doctor else {})},
-        lambda **kw: calendar_service.get_available_slots(date_str, duration_minutes=duration_minutes, doctor=kw.get("doctor")),
+        lambda **kw: calendar_service.get_available_slots(date_str, duration_minutes=duration_minutes, doctor=kw.get("doctor"), clinic_id=clinic_id),
         list_result=True,
     )
 
 
-def book_appointment(date_str, time_str, patient_name, duration_minutes=30, doctor=None):
+def book_appointment(date_str, time_str, patient_name, duration_minutes=30, doctor=None, clinic_id=None):
     import calendar_service
 
     return _call(
         "calendar_book_appointment",
         {"date": date_str, "time": time_str, "patient_name": patient_name, **({"doctor": doctor} if doctor else {})},
-        lambda **kw: calendar_service.book_appointment(date_str, time_str, patient_name, duration_minutes=duration_minutes, doctor=kw.get("doctor")),
+        lambda **kw: calendar_service.book_appointment(date_str, time_str, patient_name, duration_minutes=duration_minutes, doctor=kw.get("doctor"), clinic_id=clinic_id),
     )
 
 
-def find_appointments_by_name(patient_name, days_ahead=30):
+def find_appointments_by_name(patient_name, days_ahead=30, clinic_id=None):
     import calendar_service
 
     return _call(
         "calendar_find_appointments_by_name",
         {"patient_name": patient_name},
-        lambda **kw: calendar_service.find_appointments_by_name(patient_name, days_ahead=days_ahead),
+        lambda **kw: calendar_service.find_appointments_by_name(patient_name, days_ahead=days_ahead, clinic_id=clinic_id),
         list_result=True,
     )
 
 
-def cancel_appointment(event_id):
+def cancel_appointment(event_id, clinic_id=None):
     import calendar_service
 
     return _call(
         "calendar_cancel_appointment",
         {"event_id": event_id},
-        lambda **kw: calendar_service.cancel_appointment(event_id),
+        lambda **kw: calendar_service.cancel_appointment(event_id, clinic_id=clinic_id),
     )
 
 

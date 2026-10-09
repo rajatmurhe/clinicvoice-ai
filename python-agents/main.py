@@ -114,6 +114,7 @@ def clear_pending_flows(session):
 class QueryRequest(BaseModel):
     query: str
     session_id: str = "default"
+    clinic_id: str | None = None
 
 
 @app.middleware("http")
@@ -294,6 +295,11 @@ def process_query(req: QueryRequest, session: dict, start: float):
 
     if intent == "escalation":
         result = handle_escalation(query)
+        import webhooks
+
+        webhooks.dispatch(session.get("clinic_id"), "escalation_raised", {
+            "clinic_id": session.get("clinic_id"), "query": query,
+        })
     elif intent == "booking":
         result = handle_booking(query, session)
     elif intent == "refill":
@@ -303,7 +309,7 @@ def process_query(req: QueryRequest, session: dict, start: float):
     elif intent == "intake":
         result = handle_intake(query, session)
     else:
-        result = handle_faq(query)
+        result = handle_faq(query, session.get("clinic_id"))
 
     result["intent"] = intent
     result["query"] = query
@@ -400,6 +406,7 @@ def agent_query(req: QueryRequest):
         return result
 
     session = session_store.get_session(req.session_id)
+    session["clinic_id"] = req.clinic_id or obs.DEFAULT_CLINIC_FALLBACK
     try:
         return process_query(req, session, start)
     finally:

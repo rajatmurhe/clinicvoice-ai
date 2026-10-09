@@ -7,25 +7,30 @@ const db = new Database(path.join(__dirname, 'data', 'clinic.db'));
 function ensureSchema() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS faqs (
-      id INTEGER PRIMARY KEY,
+      id INTEGER NOT NULL,
       question TEXT NOT NULL,
       answer TEXT NOT NULL,
       question_hi TEXT,
-      question_mr TEXT
+      question_mr TEXT,
+      clinic_id TEXT NOT NULL DEFAULT 'default',
+      PRIMARY KEY (clinic_id, id)
     )
   `);
-  // Older databases lack the translated question columns; the table is fully
-  // reseeded from faqs.json, so recreating it loses nothing.
+  // Older databases lack the translated question or clinic columns; the table
+  // is fully reseeded from the JSON files, so recreating it loses nothing.
   const cols = db.prepare('PRAGMA table_info(faqs)').all().map(function(c) { return c.name; });
-  if (!cols.includes('question_hi') || !cols.includes('question_mr')) {
+  const pk = db.prepare('PRAGMA table_info(faqs)').all().filter(function(c) { return c.pk > 0; }).map(function(c) { return c.name; }).sort();
+  if (!cols.includes('question_hi') || !cols.includes('question_mr') || !cols.includes('clinic_id') || pk.join(',') !== 'clinic_id,id') {
     db.exec('DROP TABLE faqs');
     db.exec(`
       CREATE TABLE faqs (
-        id INTEGER PRIMARY KEY,
+        id INTEGER NOT NULL,
         question TEXT NOT NULL,
         answer TEXT NOT NULL,
         question_hi TEXT,
-        question_mr TEXT
+        question_mr TEXT,
+        clinic_id TEXT NOT NULL DEFAULT 'default',
+        PRIMARY KEY (clinic_id, id)
       )
     `);
   }
@@ -38,16 +43,35 @@ function seedFromJson() {
 
   db.exec('DELETE FROM faqs');
 
-  const insert = db.prepare('INSERT INTO faqs (id, question, answer, question_hi, question_mr) VALUES (?, ?, ?, ?, ?)');
+  const insert = db.prepare("INSERT INTO faqs (id, question, answer, question_hi, question_mr, clinic_id) VALUES (?, ?, ?, ?, ?, ?)");
   for (const faq of faqs) {
-    insert.run(faq.id, faq.question, faq.answer, faq.question_hi || null, faq.question_mr || null);
+    insert.run(faq.id, faq.question, faq.answer, faq.question_hi || null, faq.question_mr || null, 'default');
   }
 
-  console.log('Refreshed database with ' + faqs.length + ' FAQs from faqs.json.');
+  // Per clinic FAQ overrides live next to the clinic configs so a second
+  // clinic onboards without code changes.
+  let clinicCount = 0;
+  try {
+    const clinicsDir = path.join(__dirname, '..', 'python-agents', 'clinics');
+    for (const file of fs.readdirSync(clinicsDir)) {
+      if (!file.endsWith('.json')) continue;
+      const clinic = JSON.parse(fs.readFileSync(path.join(clinicsDir, file), 'utf8'));
+      if (!clinic.faqs || !clinic.id) continue;
+      for (const faq of clinic.faqs) {
+        insert.run(faq.id, faq.question, faq.answer, null, null, clinic.id);
+      }
+      clinicCount++;
+    }
+  } catch (e) {
+    // No clinics directory: single tenant deployments are fine without it.
+  }
+
+  console.log('Refreshed database with ' + faqs.length + ' FAQs and ' + clinicCount + ' clinic overrides.');
 }
 
-function getAllFaqs() {
-  return db.prepare('SELECT id, question, answer, question_hi, question_mr FROM faqs').all();
+function getAllFaqs(clinicId) {
+  const cid = clinicId || 'default';
+  return db.prepare('SELECT id, question, answer, question_hi, question_mr FROM faqs WHERE clinic_id = ?').all(cid);
 }
 
 module.exports = { db, seedFromJson, getAllFaqs };

@@ -6,6 +6,7 @@ redacted before anything is written.
 """
 
 import json
+import os
 import re
 import sys
 import time
@@ -30,6 +31,10 @@ def redact(text):
     for pattern, repl in _REDACTIONS:
         text = pattern.sub(repl, text)
     return text
+
+
+# Clinic id used when a request does not carry one (single tenant default).
+DEFAULT_CLINIC_FALLBACK = os.environ.get("CLINICVOICE_CLINIC_ID", "default")
 
 
 def set_request_id(request_id):

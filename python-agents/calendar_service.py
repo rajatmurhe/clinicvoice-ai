@@ -53,10 +53,34 @@ def get_calendar_service():
     return build("calendar", "v3", credentials=credentials)
 
 
-def get_available_slots(date_str, duration_minutes=30, doctor=None):
-    if CALENDAR_MODE == "fake":
-        return _get_fake().get_available_slots(date_str, duration_minutes=duration_minutes, doctor=doctor)
+def get_available_slots(date_str, duration_minutes=30, doctor=None, clinic_id=None):
+    from scheduling import get_adapter
 
+    return get_adapter(clinic_id).get_available_slots(date_str, duration_minutes=duration_minutes, doctor=doctor)
+
+
+def book_appointment(date_str, time_str, patient_name, duration_minutes=30, doctor=None, clinic_id=None):
+    from scheduling import get_adapter
+
+    return get_adapter(clinic_id).book_appointment(date_str, time_str, patient_name, duration_minutes=duration_minutes, doctor=doctor)
+
+
+def find_appointments_by_name(patient_name, days_ahead=30, clinic_id=None):
+    from scheduling import get_adapter
+
+    return get_adapter(clinic_id).find_appointments_by_name(patient_name, days_ahead=days_ahead)
+
+
+def cancel_appointment(event_id, clinic_id=None):
+    from scheduling import get_adapter
+
+    return get_adapter(clinic_id).cancel_appointment(event_id)
+
+
+# --- Google Calendar implementation (the google adapter's backend) ---
+
+
+def _google_get_available_slots(date_str, duration_minutes=30, doctor=None):
     service = get_calendar_service()
 
     day_start = datetime.datetime.fromisoformat(date_str + "T09:00:00+05:30")
@@ -98,10 +122,7 @@ def get_available_slots(date_str, duration_minutes=30, doctor=None):
     return available
 
 
-def book_appointment(date_str, time_str, patient_name, duration_minutes=30, doctor=None):
-    if CALENDAR_MODE == "fake":
-        return _get_fake().book_appointment(date_str, time_str, patient_name, duration_minutes=duration_minutes, doctor=doctor)
-
+def _google_book_appointment(date_str, time_str, patient_name, duration_minutes=30, doctor=None):
     service = get_calendar_service()
 
     start_dt = datetime.datetime.strptime(date_str + " " + time_str, "%Y-%m-%d %I:%M %p")
@@ -136,10 +157,7 @@ def book_appointment(date_str, time_str, patient_name, duration_minutes=30, doct
     return created_event.get("id")
 
 
-def find_appointments_by_name(patient_name, days_ahead=30):
-    if CALENDAR_MODE == "fake":
-        return _get_fake().find_appointments_by_name(patient_name, days_ahead=days_ahead)
-
+def _google_find_appointments_by_name(patient_name, days_ahead=30):
     service = get_calendar_service()
     now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=5, minutes=30)))
     time_max = now + datetime.timedelta(days=days_ahead)
@@ -168,10 +186,7 @@ def find_appointments_by_name(patient_name, days_ahead=30):
     return matches
 
 
-def cancel_appointment(event_id):
-    if CALENDAR_MODE == "fake":
-        return _get_fake().cancel_appointment(event_id)
-
+def _google_cancel_appointment(event_id):
     service = get_calendar_service()
     _with_retries(lambda: service.events().delete(calendarId=CALENDAR_ID, eventId=event_id).execute())
     return True

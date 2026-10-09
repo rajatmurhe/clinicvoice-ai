@@ -16,12 +16,12 @@ from agents import booking_agent  # noqa: E402
 
 
 @pytest.fixture()
-def patched_calendar():
+def patched_calendar(monkeypatch):
     fake = FakeCalendar()
-    booking_agent.get_available_slots = fake.get_available_slots
-    booking_agent.book_appointment = fake.book_appointment
-    booking_agent.find_appointments_by_name = fake.find_appointments_by_name
-    booking_agent.cancel_appointment = fake.cancel_appointment
+    monkeypatch.setattr(booking_agent, "get_available_slots", fake.get_available_slots)
+    monkeypatch.setattr(booking_agent, "book_appointment", fake.book_appointment)
+    monkeypatch.setattr(booking_agent, "find_appointments_by_name", fake.find_appointments_by_name)
+    monkeypatch.setattr(booking_agent, "cancel_appointment", fake.cancel_appointment)
     yield fake
     graph_orchestrator._APP = None
     graph_orchestrator._CHECKPOINTER = None

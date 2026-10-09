@@ -165,7 +165,7 @@ app.post('/api/text-query', rateLimit(60), async (req, res) => {
     if (!query) {
       return res.status(400).json({ error: 'No query provided.' });
     }
-    const context = await retrieveContext(query);
+    const context = await retrieveContext(query, 2, req.body.clinic_id || 'default');
     const result = await generateResponse(query, context);
     res.json({
       query: query,

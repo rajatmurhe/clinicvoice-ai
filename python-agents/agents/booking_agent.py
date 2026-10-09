@@ -1,8 +1,9 @@
 import re
 from datetime import datetime, timedelta
-from calendar_service import DOCTORS
 from tools_backend import get_available_slots, book_appointment, find_appointments_by_name, cancel_appointment
 from clinic_hours import is_clinic_open, hours_message
+from clinic_config import load_clinic
+import webhooks
 from waitlist import add_to_waitlist, notify_waitlist
 from agents.extract import extract_person_name
 
@@ -97,22 +98,22 @@ def extract_name(query: str):
 NON_NAME_WORDS = ("for", "a", "the", "an", "here", "please", "available", "tomorrow", "today")
 
 
-def extract_doctor(query: str):
-    for doc in DOCTORS:
+def extract_doctor(query: str, clinic_id=None):
+    for doc in load_clinic(clinic_id).get("doctors", []):
         last_name = doc.split(" ")[-1]
         if re.search(r"\b(?:dr\.?|doctor)\s+" + re.escape(last_name) + r"\b", query, re.IGNORECASE):
             return doc
     return None
 
 
-def mentions_unrecognized_doctor(query: str):
+def mentions_unrecognized_doctor(query: str, clinic_id=None):
     mention = re.search(r"\b(?:dr\.?|doctor)\s+([a-zA-Z]+)", query, re.IGNORECASE)
     if not mention:
         return None
     word = mention.group(1)
     if word.lower() in NON_NAME_WORDS:
         return None
-    if extract_doctor(query):
+    if extract_doctor(query, clinic_id):
         return None
     return word
 
@@ -124,6 +125,7 @@ def is_affirmative(query: str):
 def handle_reschedule_continuation(query: str, session: dict, reschedule_pending: dict) -> dict:
     """Continues a reschedule after the appointment was found: takes the new
     date (and optionally time), confirms the new slot, then cancels the old one."""
+    clinic_id = reschedule_pending.get("clinic_id")
     new_date = extract_date(query)
     new_time = extract_time(query)
 
@@ -137,7 +139,7 @@ def handle_reschedule_continuation(query: str, session: dict, reschedule_pending
     shown_slots = reschedule_pending.get("slots")
     if not new_time:
         try:
-            slots = get_available_slots(new_date, doctor=reschedule_pending.get("doctor"))
+            slots = get_available_slots(new_date, doctor=reschedule_pending.get("doctor"), clinic_id=clinic_id)
         except Exception:
             return {
                 "response": "I am having trouble checking the calendar right now. Please call reception to reschedule.",
@@ -168,9 +170,9 @@ def handle_reschedule_continuation(query: str, session: dict, reschedule_pending
     try:
         book_appointment(
             new_date, new_time, reschedule_pending["name"],
-            doctor=reschedule_pending.get("doctor")
+            doctor=reschedule_pending.get("doctor"), clinic_id=clinic_id
         )
-        cancel_appointment(reschedule_pending["event_id"])
+        cancel_appointment(reschedule_pending["event_id"], clinic_id=clinic_id)
     except Exception:
         return {
             "response": "I found the new slot but could not move the appointment just now. Please call reception to reschedule.",
@@ -189,6 +191,7 @@ def handle_reschedule_continuation(query: str, session: dict, reschedule_pending
 
 
 def handle_booking(query: str, session: dict) -> dict:
+    clinic_id = session.get("clinic_id")
     waitlist_offer = session.get("waitlist_offer")
     if waitlist_offer and is_affirmative(query):
         name = extract_name(query) or waitlist_offer.get("name")
@@ -276,7 +279,7 @@ def handle_booking(query: str, session: dict) -> dict:
             }
 
         try:
-            matches = find_appointments_by_name(name)
+            matches = find_appointments_by_name(name, clinic_id=clinic_id)
         except Exception:
             return {
                 "response": "I am having trouble checking the calendar right now. Please call reception directly.",
@@ -299,7 +302,7 @@ def handle_booking(query: str, session: dict) -> dict:
 
         if pending_lookup == "cancel" or is_cancel:
             try:
-                cancel_appointment(appt["id"])
+                cancel_appointment(appt["id"], clinic_id=clinic_id)
             except Exception:
                 return {
                     "response": "I found the appointment, but could not cancel it just now. Please call reception directly.",
@@ -307,6 +310,10 @@ def handle_booking(query: str, session: dict) -> dict:
                     "agent": "booking"
                 }
             session["lookup_pending"] = None
+            webhooks.dispatch(clinic_id, "booking_cancelled", {
+                "clinic_id": clinic_id, "patient_name": name,
+                "date": appt_date, "time": readable,
+            })
             notified = notify_waitlist(appt_date)
             waitlist_note = " I have also notified " + str(notified) + " waitlisted patient(s) for that date." if notified else ""
             return {
@@ -321,7 +328,8 @@ def handle_booking(query: str, session: dict) -> dict:
                 "event_id": appt["id"],
                 "name": name,
                 "old_readable": readable,
-                "doctor": extract_doctor(appt.get("summary", "")),
+                "doctor": extract_doctor(appt.get("summary", ""), clinic_id),
+                "clinic_id": clinic_id,
             }
             return {
                 "response": "I found your appointment on " + readable + ". What new date and time would you like? I will move it once the new slot is confirmed.",
@@ -345,16 +353,16 @@ def handle_booking(query: str, session: dict) -> dict:
 
     pending = session.get("booking")
     requested_time = extract_time(query)
-    unrecognized = mentions_unrecognized_doctor(query)
+    unrecognized = mentions_unrecognized_doctor(query, clinic_id)
     if unrecognized:
-        doctor_names = ", ".join(DOCTORS)
+        doctor_names = ", ".join(load_clinic(clinic_id).get("doctors", []))
         return {
             "response": "I am sorry, I do not have a doctor named " + unrecognized + ". Our available doctors are " + doctor_names + ". Would you like to book with one of them, or with no preference?",
             "guardrailTriggered": False,
             "agent": "booking"
         }
 
-    doctor = extract_doctor(query) or (pending.get("doctor") if pending else None)
+    doctor = extract_doctor(query, clinic_id) or (pending.get("doctor") if pending else None)
 
     if pending and requested_time and requested_time not in pending["slots"]:
         slots_text = ", ".join(pending["slots"][:5])
@@ -367,7 +375,7 @@ def handle_booking(query: str, session: dict) -> dict:
     if pending and requested_time and requested_time in pending["slots"]:
         patient_name = extract_name(query) or "Patient"
         try:
-            event_id = book_appointment(pending["date"], requested_time, patient_name, doctor=doctor)
+            event_id = book_appointment(pending["date"], requested_time, patient_name, doctor=doctor, clinic_id=clinic_id)
         except Exception:
             return {
                 "response": "I am having trouble confirming that booking right now. Please call reception to book directly.",
@@ -377,6 +385,10 @@ def handle_booking(query: str, session: dict) -> dict:
 
         session["booking"] = None
         session["booking_in_progress"] = False
+        webhooks.dispatch(clinic_id, "booking_created", {
+            "clinic_id": clinic_id, "patient_name": patient_name,
+            "date": pending["date"], "time": requested_time, "doctor": doctor,
+        })
         doctor_text = " with " + doctor if doctor else ""
         return {
             "response": "You are all set! I have booked your appointment" + doctor_text + " for " + pending["date"] + " at " + requested_time + ". We look forward to seeing you.",
@@ -388,8 +400,8 @@ def handle_booking(query: str, session: dict) -> dict:
 
     if not date_str:
         prefix = ""
-        if not is_clinic_open():
-            prefix = hours_message() + " We are currently closed, but I can still help you book for a future date. "
+        if not is_clinic_open(clinic_id):
+            prefix = hours_message(clinic_id) + " We are currently closed, but I can still help you book for a future date. "
         return {
             "response": prefix + "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date.",
             "guardrailTriggered": False,
@@ -397,7 +409,7 @@ def handle_booking(query: str, session: dict) -> dict:
         }
 
     try:
-        slots = get_available_slots(date_str, doctor=doctor)
+        slots = get_available_slots(date_str, doctor=doctor, clinic_id=clinic_id)
     except Exception:
         return {
             "response": "I am having trouble checking the calendar right now. Please call reception to book directly.",

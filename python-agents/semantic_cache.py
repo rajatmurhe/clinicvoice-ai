@@ -29,7 +29,7 @@ def cosine_similarity(a, b):
     return dot / (norm_a * norm_b)
 
 
-def check_cache(query: str):
+def check_cache(query: str, clinic_id=None):
     try:
         query_embedding = get_embedding(query)
     except Exception:
@@ -39,6 +39,8 @@ def check_cache(query: str):
     best_score = 0
 
     for entry in _cache:
+        if entry.get("clinic_id", "default") != (clinic_id or "default"):
+            continue  # answers are clinic specific; never serve across tenants
         score = cosine_similarity(query_embedding, entry["embedding"])
         if score > best_score:
             best_score = score
@@ -55,7 +57,7 @@ def check_cache(query: str):
     return None
 
 
-def store_in_cache(query: str, response: str, guardrail_triggered: bool):
+def store_in_cache(query: str, response: str, guardrail_triggered: bool, clinic_id=None):
     try:
         embedding = get_embedding(query)
     except Exception:
@@ -66,6 +68,7 @@ def store_in_cache(query: str, response: str, guardrail_triggered: bool):
         "embedding": embedding,
         "response": response,
         "guardrailTriggered": guardrail_triggered,
+        "clinic_id": clinic_id or "default",
         "timestamp": time.time()
     })
 

@@ -78,7 +78,7 @@ class FakeCalendar:
         conn.close()
         return rows
 
-    def get_available_slots(self, date_str, duration_minutes=30, doctor=None):
+    def get_available_slots(self, date_str, duration_minutes=30, doctor=None, clinic_id=None):
         day_start = datetime.datetime.fromisoformat(date_str + "T09:00:00+05:30")
         day_end = datetime.datetime.fromisoformat(date_str + "T18:00:00+05:30")
 
@@ -112,7 +112,7 @@ class FakeCalendar:
             current += slot_delta
         return available
 
-    def book_appointment(self, date_str, time_str, patient_name, duration_minutes=30, doctor=None):
+    def book_appointment(self, date_str, time_str, patient_name, duration_minutes=30, doctor=None, clinic_id=None):
         start = self._parse_slot(date_str, time_str)
         end = start + datetime.timedelta(minutes=duration_minutes)
         summary = self._summary_for(patient_name, doctor)
@@ -135,7 +135,7 @@ class FakeCalendar:
             conn.close()
             return event_id
 
-    def find_appointments_by_name(self, patient_name, days_ahead=30):
+    def find_appointments_by_name(self, patient_name, days_ahead=30, clinic_id=None):
         now = datetime.datetime.now(IST)
         time_max = now + datetime.timedelta(days=days_ahead)
         matches = []
@@ -149,7 +149,7 @@ class FakeCalendar:
         matches.sort(key=lambda m: m["start"])
         return matches
 
-    def cancel_appointment(self, event_id):
+    def cancel_appointment(self, event_id, clinic_id=None):
         with self._lock:
             conn = sqlite3.connect(self.db_path)
             cur = conn.execute("DELETE FROM events WHERE id = ?", (str(event_id),))
