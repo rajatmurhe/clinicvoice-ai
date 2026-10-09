@@ -104,6 +104,61 @@ app.post('/api/router-classify', rateLimit(120), async (req, res) => {
   }
 });
 
+app.post('/api/transcribe', rateLimit(60), async (req, res) => {
+  // Server side speech to text for browsers without the Web Speech API
+  // (Safari, Brave): the push to talk fallback records audio and posts it here.
+  try {
+    if (!req.body || !req.body.audio) {
+      return res.status(400).json({ error: 'No audio provided.' });
+    }
+    const base64Data = String(req.body.audio).replace(/^data:[^,]+,/, '');
+    const audioBuffer = Buffer.from(base64Data, 'base64');
+    if (audioBuffer.length < 800) {
+      return res.status(400).json({ error: 'Recording too short.' });
+    }
+
+    const form = new FormData();
+    form.append('file', new Blob([audioBuffer]), 'speech.webm');
+    form.append('model', 'whisper-large-v3-turbo');
+    form.append('response_format', 'json');
+    form.append('temperature', '0');
+
+    const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + process.env.GROQ_API_KEY,
+        'X-Request-ID': (req.headers['x-request-id'] || '').toString().slice(0, 64) || '-'
+      },
+      body: form,
+      signal: AbortSignal.timeout(20000)
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      process.stderr.write(JSON.stringify({
+        ts: new Date().toISOString(),
+        route: '/api/transcribe',
+        level: 'error',
+        error_type: 'stt_upstream_error',
+        message: errText.slice(0, 200)
+      }) + '\n');
+      return res.status(503).json({ error: 'Speech to text is temporarily unavailable. Please type your question instead.', error_type: 'stt_unavailable' });
+    }
+
+    const data = await response.json();
+    res.json({ text: (data.text || '').trim() });
+  } catch (err) {
+    process.stderr.write(JSON.stringify({
+      ts: new Date().toISOString(),
+      route: '/api/transcribe',
+      level: 'error',
+      error_type: err.name,
+      message: err.message
+    }) + '\n');
+    res.status(503).json({ error: 'Speech to text is temporarily unavailable. Please type your question instead.', error_type: 'stt_unavailable' });
+  }
+});
+
 app.post('/api/text-query', rateLimit(60), async (req, res) => {
   try {
     const query = req.body.query;

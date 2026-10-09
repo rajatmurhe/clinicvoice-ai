@@ -102,27 +102,103 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [messages, setMessages] = useState([]);
+  const [pushToTalk, setPushToTalk] = useState(false);
 
   const recognitionRef = useRef(null);
   const conversationEndRef = useRef(null);
   const sessionIdRef = useRef('cloud-' + Date.now());
+  const audioPlayerRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef(null);
+  const speakingRef = useRef(false);
 
   useEffect(() => {
     conversationEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
+  useEffect(() => {
+    // Push to talk fallback for browsers without the Web Speech API (Safari,
+    // Brave). Feature detected once on mount.
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    setPushToTalk(!SpeechRecognition);
+  }, []);
+
   const formatTime = () => {
     return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const startListening = () => {
-    setError('');
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const stopSpeaking = () => {
+    // Barge in: tapping the mic must stop playback at once.
+    speakingRef.current = false;
+    if (audioPlayerRef.current) {
+      audioPlayerRef.current.pause();
+      audioPlayerRef.current.currentTime = 0;
+    }
+    if (window.speechSynthesis && window.speechSynthesis.speaking) {
+      window.speechSynthesis.cancel();
+    }
+  };
 
-    if (!SpeechRecognition) {
-      setError('Speech recognition is not supported in this browser. Please use Chrome.');
+  const splitSentences = (text) => {
+    const parts = (text || '').split(/(?<=[.!?।])\s+/).filter(Boolean);
+    return parts.length ? parts : [text];
+  };
+
+  const speakText = (text, requestId) => {
+    return fetch(API_URL + '/api/tts', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Request-ID': requestId || ''
+      },
+      body: JSON.stringify({ text: text })
+    }).then(res => {
+      if (!res.ok) throw new Error('TTS failed');
+      return res.blob();
+    }).then(blob => {
+      if (!speakingRef.current) return; // barged in while synthesizing
+      const url = URL.createObjectURL(blob);
+      const audio = audioPlayerRef.current || new Audio();
+      audioPlayerRef.current = audio;
+      return new Promise((resolve) => {
+        audio.src = url;
+        audio.onended = resolve;
+        audio.play().catch(() => {
+          // Autoplay or codec failure: fall back to browser voice for the rest.
+          const utterance = new SpeechSynthesisUtterance(text);
+          window.speechSynthesis.speak(utterance);
+          resolve();
+        });
+      });
+    }).catch(() => {
+      const utterance = new SpeechSynthesisUtterance(text);
+      window.speechSynthesis.speak(utterance);
+    });
+  };
+
+  const speakReply = async (text, requestId) => {
+    // Stream sentence by sentence: the first sentence starts playing as soon
+    // as its audio is ready, so the caller hears the reply sooner.
+    speakingRef.current = true;
+    const sentences = splitSentences(text);
+    await speakText(sentences[0], requestId);
+    for (const sentence of sentences.slice(1)) {
+      if (!speakingRef.current) return;
+      await speakText(sentence, requestId);
+    }
+    speakingRef.current = false;
+  };
+
+  const startListening = () => {
+    stopSpeaking();
+    setError('');
+
+    if (pushToTalk) {
+      startPushToTalk();
       return;
     }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
     const recognition = new SpeechRecognition();
     recognition.lang = 'en-US';
@@ -148,11 +224,57 @@ function App() {
     setIsListening(true);
   };
 
+  const startPushToTalk = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+      recorder.ondataavailable = (e) => audioChunksRef.current.push(e.data);
+      recorder.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        setIsListening(false);
+        setLoading(true);
+        try {
+          const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+          const reader = new FileReader();
+          const dataUrl = await new Promise((resolve, reject) => {
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+          const res = await fetch(API_URL + '/api/transcribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ audio: dataUrl })
+          });
+          if (!res.ok) throw new Error('Transcription unavailable');
+          const data = await res.json();
+          if (data.text) {
+            sendQuery(data.text);
+          } else {
+            setError('Nothing heard. Please try again.');
+          }
+        } catch (err) {
+          setError(err.message || 'Transcription failed.');
+          setLoading(false);
+        }
+      };
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+      setIsListening(true);
+    } catch (err) {
+      setError('Microphone unavailable: ' + err.message);
+    }
+  };
+
   const stopListening = () => {
     if (recognitionRef.current) {
       recognitionRef.current.stop();
+    } else if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    } else {
+      setIsListening(false);
     }
-    setIsListening(false);
   };
 
   const speak = async (text, requestId) => {
@@ -219,7 +341,7 @@ function App() {
         ]);
       });
 
-      speak(data.response, res.headers.get('X-Request-ID') || requestId);
+      speakReply(data.response, res.headers.get('X-Request-ID') || requestId);
     } catch (err) {
       setError(err.message);
     } finally {

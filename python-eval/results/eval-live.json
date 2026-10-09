@@ -1,36 +1,66 @@
 {
   "meta": {
     "mode": "live",
-    "date": "2026-10-09T01:42:29",
-    "commit": "aa4ba98",
-    "faq_url": "https://clinicvoice-ai-1.onrender.com",
-    "agents_url": "not configured",
-    "runs": 3,
-    "note": "Speech to text runs in the browser on the cloud variant, so STT latency is client side and not measured here."
+    "date": "2026-10-09T15:48:06",
+    "commit": "b06912e",
+    "faq_url": "https://clinicvoice-ai.onrender.com",
+    "agents_url": "https://clinicvoice-ai-agents.onrender.com",
+    "runs": 5,
+    "note": "Speech to text runs in the browser on the cloud variant, so STT latency is client side and not measured here. Time to first audio compares synthesizing the whole reply (before) with synthesizing only the first sentence, which the streaming frontend plays immediately (after)."
   },
   "stages": {
     "llm": {
-      "p50_ms": 613,
-      "p95_ms": 763,
+      "p50_ms": 1017,
+      "p95_ms": 19678,
       "samples": [
-        382,
-        613,
-        780
+        705,
+        982,
+        1017,
+        1147,
+        24311
       ]
     },
     "tts": {
-      "p50_ms": 375,
-      "p95_ms": 728,
+      "p50_ms": 3276,
+      "p95_ms": 3658,
       "samples": [
-        361,
-        375,
-        767
+        2629,
+        3139,
+        3276,
+        3631,
+        3665
       ]
     },
     "total": {
-      "p50_ms": "not measured",
-      "p95_ms": "not measured",
-      "error": null
+      "p50_ms": 1525,
+      "p95_ms": 19705,
+      "samples": [
+        1119,
+        1314,
+        1525,
+        1627,
+        24225
+      ]
+    },
+    "ttfa_before": {
+      "p50_ms": 3401,
+      "p95_ms": 3876,
+      "samples": [
+        2776,
+        3155,
+        3647,
+        3916
+      ]
+    },
+    "ttfa_after": {
+      "p50_ms": 2057,
+      "p95_ms": 2628,
+      "samples": [
+        1891,
+        1931,
+        2183,
+        2707
+      ]
     }
   }
 }

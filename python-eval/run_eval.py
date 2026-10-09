@@ -605,31 +605,53 @@ def percentile(sorted_values, p):
 def run_live(out_dir, runs):
     import requests
 
-    faq_url = os.environ.get("CLINICVOICE_LIVE_FAQ_URL", "https://clinicvoice-ai-1.onrender.com").rstrip("/")
-    agents_url = os.environ.get("CLINICVOICE_LIVE_AGENTS_URL", "").rstrip("/")
+    faq_url = os.environ.get("CLINICVOICE_LIVE_FAQ_URL", "https://clinicvoice-ai.onrender.com").rstrip("/")
+    agents_url = os.environ.get("CLINICVOICE_LIVE_AGENTS_URL", "https://clinicvoice-ai-agents.onrender.com").rstrip("/")
 
-    stages = {"llm": [], "tts": [], "total": []}
-    errors = {"llm": None, "tts": None, "total": None}
+    stages = {"llm": [], "tts": [], "total": [], "ttfa_before": [], "ttfa_after": []}
+    errors = {"llm": None, "tts": None, "total": None, "ttfa": None}
+
+    full_reply = ("You are all set! I have booked your appointment with Dr. Patel for tomorrow at 10:00 AM. "
+                  "We look forward to seeing you, and you will get a reminder an hour before your visit.")
+    first_sentence = "You are all set! I have booked your appointment with Dr. Patel for tomorrow at 10:00 AM."
 
     for i in range(runs):
         try:
             t0 = time.time()
-            r = requests.post(faq_url + "/api/text-query", json={"query": "What are your opening hours?"}, timeout=60)
+            r = requests.post(faq_url + "/api/text-query", json={"query": "What are your opening hours?"}, timeout=90)
             r.raise_for_status()
             stages["llm"].append(round((time.time() - t0) * 1000))
         except Exception as e:
             errors["llm"] = str(e)[:300]
         try:
             t0 = time.time()
-            r = requests.post(faq_url + "/api/tts", json={"text": "Hello, how can I help you today?"}, timeout=60)
+            r = requests.post(faq_url + "/api/tts", json={"text": full_reply}, timeout=90)
             r.raise_for_status()
+            r.content  # full body received
             stages["tts"].append(round((time.time() - t0) * 1000))
         except Exception as e:
             errors["tts"] = str(e)[:300]
+        try:
+            # Time to first audio, before and after sentence streaming. The
+            # streaming frontend plays the first sentence as soon as its clip
+            # is ready, so TTFA after is the first-sentence TTS latency.
+            t0 = time.time()
+            r = requests.post(faq_url + "/api/tts", json={"text": full_reply}, timeout=90)
+            r.raise_for_status()
+            r.content
+            stages["ttfa_before"].append(round((time.time() - t0) * 1000))
+
+            t0 = time.time()
+            r = requests.post(faq_url + "/api/tts", json={"text": first_sentence}, timeout=90)
+            r.raise_for_status()
+            r.content
+            stages["ttfa_after"].append(round((time.time() - t0) * 1000))
+        except Exception as e:
+            errors["ttfa"] = str(e)[:300]
         if agents_url:
             try:
                 t0 = time.time()
-                r = requests.post(agents_url + "/api/agent-query", json={"query": "What are your opening hours?", "session_id": "live-eval-%d" % i}, timeout=60)
+                r = requests.post(agents_url + "/api/agent-query", json={"query": "What are your opening hours?", "session_id": "live-eval-%d" % i}, timeout=90)
                 r.raise_for_status()
                 stages["total"].append(round((time.time() - t0) * 1000))
             except Exception as e:
@@ -643,7 +665,7 @@ def run_live(out_dir, runs):
             "faq_url": faq_url,
             "agents_url": agents_url or "not configured",
             "runs": runs,
-            "note": "Speech to text runs in the browser on the cloud variant, so STT latency is client side and not measured here.",
+            "note": "Speech to text runs in the browser on the cloud variant, so STT latency is client side and not measured here. Time to first audio compares synthesizing the whole reply (before) with synthesizing only the first sentence, which the streaming frontend plays immediately (after).",
         },
         "stages": {},
     }
@@ -656,7 +678,7 @@ def run_live(out_dir, runs):
                 "samples": sv,
             }
         else:
-            doc["stages"][stage] = {"p50_ms": "not measured", "p95_ms": "not measured", "error": errors[stage]}
+            doc["stages"][stage] = {"p50_ms": "not measured", "p95_ms": "not measured", "error": errors.get(stage)}
 
     out_dir.mkdir(parents=True, exist_ok=True)
     json_path = out_dir / "eval-live.json"
@@ -664,13 +686,20 @@ def run_live(out_dir, runs):
     json_path.write_text(json.dumps(doc, indent=2), encoding="utf-8")
 
     lines = ["# ClinicVoice AI eval results (live mode)", ""]
-    lines.append("Run date: %s · commit: %s · target: %s" % (doc["meta"]["date"], doc["meta"]["commit"], faq_url))
+    lines.append("Run date: %s · commit: %s · FAQ service: %s · agent service: %s" % (doc["meta"]["date"], doc["meta"]["commit"], faq_url, agents_url))
     lines.append("")
     lines.append("| Stage | p50 (ms) | p95 (ms) |")
     lines.append("|---|---|---|")
-    for stage in ("llm", "tts", "total"):
+    labels = {
+        "llm": "LLM answer (retrieval plus Groq)",
+        "tts": "TTS full reply",
+        "total": "Total agent turn",
+        "ttfa_before": "Time to first audio, before streaming",
+        "ttfa_after": "Time to first audio, sentence streaming",
+    }
+    for stage in ("llm", "tts", "total", "ttfa_before", "ttfa_after"):
         st = doc["stages"][stage]
-        lines.append("| %s | %s | %s |" % (stage, fmt(st["p50_ms"]), fmt(st["p95_ms"])))
+        lines.append("| %s | %s | %s |" % (labels[stage], fmt(st["p50_ms"]), fmt(st["p95_ms"])))
     lines.append("")
     lines.append(doc["meta"]["note"])
     md = "\n".join(lines)
