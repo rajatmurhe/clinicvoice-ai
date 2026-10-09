@@ -1,0 +1,41 @@
+services:
+  faq-api:
+    build: ./backend
+    environment:
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - CLINICVOICE_CONFIDENCE_THRESHOLD=${CLINICVOICE_CONFIDENCE_THRESHOLD:-0.35}
+    ports:
+      - "5050:5050"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:5050/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  agents:
+    build: ./python-agents
+    environment:
+      - FAQ_BACKEND_URL=http://faq-api:5050/api/text-query
+      - CLINICVOICE_DATA_DIR=/data
+      - CLINICVOICE_CALENDAR_MODE=${CLINICVOICE_CALENDAR_MODE:-fake}
+      - CLINICVOICE_CLINIC_ID=${CLINICVOICE_CLINIC_ID:-default}
+      - CLINICVOICE_ORCHESTRATOR=${CLINICVOICE_ORCHESTRATOR:-legacy}
+      - CLINICVOICE_TOOLS=${CLINICVOICE_TOOLS:-direct}
+      - CLINICVOICE_HYBRID_ROUTER=${CLINICVOICE_HYBRID_ROUTER:-false}
+      - CLINICVOICE_COMPLIANCE_REVIEWER=${CLINICVOICE_COMPLIANCE_REVIEWER:-false}
+      - CLINICVOICE_CALENDAR_ID=${CLINICVOICE_CALENDAR_ID:-}
+    ports:
+      - "8000:8000"
+    depends_on:
+      faq-api:
+        condition: service_healthy
+    volumes:
+      - agents-data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  agents-data:

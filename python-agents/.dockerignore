@@ -1,0 +1,7 @@
+venv/
+__pycache__/
+*.pyc
+*.db
+service-account-key.json
+voice-samples/
+.env

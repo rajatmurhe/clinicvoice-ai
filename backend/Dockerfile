@@ -11,4 +11,4 @@ COPY . .
 
 EXPOSE 5050
 
-CMD ["node", "server.js"]
+CMD ["node", "server-cloud.js"]

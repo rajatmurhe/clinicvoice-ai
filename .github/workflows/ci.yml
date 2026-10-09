@@ -41,6 +41,24 @@ jobs:
       - name: Check eval thresholds
         run: python python-eval/check_thresholds.py python-eval/results-ci/eval-offline.json
 
+  deploy-render:
+    # Deploys to Render only after the test and eval jobs pass, and only when
+    # the RENDER_DEPLOY_HOOK secret is configured on the repo.
+    needs: [backend-unit-tests, python-agents-tests]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render deploy hook if configured
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+        run: |
+          if [ -n "$HOOK" ]; then
+            curl -sf -X POST "$HOOK"
+            echo "Render deploy triggered"
+          else
+            echo "RENDER_DEPLOY_HOOK secret not set; skipping deploy"
+          fi
+
   nestjs-build:
     runs-on: ubuntu-latest
     steps:
