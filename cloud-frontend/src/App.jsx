@@ -34,6 +34,14 @@ function ShieldIcon() {
   );
 }
 
+function SendIcon() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M4 12h13m0 0-5.5-5.5M17 12l-5.5 5.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
 function ClinicIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -94,9 +102,14 @@ function CardIcon() {
 }
 
 const CAPABILITIES = [
-  { icon: CalendarIcon, label: 'Ask about appointments', example: '"What are your opening hours?"' },
-  { icon: CardIcon, label: 'Check accepted insurance', example: '"Do you accept Aetna?"' },
-  { icon: ClockIcon, label: 'General clinic questions', example: '"Is there parking?"' },
+  { icon: CalendarIcon, label: 'Ask about appointments', example: '"What are your opening hours?"', query: 'What are your opening hours?' },
+  { icon: CardIcon, label: 'Check accepted insurance', example: '"Do you accept Aetna?"', query: 'Do you accept Aetna?' },
+  { icon: ClockIcon, label: 'General clinic questions', example: '"Is there parking?"', query: 'Is there parking?' },
+];
+
+const CLINICS = [
+  { id: 'default', label: 'General Clinic' },
+  { id: 'smilecare', label: 'SmileCare Dental' },
 ];
 
 function App() {
@@ -106,6 +119,9 @@ function App() {
   const [messages, setMessages] = useState([]);
   const [pushToTalk, setPushToTalk] = useState(false);
 
+  const [inputValue, setInputValue] = useState('');
+  const [clinicId, setClinicId] = useState('default');
+
   const recognitionRef = useRef(null);
   const conversationEndRef = useRef(null);
   const sessionIdRef = useRef('cloud-' + Date.now());
@@ -113,6 +129,18 @@ function App() {
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef(null);
   const speakingRef = useRef(false);
+  const clinicRef = useRef('default');
+
+  const switchClinic = (id) => {
+    if (id === clinicRef.current) return;
+    stopSpeaking();
+    clinicRef.current = id;
+    setClinicId(id);
+    // Each tenant gets its own conversation and session state.
+    sessionIdRef.current = 'cloud-' + id + '-' + Date.now();
+    setMessages([]);
+    setError('');
+  };
 
   useEffect(() => {
     conversationEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -146,7 +174,7 @@ function App() {
     return parts.length ? parts : [text];
   };
 
-  const speakText = (text, requestId) => {
+  const speakText = (text, requestId, spokenSoFar, onProgress) => {
     return fetch(API_URL + '/api/tts', {
       method: 'POST',
       headers: {
@@ -159,6 +187,7 @@ function App() {
       return res.blob();
     }).then(blob => {
       if (!speakingRef.current) return; // barged in while synthesizing
+      if (onProgress) onProgress(spokenSoFar + text);
       const url = URL.createObjectURL(blob);
       const audio = audioPlayerRef.current || new Audio();
       audioPlayerRef.current = audio;
@@ -173,20 +202,26 @@ function App() {
         });
       });
     }).catch(() => {
+      if (onProgress) onProgress(spokenSoFar + text);
       const utterance = new SpeechSynthesisUtterance(text);
       window.speechSynthesis.speak(utterance);
     });
   };
 
-  const speakReply = async (text, requestId) => {
+  const speakReply = async (text, requestId, onProgress) => {
     // Stream sentence by sentence: the first sentence starts playing as soon
-    // as its audio is ready, so the caller hears the reply sooner.
+    // as its audio is ready, so the caller hears the reply sooner. The
+    // transcript fills in with the same rhythm instead of appearing all at
+    // once, so the streaming work is visible too.
     speakingRef.current = true;
     const sentences = splitSentences(text);
-    await speakText(sentences[0], requestId);
+    let spoken = '';
+    await speakText(sentences[0], requestId, spoken, onProgress);
+    spoken += sentences[0] + ' ';
     for (const sentence of sentences.slice(1)) {
       if (!speakingRef.current) return;
-      await speakText(sentence, requestId);
+      await speakText(sentence, requestId, spoken, onProgress);
+      spoken += sentence + ' ';
     }
     speakingRef.current = false;
   };
@@ -279,6 +314,15 @@ function App() {
     }
   };
 
+  const onComposerSubmit = (e) => {
+    e.preventDefault();
+    const value = inputValue.trim();
+    if (!value || loading) return;
+    setInputValue('');
+    stopSpeaking();
+    sendQuery(value);
+  };
+
   const speak = async (text, requestId) => {
     try {
       const res = await fetch(API_URL + '/api/tts', {
@@ -324,7 +368,7 @@ function App() {
           'Content-Type': 'application/json',
           'X-Request-ID': requestId
         },
-        body: JSON.stringify({ query: query, session_id: sessionIdRef.current })
+        body: JSON.stringify({ query: query, session_id: sessionIdRef.current, clinic_id: clinicRef.current })
       });
 
       if (res.status === 429) {
@@ -339,11 +383,21 @@ function App() {
 
       setMessages(function(prev) {
         return prev.concat([
-          { role: 'assistant', text: data.response, guardrail: data.guardrailTriggered, time: formatTime() }
+          { role: 'assistant', text: '', guardrail: data.guardrailTriggered, time: formatTime() }
         ]);
       });
+      const updateTranscript = (spoken) => {
+        setMessages(function(prev) {
+          return prev.map(function(m, i) {
+            return i === prev.length - 1 ? { ...m, text: spoken } : m;
+          });
+        });
+      };
 
-      speakReply(data.response, res.headers.get('X-Request-ID') || requestId);
+      // Refusals appear whole; normal replies fill in with the streamed audio.
+      if (data.guardrailTriggered) updateTranscript(data.response);
+      await speakReply(data.response, res.headers.get('X-Request-ID') || requestId, updateTranscript);
+      updateTranscript(data.response);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -366,6 +420,20 @@ function App() {
               <span className="status-text">Live</span>
             </div>
           </div>
+        </div>
+
+        <div className="clinic-switch" role="group" aria-label="Clinic (demo tenant)">
+          {CLINICS.map(function(c) {
+            return (
+              <button
+                key={c.id}
+                className={'clinic-pill' + (clinicId === c.id ? ' active' : '')}
+                onClick={() => switchClinic(c.id)}
+              >
+                {c.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -390,7 +458,7 @@ function App() {
           {messages.length === 0 && !loading && (
             <div className="empty-state">
               <div className="empty-state-title">Ask a question to get started</div>
-              <div className="empty-state-sub">Fully live, speech, AI, and hosting all run in the cloud</div>
+              <div className="empty-state-sub">Tap the mic or type a question below. Speech, AI, and hosting all run live.</div>
             </div>
           )}
 
@@ -406,6 +474,9 @@ function App() {
                     {isUser ? <UserIcon /> : msg.guardrail ? <ShieldIcon /> : <BotIcon />}
                   </div>
                   <div className="bubble-wrap">
+                    {msg.guardrail && (
+                      <div className="safety-tag"><ShieldIcon /> Blocked by the safety filter</div>
+                    )}
                     <div className={bubbleClass}>{msg.text}</div>
                     <div className="timestamp">{msg.time}</div>
                   </div>
@@ -428,6 +499,20 @@ function App() {
 
             <div ref={conversationEndRef}></div>
           </div>
+
+          <form className="composer" onSubmit={onComposerSubmit}>
+            <input
+              className="composer-input"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder="Or type a question…"
+              aria-label="Type your question"
+              disabled={loading}
+            />
+            <button className="composer-send" type="submit" disabled={loading || !inputValue.trim()} aria-label="Send question">
+              <SendIcon />
+            </button>
+          </form>
         </div>
 
         <div className="capabilities-panel">
@@ -437,13 +522,13 @@ function App() {
             {CAPABILITIES.map(function(cap, i) {
               const Icon = cap.icon;
               return (
-                <div className="capability-item" key={i}>
+                <button className="capability-item" key={i} onClick={() => { stopSpeaking(); sendQuery(cap.query); }} disabled={loading}>
                   <div className="capability-icon"><Icon /></div>
                   <div>
                     <div className="capability-label">{cap.label}</div>
                     <div className="capability-example">{cap.example}</div>
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>
