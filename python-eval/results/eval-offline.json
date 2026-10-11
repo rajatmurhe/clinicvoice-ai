@@ -2,9 +2,9 @@
   "meta": {
     "mode": "offline",
     "orchestrator": "legacy",
-    "date": "2026-10-09T15:41:37",
-    "commit": "3536f07",
-    "python_seconds": 2.7,
+    "date": "2026-10-11T12:23:34",
+    "commit": "b069661",
+    "python_seconds": 2.3,
     "node_error": null,
     "fake_calendar": true,
     "llm_called": false
@@ -86,7 +86,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date. You can also manage this anytime through our online patient portal."
+            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date. You can also manage this anytime through our online patient portal."
           }
         ]
       },
@@ -101,21 +101,21 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date. You can also manage this anytime through our online patient portal."
+            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date. You can also manage this anytime through our online patient portal."
           },
           {
             "q": "tomorrow",
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "On 2026-10-10, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you?"
+            "response": "On 2026-10-12, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you?"
           },
           {
             "q": "10:00 AM, my name is Raj",
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "You are all set! I have booked your appointment for 2026-10-10 at 10:00 AM. We look forward to seeing you."
+            "response": "You are all set! I have booked your appointment for 2026-10-12 at 10:00 AM. We look forward to seeing you."
           }
         ]
       },
@@ -130,14 +130,14 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "On 2026-10-10 with Dr. Patel, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you? You can also manage this anytime through our online patient portal."
+            "response": "On 2026-10-12 with Dr. Patel, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you? You can also manage this anytime through our online patient portal."
           },
           {
             "q": "11:00 AM my name is Sana",
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "You are all set! I have booked your appointment with Dr. Patel for 2026-10-10 at 11:00 AM. We look forward to seeing you."
+            "response": "You are all set! I have booked your appointment with Dr. Patel for 2026-10-12 at 11:00 AM. We look forward to seeing you."
           }
         ]
       },
@@ -152,14 +152,14 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "On 2026-10-10 with Dr. Patel, we have availability at 09:00 AM, 09:30 AM, 10:30 AM, 11:00 AM, 11:30 AM. Would you like me to book one of these for you?"
+            "response": "On 2026-10-12 with Dr. Patel, we have availability at 09:00 AM, 09:30 AM, 10:30 AM, 11:00 AM, 11:30 AM. Would you like me to book one of these for you?"
           },
           {
             "q": "11:00 AM my name is Sana",
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "You are all set! I have booked your appointment with Dr. Patel for 2026-10-10 at 11:00 AM. We look forward to seeing you."
+            "response": "You are all set! I have booked your appointment with Dr. Patel for 2026-10-12 at 11:00 AM. We look forward to seeing you."
           }
         ]
       },
@@ -225,7 +225,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
+            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
           }
         ]
       },
@@ -247,7 +247,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "Your appointment on Sunday, October 11 at 02:00 PM has been cancelled. Let me know if you would like to book a new one."
+            "response": "Your appointment on Tuesday, October 13 at 02:00 PM has been cancelled. Let me know if you would like to book a new one."
           }
         ]
       },
@@ -291,7 +291,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "Your appointment is on Sunday, October 11 at 02:00 PM."
+            "response": "Your appointment is on Tuesday, October 13 at 02:00 PM."
           }
         ]
       },
@@ -313,7 +313,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "I found your appointment on Monday, October 12 at 11:30 AM. What new date and time would you like? I will move it once the new slot is confirmed."
+            "response": "I found your appointment on Wednesday, October 14 at 11:30 AM. What new date and time would you like? I will move it once the new slot is confirmed."
           }
         ]
       },
@@ -328,7 +328,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "Your appointment on Saturday, October 10 at 09:30 AM has been cancelled. Let me know if you would like to book a new one."
+            "response": "Your appointment on Monday, October 12 at 09:30 AM has been cancelled. Let me know if you would like to book a new one."
           }
         ]
       },
@@ -343,14 +343,14 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "On 2026-10-10, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you? You can also manage this anytime through our online patient portal."
+            "response": "On 2026-10-12, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you? You can also manage this anytime through our online patient portal."
           },
           {
             "q": "half past ten",
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
+            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
           }
         ]
       },
@@ -365,7 +365,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "On 2026-10-10, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you? You can also manage this anytime through our online patient portal."
+            "response": "On 2026-10-12, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you? You can also manage this anytime through our online patient portal."
           },
           {
             "q": "7:30 AM",
@@ -387,14 +387,14 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "On 2026-10-10, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you? You can also manage this anytime through our online patient portal."
+            "response": "On 2026-10-12, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you? You can also manage this anytime through our online patient portal."
           },
           {
             "q": "2:00 PM",
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "You are all set! I have booked your appointment for 2026-10-10 at 02:00 PM. We look forward to seeing you."
+            "response": "You are all set! I have booked your appointment for 2026-10-12 at 02:00 PM. We look forward to seeing you."
           }
         ]
       },
@@ -431,7 +431,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "On 2026-10-10, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you?"
+            "response": "On 2026-10-12, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you?"
           }
         ]
       },
@@ -446,14 +446,14 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date. You can also manage this anytime through our online patient portal."
+            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date. You can also manage this anytime through our online patient portal."
           },
           {
             "q": "tomorrow",
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "On 2026-10-10, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you?"
+            "response": "On 2026-10-12, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you?"
           },
           {
             "q": "this is urgent and I am very frustrated",
@@ -482,7 +482,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "On 2026-10-09, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you?"
+            "response": "On 2026-10-11, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you?"
           }
         ]
       },
@@ -519,14 +519,14 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "I found your appointment on Sunday, October 11 at 04:00 PM. What new date and time would you like? I will move it once the new slot is confirmed."
+            "response": "I found your appointment on Tuesday, October 13 at 04:00 PM. What new date and time would you like? I will move it once the new slot is confirmed."
           },
           {
             "q": "I want 2031-06-01 at 10:00 AM",
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "Done! Your appointment has been moved to 2031-06-01 at 10:00 AM. The old slot on Sunday, October 11 at 04:00 PM has been released."
+            "response": "Done! Your appointment has been moved to 2031-06-01 at 10:00 AM. The old slot on Tuesday, October 13 at 04:00 PM has been released."
           }
         ]
       },
@@ -541,14 +541,14 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "On 2026-10-10, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you? You can also manage this anytime through our online patient portal."
+            "response": "On 2026-10-12, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you? You can also manage this anytime through our online patient portal."
           },
           {
             "q": "10:00 AM, my name is Rajesh Kumar",
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "You are all set! I have booked your appointment for 2026-10-10 at 10:00 AM. We look forward to seeing you."
+            "response": "You are all set! I have booked your appointment for 2026-10-12 at 10:00 AM. We look forward to seeing you."
           }
         ]
       },
@@ -570,7 +570,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "Your appointment on Sunday, October 11 at 02:00 PM has been cancelled. I have also notified 1 waitlisted patient(s) for that date. Let me know if you would like to book a new one."
+            "response": "Your appointment on Tuesday, October 13 at 02:00 PM has been cancelled. I have also notified 1 waitlisted patient(s) for that date. Let me know if you would like to book a new one."
           }
         ]
       },
@@ -585,14 +585,14 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date. You can also manage this anytime through our online patient portal."
+            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date. You can also manage this anytime through our online patient portal."
           },
           {
             "q": "tomorrow",
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "On 2026-10-10, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you?"
+            "response": "On 2026-10-12, we have availability at 09:00 AM, 09:30 AM, 10:00 AM, 10:30 AM, 11:00 AM. Would you like me to book one of these for you?"
           },
           {
             "q": "actually I need a refill for metformin",
@@ -1193,7 +1193,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date. You can also manage this anytime through our online patient portal."
+            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date. You can also manage this anytime through our online patient portal."
           },
           {
             "q": "I am very frustrated with this",
@@ -1626,7 +1626,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date. You can also manage this anytime through our online patient portal."
+            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date. You can also manage this anytime through our online patient portal."
           }
         ]
       },
@@ -1731,7 +1731,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
+            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
           }
         ]
       },
@@ -1761,7 +1761,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
+            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
           }
         ]
       },
@@ -1806,7 +1806,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
+            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
           }
         ]
       },
@@ -1821,7 +1821,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
+            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
           }
         ]
       },
@@ -1911,7 +1911,7 @@
             "agent": "booking",
             "intent": "booking",
             "blocked": false,
-            "response": "I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
+            "response": "Our clinic is open Monday to Friday, 9am to 6pm, and Saturday 10am to 2pm. We're closed on Sundays and public holidays. We are currently closed, but I can still help you book for a future date. I would be happy to check availability. Could you tell me what date you would like to come in? For example, tomorrow, or a specific date."
           }
         ]
       },

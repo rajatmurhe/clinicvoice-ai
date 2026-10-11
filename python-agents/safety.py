@@ -2,7 +2,7 @@ import re
 
 BLOCKED_PATTERNS_INPUT = [
     r"diagnos", r"\bprescrib", r"medication", r"dose", r"dosage",
-    r"how much .* (take|dose)", r"is it (cancer|serious|an emergency)",
+    r"how much .* (should|can|could)\s+(i|we|you|he|she|they)?\s*(take|dose)\b", r"is it (cancer|serious|an emergency)",
     r"chest pain", r"cant breathe", r"symptoms of", r"what disease",
     r"am i dying", r"nhs number", r"date of birth", r"social security",
     r"verify your identity",
@@ -36,6 +36,37 @@ BLOCKED_PATTERNS_INPUT = [
 ]
 
 INPUT_REGEX = re.compile("|".join(BLOCKED_PATTERNS_INPUT), re.IGNORECASE)
+
+# Evasion resistant second pass: invisible characters and letter spacing
+# ("d i a g n o s e", "diag\u200bnose") defeat the plain patterns, so the
+# safety check also runs against a squeezed copy of the text. Only high
+# confidence clinical literals live here, because squeezing removes the word
+# boundaries that keep wildcard patterns false positive free.
+INVISIBLE_CHARS = re.compile(r"[\u200b-\u200f\u202a-\u202e\u00ad\ufeff\u2060'\u2019]")
+
+SQUEEZED_BLOCKED = [
+    "diagnos", "prescrib", "medication", "dosage", "symptomsof", "whatdisease",
+    "amidying", "nhsnumber", "dateofbirth", "socialsecurity", "verifyyouridentity",
+    "chestpain", "cantbreathe", "cannotbreathe", "sorethroat", "throatisore",
+    "antibiotic", "sideeffects", "surgery", "medicine", "overdos",
+    "ignoreallprevious", "forgetyourrules", "newinstructions", "systemprompt",
+    "patientlist", "appointmentlist", "bookinglist", "patientdata",
+    "patientrecords", "appointmentdetails", "patientdetails",
+]
+
+SQUEEZED_BLOCKED_REGEX = re.compile("|".join(SQUEEZED_BLOCKED), re.IGNORECASE)
+
+SQUEEZED_EMERGENCY = [
+    "chestpain", "heartattack", "cantbreathe", "cannotbreathe", "severebleeding",
+    "killmyself", "endmylife", "suicid", "overdos", "stroke",
+    "छातीमेंदर्द", "छातीतदुखत", "हृदयाचाझटका", "हार्टअटैक",
+]
+
+SQUEEZED_EMERGENCY_REGEX = re.compile("|".join(SQUEEZED_EMERGENCY), re.IGNORECASE)
+
+
+def squeeze_text(query):
+    return INVISIBLE_CHARS.sub("", re.sub(r"\s+", "", query))
 
 EMERGENCY_PATTERNS = [
     r"chest pain", r"can.?t breathe|cannot breathe", r"heart attack",
@@ -95,8 +126,12 @@ def emergency_response_for(query):
 
 
 def check_input_safety(query):
-    return bool(INPUT_REGEX.search(query))
+    if INPUT_REGEX.search(query):
+        return True
+    return bool(SQUEEZED_BLOCKED_REGEX.search(squeeze_text(query)))
 
 
 def check_emergency(query):
-    return bool(EMERGENCY_REGEX.search(query))
+    if EMERGENCY_REGEX.search(query):
+        return True
+    return bool(SQUEEZED_EMERGENCY_REGEX.search(squeeze_text(query)))

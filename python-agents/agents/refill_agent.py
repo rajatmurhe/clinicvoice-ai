@@ -1,6 +1,6 @@
 import re
 from tools_backend import log_refill_request
-from agents.extract import extract_person_name
+from agents.extract import extract_person_name, is_yes_no_answer
 
 # Words that routinely follow "refill" in speech but are never a drug name,
 # e.g. "refill please" or "refill my medication".
@@ -27,6 +27,13 @@ def handle_refill(query: str, session: dict) -> dict:
     pending = session.get("refill_pending")
 
     if pending and pending.get("stage") == "name":
+        if extract_name(query) is None and is_yes_no_answer(query):
+            session["refill_pending"] = None
+            return {
+                "response": "No problem, I will cancel that refill request. Anything else I can help with?",
+                "guardrailTriggered": False,
+                "agent": "refill"
+            }
         name = extract_name(query) or query.strip()
         medication = pending.get("medication")
 

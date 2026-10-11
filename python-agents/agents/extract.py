@@ -29,3 +29,17 @@ def extract_person_name(query: str):
         if first_word not in NOT_NAME_WORDS:
             return match.group(1).strip()
     return None
+
+
+# Single word replies that mean yes or no, never a surname. When a flow asks
+# for a name and gets one of these, the flow should be declined or re-asked
+# instead of recording "no" as a patient.
+YES_NO_WORDS = (
+    "no", "nope", "nah", "yes", "yeah", "yep", "sure", "ok", "okay",
+    "cancel", "stop", "nevermind", "forget it", "skip", "next",
+)
+
+
+def is_yes_no_answer(query: str):
+    stripped = (query or "").strip().lower().rstrip(".,!?;:'\"")
+    return stripped in YES_NO_WORDS

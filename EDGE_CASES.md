@@ -133,3 +133,63 @@ that did not match what was installed via Homebrew.
 rather than trying to match FFmpeg versions exactly. Documented here
 because it is a good example of choosing the simpler fix over the
 technically "correct" one when both solve the problem.
+
+## QA cycle findings (11 Oct 2026)
+
+A full QA pass ran three sweeps against the system: malformed and adversarial
+inputs at the API boundary, flow level defect hypotheses through the real
+pipeline, and HTTP level concurrency, rate limiting and cross service checks
+against the running docker stack. Ten defects were confirmed and fixed, each
+with a regression test in python-agents/tests/test_qa_regressions.py:
+
+1. Safety blocklist evasion (high). Invisible characters and letter spacing
+   ("diag\u200bnose", "d i a g n o s e") bypassed the input patterns and
+   reached the FAQ layer. Fix: both safety layers now also check a squeezed
+   copy of the text (whitespace and invisible characters removed) against a
+   conservative list of high confidence clinical literals, chosen to stay
+   false positive free. Emergency phrases got the same treatment, so a spaced
+   out "c h e s t p a i n" now reaches the emergency path.
+2. False positive found by the evasion fix (medium): the old
+   "how much .* (take|dose)" pattern blocked "how much does it cost to take
+   the bus". Tightened in both layers to require an intent word
+   (should/can/could plus a pronoun).
+3. Unknown clinic id crashed the endpoint (high): a request with
+   clinic_id "does-not-exist" raised FileNotFoundError as an unhandled 500.
+   Fix: fall back to the default clinic, log unknown_clinic_requested for the
+   dashboard. Non string clinic ids get a structured 422 from request
+   validation, which is correct.
+4. Session state bled across tenants (high): two clinics sharing a session id
+   inherited each other's pending flows because sessions were keyed only by
+   session id. Fix: session keys are now clinic_id prefixed.
+5. Rescheduling double booked an occupied slot (high): the reschedule
+   continuation booked the requested new time without rechecking
+   availability, so a slot taken between listing and confirming got two
+   appointments. Fix: availability is verified at confirm time.
+6. The word "no" was recorded as a patient name (medium): answering a name
+   question with no/yes/ok created waitlist and refill records named "no".
+   Fix: yes/no answers in name questions decline the flow politely and log
+   nothing.
+7. Intake body areas matched by substring (medium): "my heart hurts" recorded
+   the body area "ear" and "the fire alarm scared me" recorded "arm". Fix:
+   word boundary matching.
+8. Impossible dates reached the calendar (medium): "2031-13-45" passed the
+   date shape regex and failed inside the calendar call with a misleading
+   "trouble checking the calendar" reply. Fix: extract_date validates the
+   date and asks again.
+9. /ready reported the FAQ service as 404 (medium): the health URL was
+   derived from FAQ_BACKEND_URL by cutting the last path segment, turning
+   /api/text-query into /api/api/health. The same bug silently broke the
+   hybrid router classify URL. Fix: strip the known suffix exactly.
+10. /ready required Google libraries even in fake calendar mode (medium):
+    the calendar readiness check constructed the Google client directly, so
+    the docker image without google-api-python-client reported degraded
+    forever. Fix: /ready asks the configured scheduling adapter for a health
+    check; each adapter implements its own cheap probe.
+
+Not reproducible / accepted: a handful of connection resets when 30 requests
+hit the agents container in the same second as it was starting (startup
+transient, not reproducible after warm up); request bodies are not size
+limited at the application layer (deployment concern, documented in Known
+Limitations territory); homoglyph substitutions (Cyrillic letters) still
+bypass the blocklist, which needs script normalization and is noted as a
+future hardening item.

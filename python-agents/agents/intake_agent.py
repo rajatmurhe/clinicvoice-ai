@@ -24,7 +24,9 @@ def classify_reason(text):
 def extract_body_area(text):
     text_lower = text.lower()
     for area in BODY_AREAS:
-        if area in text_lower:
+        # Word boundaries only: "heart" must not read as the area "ear" and
+        # "alarm" must not read as "arm".
+        if re.search(r"\b" + re.escape(area) + r"\b", text_lower):
             return area
     return None
 

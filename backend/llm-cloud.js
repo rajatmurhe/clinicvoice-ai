@@ -1,7 +1,7 @@
 const { getRequestId } = require('./request-context');
 
 const BLOCKED_PATTERNS_INPUT = [
-  /diagnos/i, /\bprescrib/i, /medication/i, /dose/i, /dosage/i, /how much .* (take|dose)/i,
+  /diagnos/i, /\bprescrib/i, /medication/i, /dose/i, /dosage/i, /how much .* (should|can|could)\s+(i|we|you|he|she|they)?\s*(take|dose)\b/i,
   /is it (cancer|serious|an emergency)/i, /chest pain/i, /cant breathe/i,
   /symptoms of/i, /what disease/i, /am i dying/i, /nhs number/i, /date of birth/i, /social security/i, /verify your identity/i,
   /\bmedicine\b/i, /\bsurgery\b/i, /sore throat|throat is sore/i,
@@ -56,12 +56,46 @@ const GREETING_ONLY_PATTERN = /^((hi|hello|hey|good morning|good afternoon|good 
 
 const CONFIDENCE_THRESHOLD = parseFloat(process.env.CLINICVOICE_CONFIDENCE_THRESHOLD || '0.35');
 
+// Evasion resistant second pass, kept in sync with safety.py: invisible
+// characters and letter spacing defeat the plain patterns, so both layers
+// also check a squeezed copy of the text against high confidence literals.
+const INVISIBLE_CHARS = /[\u200b-\u200f\u202a-\u202e\u00ad\ufeff\u2060'\u2019]/g;
+
+const SQUEEZED_BLOCKED = [
+  'diagnos', 'prescrib', 'medication', 'dosage', 'symptomsof', 'whatdisease',
+  'amidying', 'nhsnumber', 'dateofbirth', 'socialsecurity', 'verifyyouridentity',
+  'chestpain', 'cantbreathe', 'cannotbreathe', 'sorethroat', 'throatisore',
+  'antibiotic', 'sideeffects', 'surgery', 'medicine', 'overdos',
+  'ignoreallprevious', 'forgetyourrules', 'newinstructions', 'systemprompt',
+  'patientlist', 'appointmentlist', 'bookinglist', 'patientdata',
+  'patientrecords', 'appointmentdetails', 'patientdetails'
+];
+
+const SQUEEZED_EMERGENCY = [
+  'chestpain', 'heartattack', 'cantbreathe', 'cannotbreathe', 'severebleeding',
+  'killmyself', 'endmylife', 'suicid', 'overdos', 'stroke',
+  'छातीमेंदर्द', 'छातीतदुखत', 'हृदयाचाझटका', 'हार्टअटैक'
+];
+
+function squeezeText(query) {
+  return query.replace(/\s+/g, '').replace(INVISIBLE_CHARS, '');
+}
+
+function checkSqueezed(list, query) {
+  const squeezed = squeezeText(query);
+  return list.some(function(word) {
+    return squeezed.toLowerCase().indexOf(word.toLowerCase()) !== -1;
+  });
+}
+
 function checkSafety(query) {
-  return BLOCKED_PATTERNS_INPUT.some(function(pattern) { return pattern.test(query); });
+  return BLOCKED_PATTERNS_INPUT.some(function(pattern) { return pattern.test(query); }) ||
+    checkSqueezed(SQUEEZED_BLOCKED, query);
 }
 
 function checkEmergency(query) {
-  return EMERGENCY_PATTERNS.some(function(pattern) { return pattern.test(query); });
+  return EMERGENCY_PATTERNS.some(function(pattern) { return pattern.test(query); }) ||
+    checkSqueezed(SQUEEZED_EMERGENCY, query);
 }
 
 function checkOutputSafety(text) {

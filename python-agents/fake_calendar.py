@@ -158,6 +158,13 @@ class FakeCalendar:
             conn.close()
             return deleted > 0
 
+    def ping(self):
+        try:
+            self._rows()
+            return True
+        except Exception:
+            return False
+
     def events_on(self, date_str):
         return [
             {

@@ -29,6 +29,10 @@ class SchedulingAdapter(ABC):
     def cancel_appointment(self, event_id):
         """Cancel an appointment by id."""
 
+    @abstractmethod
+    def health_check(self):
+        """Cheap readiness probe for /ready. True when the backend is usable."""
+
 
 class GoogleCalendarAdapter(SchedulingAdapter):
     """The original Google Calendar implementation, unchanged behind the interface."""
@@ -53,6 +57,12 @@ class GoogleCalendarAdapter(SchedulingAdapter):
 
         return calendar_service._google_cancel_appointment(event_id)
 
+    def health_check(self):
+        import calendar_service
+
+        calendar_service.get_calendar_service()
+        return True
+
 
 class FakeSqliteAdapter(SchedulingAdapter):
     """SQLite backed calendar sharing one state across processes."""
@@ -73,6 +83,9 @@ class FakeSqliteAdapter(SchedulingAdapter):
 
     def cancel_appointment(self, event_id):
         return self._calendar.cancel_appointment(event_id)
+
+    def health_check(self):
+        return self._calendar.ping()
 
 
 FHIR_BASE = "https://hapi.fhir.org/baseR4"
@@ -194,6 +207,14 @@ class FhirSandboxAdapter(SchedulingAdapter):
         )
         updated.raise_for_status()
         return True
+
+
+    def health_check(self):
+        try:
+            r = self._requests.get(self.base_url + "/metadata", timeout=3)
+            return r.status_code == 200
+        except Exception:
+            return False
 
 
 def json_dumps(obj):

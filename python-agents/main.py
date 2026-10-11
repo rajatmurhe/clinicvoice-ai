@@ -61,9 +61,15 @@ RATE_LIMITER = SlidingWindowLimiter(
 # nothing (low confidence) an LLM classifier can decide the intent instead.
 # Off by default; the offline eval measures the regex plus keyword path.
 HYBRID_ROUTER_ENABLED = os.environ.get("CLINICVOICE_HYBRID_ROUTER", "false").lower() == "true"
+def faq_base_url():
+    url = os.environ.get("FAQ_BACKEND_URL", "http://localhost:5050/api/text-query")
+    suffix = "/api/text-query"
+    return url[: -len(suffix)] if url.endswith(suffix) else url.rsplit("/", 1)[0]
+
+
 ROUTER_CLASSIFY_URL = os.environ.get(
     "CLINICVOICE_ROUTER_URL",
-    os.environ.get("FAQ_BACKEND_URL", "http://localhost:5050/api/text-query").rsplit("/", 1)[0] + "/api/router-classify",
+    faq_base_url() + "/api/router-classify",
 )
 
 VALID_INTENTS = ("booking", "refill", "insurance", "intake", "escalation", "faq")
@@ -156,10 +162,7 @@ def health():
 def ready():
     checks = {}
 
-    faq_health_url = os.environ.get(
-        "FAQ_HEALTH_URL",
-        os.environ.get("FAQ_BACKEND_URL", "http://localhost:5050/api/text-query").rsplit("/", 1)[0] + "/api/health",
-    )
+    faq_health_url = os.environ.get("FAQ_HEALTH_URL", faq_base_url() + "/api/health")
     try:
         r = http_requests.get(faq_health_url, timeout=2)
         checks["faq_service"] = "ok" if r.status_code == 200 else "degraded (%d)" % r.status_code
@@ -167,10 +170,9 @@ def ready():
         checks["faq_service"] = "unreachable"
 
     try:
-        from calendar_service import get_calendar_service
+        from scheduling import get_adapter
 
-        get_calendar_service()
-        checks["calendar"] = "ok"
+        checks["calendar"] = "ok" if get_adapter().health_check() else "degraded"
     except Exception as e:
         checks["calendar"] = "unavailable (%s)" % type(e).__name__
 
@@ -359,7 +361,16 @@ def agent_query(req: QueryRequest):
     if ORCHESTRATOR_MODE == "graph":
         import graph_orchestrator
 
-        session = session_store.get_session(req.session_id)
+        clinic_id = req.clinic_id or obs.DEFAULT_CLINIC_FALLBACK
+        try:
+            from clinic_config import load_clinic
+
+            load_clinic(clinic_id)
+        except Exception:
+            obs.log_event("unknown_clinic_requested", requested=str(clinic_id)[:64])
+            clinic_id = obs.DEFAULT_CLINIC_FALLBACK
+        session = session_store.get_session(clinic_id + ":" + req.session_id)
+        session["clinic_id"] = clinic_id
 
         if REPEAT_PATTERN.search(req.query) and session.get("last_response"):
             return {
@@ -381,7 +392,7 @@ def agent_query(req: QueryRequest):
 
         result["response"] = maybe_add_nudge(req.query, result.get("response", ""), result.get("agent", "faq"))
         session["last_response"] = result.get("response", "")
-        session_store.save_session(req.session_id, session)
+        session_store.save_session(clinic_id + ":" + req.session_id, session)
 
         log_query(
             query=req.query,
@@ -405,9 +416,23 @@ def agent_query(req: QueryRequest):
         )
         return result
 
-    session = session_store.get_session(req.session_id)
-    session["clinic_id"] = req.clinic_id or obs.DEFAULT_CLINIC_FALLBACK
+    clinic_id = req.clinic_id or obs.DEFAULT_CLINIC_FALLBACK
+    try:
+        from clinic_config import load_clinic
+
+        load_clinic(clinic_id)
+    except Exception:
+        # An unknown tenant must never surface as a 500 on a voice line:
+        # fall back to the default clinic and log it for the dashboard.
+        obs.log_event("unknown_clinic_requested", requested=str(clinic_id)[:64])
+        clinic_id = obs.DEFAULT_CLINIC_FALLBACK
+
+    # Sessions are namespaced per clinic so two tenants sharing a session id
+    # can never bleed flow state into each other.
+    session_key = clinic_id + ":" + req.session_id
+    session = session_store.get_session(session_key)
+    session["clinic_id"] = clinic_id
     try:
         return process_query(req, session, start)
     finally:
-        session_store.save_session(req.session_id, session)
+        session_store.save_session(session_key, session)

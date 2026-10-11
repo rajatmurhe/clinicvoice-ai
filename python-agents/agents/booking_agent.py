@@ -5,7 +5,7 @@ from clinic_hours import is_clinic_open, hours_message
 from clinic_config import load_clinic
 import webhooks
 from waitlist import add_to_waitlist, notify_waitlist
-from agents.extract import extract_person_name
+from agents.extract import extract_person_name, is_yes_no_answer
 
 
 def extract_date(query: str):
@@ -19,7 +19,15 @@ def extract_date(query: str):
 
     date_match = re.search(r"(\d{4}-\d{2}-\d{2})", query)
     if date_match:
-        return date_match.group(1)
+        candidate = date_match.group(1)
+        try:
+            datetime.strptime(candidate, "%Y-%m-%d")
+        except ValueError:
+            # 2031-13-45 style strings match the shape but are not real dates;
+            # return None so the caller asks for a valid date instead of
+            # failing inside the calendar call.
+            return None
+        return candidate
 
     month_names = "january|february|march|april|may|june|july|august|september|october|november|december"
 
@@ -160,9 +168,20 @@ def handle_reschedule_continuation(query: str, session: dict, reschedule_pending
             "agent": "booking"
         }
 
-    if shown_slots and new_time not in shown_slots:
+    # Availability must be verified at confirm time even if a slot list was
+    # already shown: someone else may have taken the slot in between, and a
+    # blind booking would double book the calendar.
+    try:
+        open_slots = get_available_slots(new_date, doctor=reschedule_pending.get("doctor"), clinic_id=clinic_id)
+    except Exception:
         return {
-            "response": "I am sorry, " + new_time + " is not available. The open times are " + ", ".join(shown_slots[:5]) + ". Which of these would you like?",
+            "response": "I am having trouble checking the calendar right now. Please call reception to reschedule.",
+            "guardrailTriggered": False,
+            "agent": "booking"
+        }
+    if new_time not in open_slots:
+        return {
+            "response": "I am sorry, " + new_time + " is not available on " + new_date + ". The open times are " + ", ".join(open_slots[:5]) + ". Which of these would you like?",
             "guardrailTriggered": False,
             "agent": "booking"
         }
@@ -218,6 +237,13 @@ def handle_booking(query: str, session: dict) -> dict:
         }
 
     if waitlist_offer and waitlist_offer.get("awaiting_name"):
+        if extract_name(query) is None and is_yes_no_answer(query):
+            session["waitlist_offer"] = None
+            return {
+                "response": "No problem, I have not added you to the waitlist. Would you like me to check a different date?",
+                "guardrailTriggered": False,
+                "agent": "booking"
+            }
         name = extract_name(query) or query.strip()
         try:
             add_to_waitlist(name, waitlist_offer["date"], waitlist_offer.get("doctor"))
@@ -266,6 +292,13 @@ def handle_booking(query: str, session: dict) -> dict:
         )
 
         if answering_pending:
+            if extract_name(query) is None and is_yes_no_answer(query):
+                session["lookup_pending"] = None
+                return {
+                    "response": "Okay, I have left that. Let me know if there is anything else I can help with.",
+                    "guardrailTriggered": False,
+                    "agent": "booking"
+                }
             name = extract_name(query) or query.strip()
         else:
             name = extract_name(query)
