@@ -810,7 +810,9 @@ def main():
     parser.add_argument("--out-dir", default=str(Path(__file__).resolve().parent / "results"))
     args = parser.parse_args()
 
-    out_dir = Path(args.out_dir)
+    # Resolve before the offline harness chdirs into python-agents, otherwise
+    # a relative --out-dir lands in the wrong place.
+    out_dir = Path(args.out_dir).resolve()
     if args.live:
         run_live(out_dir, args.runs)
     elif args.redteam:
