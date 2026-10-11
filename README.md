@@ -174,7 +174,7 @@ python-agents/venv/bin/python python-eval/run_eval.py --orchestrator legacy|grap
 # Same flows with tools behind MCP
 EVAL_TOOLS_MODE=mcp python-agents/venv/bin/python python-eval/run_eval.py
 
-# Unit and regression tests (143 tests)
+# Unit and regression tests (165 tests, plus 17 Node tests via `cd backend && npx jest`)
 python-agents/venv/bin/python -m pytest python-agents/tests
 
 # Live latency against the deployed services (needs network)
@@ -194,8 +194,6 @@ pytest, the offline eval and the Node jest suite on every push.
 | `cloud-frontend/` | Voice web client: sentence streamed TTS, barge in, push to talk fallback |
 | `python-eval/` | Eval harness, fixed test sets, red team set, thresholds |
 | `docs/` | Latency budget |
-| `frontend/`, `next-frontend/`, `nest-api/` | Earlier variants kept for reference, not part of the main path |
-| `models/` | Local speech samples used by the self hosted voice variant |
 
 ## Known limitations
 
@@ -219,6 +217,11 @@ Honest list; each is a decision or a measured gap, not an accident:
   works). The agent asks for the drug name explicitly.
 - Languages: English, Hindi and Marathi are covered; other languages fall
   back to English retrieval with the translated-FAQ mechanism available.
+- Homoglyph evasion: look-alike characters from other scripts (Cyrillic
+  letters, for example) still slip past the blocklist. Needs script
+  normalization; noted as future hardening.
+- No request size limit at the application layer yet; a reverse proxy or
+  gateway should enforce one in a real deployment.
 - HIPAA: not certified, no BAA, no audit-grade logging. See COMPLIANCE.md.
 
 ## Compliance and edge cases

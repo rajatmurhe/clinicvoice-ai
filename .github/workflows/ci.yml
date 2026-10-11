@@ -59,30 +59,3 @@ jobs:
             echo "RENDER_DEPLOY_HOOK secret not set; skipping deploy"
           fi
 
-  nestjs-build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - name: Install dependencies
-        working-directory: ./nest-api
-        run: npm install
-      - name: Build
-        working-directory: ./nest-api
-        run: npm run build
-
-  nextjs-build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - name: Install dependencies
-        working-directory: ./next-frontend
-        run: npm install
-      - name: Build
-        working-directory: ./next-frontend
-        run: npm run build
