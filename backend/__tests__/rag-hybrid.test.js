@@ -1,3 +1,7 @@
+// Each jest worker gets its own SQLite file so parallel suites do not
+// fight over one database.
+process.env.FAQ_DB_PATH = require('node:os').tmpdir() +
+  '/faq-test-' + (process.env.JEST_WORKER_ID || '0') + '.db';
 const { hybridScores, tokenize } = require('../rag-cloud');
 
 // getAllFaqs reads the SQLite file; give the unit tests an in-memory index.

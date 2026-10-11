@@ -2,7 +2,12 @@ const Database = require('node:sqlite').DatabaseSync;
 const fs = require('fs');
 const path = require('path');
 
-const db = new Database(path.join(__dirname, 'data', 'clinic.db'));
+const DB_PATH = process.env.FAQ_DB_PATH || path.join(__dirname, 'data', 'clinic.db');
+const db = new Database(DB_PATH);
+// Jest runs suites in parallel workers and they all open this file; WAL plus
+// a busy timeout stops concurrent schema setup from tripping over locks.
+db.exec('PRAGMA journal_mode = WAL');
+db.exec('PRAGMA busy_timeout = 5000');
 
 function ensureSchema() {
   db.exec(`
