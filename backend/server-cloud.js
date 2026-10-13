@@ -167,10 +167,25 @@ app.post('/api/text-query', rateLimit(60), async (req, res) => {
     }
     const context = await retrieveContext(query, 2, req.body.clinic_id || 'default');
     const result = await generateResponse(query, context);
+    // Structured provider log: names, model id, latency and token counts only.
+    // The prompt and the answer never go to the log line.
+    process.stdout.write(JSON.stringify({
+      ts: new Date().toISOString(),
+      request_id: res.getHeader('X-Request-ID') || '-',
+      event: 'llm_answer',
+      provider: result.provider || 'pre-decision',
+      model_id: result.model_id || null,
+      provider_latency_ms: result.provider_latency_ms != null ? result.provider_latency_ms : null,
+      usage_tokens: result.usage_tokens || null,
+      guardrail: result.guardrailTriggered || false,
+      error_category: result.error_category || null
+    }) + '\n');
     res.json({
       query: query,
       response: result.response,
       guardrailTriggered: result.guardrailTriggered,
+      provider: result.provider || null,
+      model_id: result.model_id || null,
       usage_tokens: result.usage_tokens || null,
       degraded: result.error === 'llm_unreachable'
     });

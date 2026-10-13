@@ -1,4 +1,5 @@
 const { getRequestId } = require('./request-context');
+const providers = require('./llm-providers');
 
 const BLOCKED_PATTERNS_INPUT = [
   /diagnos/i, /\bprescrib/i, /medication/i, /dose/i, /dosage/i, /how much .* (should|can|could)\s+(i|we|you|he|she|they)?\s*(take|dose)\b/i,
@@ -151,46 +152,6 @@ function decidePreLLM(query, context) {
   return { kind: 'llm', topScore: topScore, topFaqId: topFaqId };
 }
 
-async function callGroq(prompt) {
-  const body = JSON.stringify({
-    model: 'openai/gpt-oss-20b',
-    messages: [{ role: 'user', content: prompt }],
-    temperature: 0.2,
-    max_tokens: 300
-  });
-
-  let lastError = null;
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + process.env.GROQ_API_KEY,
-          'X-Request-ID': getRequestId() || '-'
-        },
-        body: body,
-        signal: AbortSignal.timeout(20000)
-      });
-      if (!response.ok && response.status >= 500 && attempt === 0) {
-        lastError = new Error('Groq returned ' + response.status);
-        await new Promise(function(resolve) { setTimeout(resolve, 400); });
-        continue;
-      }
-      if (!response.ok) {
-        throw new Error('LLM request failed with status ' + response.status);
-      }
-      return await response.json();
-    } catch (err) {
-      lastError = err;
-      if (attempt === 0) {
-        await new Promise(function(resolve) { setTimeout(resolve, 400); });
-      }
-    }
-  }
-  throw lastError;
-}
-
 async function generateResponse(query, context) {
   const pre = decidePreLLM(query, context);
 
@@ -207,22 +168,28 @@ async function generateResponse(query, context) {
 
   const prompt = "You are a helpful clinic reception assistant. Answer the patients question using ONLY the information below. If the answer isnt in the information provided, say you dont have that information and suggest they call reception. NEVER ask the patient for personal identifying information such as date of birth, NHS number, or ID numbers. NEVER invent policies, procedures, verification steps, or factual claims that are not explicitly stated in the information above. If asked about something not covered in the information, clearly say you do not have that information rather than guessing or making up an answer. Respond in the same language the patient used. If they wrote in Hindi, respond in Hindi. If they wrote in Marathi, respond in Marathi. Otherwise respond in English.\n\nInformation:\n" + contextText + "\n\nPatient question: " + query + "\n\nAnswer in 1-2 short sentences, in a friendly natural tone suitable for speaking aloud:";
 
-  let data;
+  // Provider layer (groq default, bedrock optional). Any provider failure is
+  // a sanitized category here, never a raw error, and the patient gets the
+  // same safe reception-team fallback whichever provider is configured.
+  let result;
+  const providerStarted = Date.now();
   try {
-    data = await callGroq(prompt);
+    result = await providers.generate(prompt);
+    result.provider_latency_ms = Date.now() - providerStarted;
   } catch (err) {
     // The LLM being down must never surface as a 500 or a stack trace. A clear
     // fallback with a human handoff keeps the assistant usable.
     return {
       response: LLM_FALLBACK_RESPONSE,
       guardrailTriggered: false,
-      error: 'llm_unreachable'
+      error: 'llm_unreachable',
+      error_category: err instanceof providers.ProviderError ? err.category : 'unreachable',
+      provider: process.env.LLM_PROVIDER || 'groq',
+      provider_latency_ms: Date.now() - providerStarted
     };
   }
 
-  const generatedText = data.choices[0].message.content.trim();
-
-  if (checkOutputSafety(generatedText)) {
+  if (checkOutputSafety(result.text)) {
     return {
       response: "I am not able to help with that. Please contact the clinic directly.",
       guardrailTriggered: true
@@ -230,9 +197,11 @@ async function generateResponse(query, context) {
   }
 
   return {
-    response: generatedText,
+    response: result.text,
     guardrailTriggered: false,
-    usage_tokens: data.usage ? data.usage.total_tokens : null
+    provider: result.provider,
+    model_id: result.modelId,
+    usage_tokens: result.usageTokens
   };
 }
 
