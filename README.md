@@ -1,38 +1,49 @@
-# ClinicVoice AI
+# ClinicVoice AI: Multilingual Voice Assistant for Clinic Reception
 
-[![CI](https://github.com/rajatmurhe/clinicvoice-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/rajatmurhe/clinicvoice-ai/actions/workflows/ci.yml)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-ClinicVoice-00C853?style=for-the-badge&logo=render&logoColor=white)](https://clinicvoice-ai.onrender.com)
+[![React](https://img.shields.io/badge/React-Vite-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
+[![Python](https://img.shields.io/badge/Python-FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Node.js](https://img.shields.io/badge/Node.js-Express-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![Groq](https://img.shields.io/badge/Groq-Primary%20LLM-F55036?style=for-the-badge&logo=groq&logoColor=white)](https://groq.com/)
+[![Gemini](https://img.shields.io/badge/Gemini-LLM%20Failover-8E75B2?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/)
+[![SQLite](https://img.shields.io/badge/SQLite-Local%20State-003B57?style=for-the-badge&logo=sqlite&logoColor=white)](https://sqlite.org/)
+[![CI](https://img.shields.io/badge/CI-GitHub%20Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/rajatmurhe/clinicvoice-ai/actions/workflows/ci.yml)
 
-A voice assistant for a medical clinic reception. It answers clinic questions,
-books, looks up, reschedules and cancels real appointments, logs prescription
-refills and takes non-diagnostic intake notes, speaks its answers back, and
-refuses everything a receptionist must refuse: medical advice, prompt
-injections and requests for other patients' data.
+**Live Application:** https://clinicvoice-ai.onrender.com/
 
-The design goal is safety first. A four layer guardrail system sits between the
-patient and the language model, an offline eval harness measures every change
-against a fixed 180 case test set, and a red team set of 46 attacks proves the
-guardrails hold. Every number in this README comes from a run you can reproduce
-with one command (see Running the eval below).
+ClinicVoice AI is a voice-first clinic receptionist that answers clinic FAQs,
+supports appointment booking and verified appointment changes, logs refill
+requests, and records non-diagnostic intake notes. Patients can speak or type
+in English, Hindi, or Marathi and hear the assistant's reply.
 
-**Live demo:** https://clinicvoice-ai.onrender.com (FAQ service) · agent
-service at https://clinicvoice-ai-agents.onrender.com. Free tier cold starts
-mean the first request can take 20 to 60 seconds; later requests are fast.
+The project combines deterministic clinic workflows with a guardrailed FAQ
+assistant. Its offline evaluation suite covers 180+ cases, and its 46-case
+red-team set tracks attacks and first-layer safety behavior. Evaluation
+limitations are documented below; these results are not a clinical or
+production privacy certification.
 
-## Product screenshots
+Free-tier hosting can take 20–60 seconds to wake after inactivity.
 
-The voice-first interface includes typed chat as a fallback, a replay control,
-clinic switching, and English, Hindi, and Marathi language selection. The
-Hindi example below shows a real local booking response from the demo calendar.
+---
 
-<p align="center">
-  <img src="docs/screenshots/clinicvoice-english.png" alt="ClinicVoice AI English home screen" width="49%" />
-  <img src="docs/screenshots/clinicvoice-hindi-booking.png" alt="ClinicVoice AI answering a Hindi appointment request" width="49%" />
-</p>
+## Dashboard
+
+### Voice Assistant Home
+
+![ClinicVoice AI voice assistant dashboard](docs/screenshots/clinicvoice-english.png)
+
+### Hindi Appointment Booking
+
+![ClinicVoice AI responding to a Hindi appointment request](docs/screenshots/clinicvoice-hindi-booking.png)
+
+### Marathi Appointment Verification
+
+![ClinicVoice AI asking for registered patient verification in Marathi](docs/screenshots/clinicvoice-marathi-verification.png)
 
 ## Architecture
 
 ```
-Browser (voice in/out, Web Speech API or push to talk fallback)
+Browser (voice in/out, browser recognition with recorded-audio fallback)
    |
    |  one request id flows through every hop and every log line
    v
@@ -62,7 +73,70 @@ webhooks). A second clinic onboards with a config file only; the scheduling
 adapter interface has Google Calendar, SQLite fake and a live FHIR sandbox
 implementation.
 
-## Results
+## Conversation Workflow
+
+```text
+Patient voice or text
+        |
+        v
+Transcription (voice) -> safety checks -> language-aware intent routing
+                                      |
+                +---------------------+--------------------+
+                |                     |                    |
+                v                     v                    v
+        Clinic workflow         FAQ retrieval        Reception handoff
+        booking/refill/intake    BM25 + trigrams     escalation
+                |                     |
+                v                     v
+        Calendar / SQLite      Groq -> Gemini fallback
+                +---------------------+
+                            |
+                            v
+             Localized text + spoken response
+```
+
+Appointment reads and changes follow a separate verification path: identify
+the patient, match a registered phone number or patient ID, then access the
+calendar. A name supplied during the conversation cannot enroll a new identity.
+
+## Key Capabilities
+
+### Voice and Multilingual Conversation
+
+- Browser microphone recording with server transcription and push-to-talk
+  fallback when browser speech recognition is unavailable.
+- Spoken replies, replay, barge-in, and typed chat as a fallback.
+- English, Hindi, and Marathi controls for transcription, intent routing,
+  workflow prompts, and playback.
+- Frontend waiting indicator for cold starts and delayed responses.
+
+### Clinic Workflows
+
+- Book appointments against the selected clinic's scheduling adapter.
+- Look up, reschedule, or cancel an existing appointment only after matching a
+  clinic-registered phone number or patient ID.
+- Log prescription refill requests and non-diagnostic intake notes.
+- Check accepted insurance and route personal requests to reception.
+- Support multiple clinics from separate configuration files.
+
+### FAQ Retrieval and Provider Resilience
+
+- Hybrid BM25 and character-trigram retrieval for lexical and multilingual
+  matches.
+- Groq as the primary FAQ answer provider with Gemini failover on transient
+  errors such as timeouts, rate limits, and provider 5xx responses.
+- Input and output safety checks remain active around generated answers.
+- Optional LangGraph orchestrator, MCP tool transport, LLM intent classifier,
+  and compliance reviewer can be evaluated behind feature flags.
+
+### Safety and Evaluation
+
+- Emergency detection, prompt-injection and unsafe-request filters, retrieval
+  confidence checks, and generated-answer review.
+- Clinic isolation and fail-closed appointment verification.
+- Offline flow evaluation, regression tests, and a reproducible red-team set.
+
+## Evaluation Results
 
 Offline eval, fixed committed test set, no network, no LLM calls, fake
 calendar. Run date and commit are stored in each results file.
@@ -140,7 +214,7 @@ Short version, full records with numbers in [DECISIONS.md](DECISIONS.md):
 7. Session state, logs, the fake calendar and graph checkpoints are all
    SQLite, so a restart never erases a booking in progress (verified).
 
-## Run it
+## Quickstart
 
 Fresh clone, no accounts needed (the demo calendar is SQLite; the LLM answers
 degrade gracefully without a Groq key):
@@ -247,13 +321,26 @@ each was fixed. [RED_TEAM.md](RED_TEAM.md) documents the attack sets and the
 before/after fix story. [docs/latency-budget.md](docs/latency-budget.md) holds
 the per stage voice latency budgets and the streaming design.
 
-## Tech stack
+## Technology Stack
 
-Python, FastAPI, LangGraph (flag), Node.js, Express, React, SQLite, hybrid
-BM25 + trigram retrieval, Groq (gpt-oss-20b, whisper, TTS), MCP, Google
-Calendar API, FHIR R4 sandbox adapter, Docker Compose, GitHub Actions.
+### Frontend
 
-## Reliability: Groq and Gemini failover
+React, Vite, browser speech APIs, recorded-audio fallback, responsive CSS.
+
+### Backend
+
+Python, FastAPI, Node.js, Express, SQLite, Docker Compose.
+
+### AI and Retrieval
+
+Groq, Gemini, hybrid BM25 and character-trigram retrieval, optional LangGraph,
+MCP tools, optional Ollama embeddings.
+
+### Integrations and Delivery
+
+Google Calendar adapter, FHIR R4 sandbox adapter, GitHub Actions, Render.
+
+## Provider Configuration Details
 
 Set `GROQ_API_KEY` and `GEMINI_API_KEY` in the root `.env` for Docker.
 `LLM_PROVIDER=groq|gemini` selects the primary; `GEMINI_MODEL` defaults to
@@ -264,7 +351,7 @@ Python FAQ client's twenty-second timeout. Authentication, invalid requests,
 malformed/empty responses and provider safety refusals do not trigger failover.
 Both providers still pass through the existing input and output guardrails.
 
-## Appointment privacy verification
+## Configure Appointment Verification
 
 For appointment verification, create a **private**, clinic-managed `patients.json`:
 
@@ -289,7 +376,7 @@ allow three attempts. More than one matching appointment is handed to reception.
 New bookings remain available without a registry. Keep registry files out of Git;
 `patients.json` is ignored. Restrict filesystem access to the service account.
 
-## Voice client and language support
+## Run the Voice Client
 
 Run the voice client locally in a separate terminal:
 
