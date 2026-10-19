@@ -9,6 +9,8 @@ const { runWithRequestId } = require('./request-context');
 
 const app = express();
 app.use(cors({ exposedHeaders: ['X-Request-ID'] }));
+// Audio uses base64 JSON; normal recordings exceed Express's 100 KB default.
+app.use('/api/transcribe', express.json({ limit: '10mb' }));
 app.use(express.json());
 
 seedFromJson();
@@ -70,7 +72,7 @@ app.get('/', (req, res) => {
 app.post('/api/router-classify', rateLimit(120), async (req, res) => {
   // Hybrid router endpoint: classifies a low-confidence message for the
   // Python orchestrator. Returns the regex-safe fallback on any LLM problem.
-  const query = req.body.query;
+  const query = req.body?.query;
   const INTENTS = ['booking', 'refill', 'insurance', 'intake', 'escalation', 'faq'];
   if (!query) {
     return res.status(400).json({ error: 'No query provided.' });
@@ -108,7 +110,7 @@ app.post('/api/transcribe', rateLimit(60), async (req, res) => {
   // Server side speech to text for browsers without the Web Speech API
   // (Safari, Brave): the push to talk fallback records audio and posts it here.
   try {
-    if (!req.body || !req.body.audio) {
+    if (!req.body || typeof req.body.audio !== 'string' || !req.body.audio) {
       return res.status(400).json({ error: 'No audio provided.' });
     }
     const base64Data = String(req.body.audio).replace(/^data:[^,]+,/, '');
@@ -117,11 +119,14 @@ app.post('/api/transcribe', rateLimit(60), async (req, res) => {
       return res.status(400).json({ error: 'Recording too short.' });
     }
 
+    const mime = /^data:(audio\/[^;,]+)/.exec(req.body.audio)?.[1] || 'audio/webm';
+    const extension = { 'audio/mp4': 'm4a', 'audio/wav': 'wav', 'audio/ogg': 'ogg', 'audio/mpeg': 'mp3' }[mime] || 'webm';
     const form = new FormData();
-    form.append('file', new Blob([audioBuffer]), 'speech.webm');
+    form.append('file', new Blob([audioBuffer], { type: mime }), 'speech.' + extension);
     form.append('model', 'whisper-large-v3-turbo');
     form.append('response_format', 'json');
     form.append('temperature', '0');
+    if (['en', 'hi', 'mr'].includes(req.body.language)) form.append('language', req.body.language);
 
     const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
       method: 'POST',
@@ -161,8 +166,8 @@ app.post('/api/transcribe', rateLimit(60), async (req, res) => {
 
 app.post('/api/text-query', rateLimit(60), async (req, res) => {
   try {
-    const query = req.body.query;
-    if (!query) {
+    const query = req.body?.query;
+    if (typeof query !== "string" || !query.trim() || query.length > 10000) {
       return res.status(400).json({ error: 'No query provided.' });
     }
     const context = await retrieveContext(query, 2, req.body.clinic_id || 'default');
@@ -203,8 +208,8 @@ app.post('/api/text-query', rateLimit(60), async (req, res) => {
 
 app.post('/api/tts', rateLimit(60), async (req, res) => {
   try {
-    const text = req.body.text;
-    if (!text) {
+    const text = req.body?.text;
+    if (typeof text !== "string" || !text.trim() || text.length > 10000) {
       return res.status(400).json({ error: 'No text provided.' });
     }
 
@@ -252,7 +257,15 @@ app.post('/api/tts', rateLimit(60), async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 5050;
-app.listen(PORT, () => {
-  console.log('Cloud FAQ API running on port ' + PORT);
+// Keep malformed/oversized requests actionable for the voice client.
+app.use((err, req, res, next) => {
+  if (err.type === 'entity.too.large') return res.status(413).json({ error: 'Recording too large. Please record a shorter message.' });
+  if (err.type === 'entity.parse.failed') return res.status(400).json({ error: 'Invalid JSON request.' });
+  next(err);
 });
+
+if (require.main === module) {
+  const PORT = process.env.PORT || 5050;
+  app.listen(PORT, () => console.log('Cloud FAQ API running on port ' + PORT));
+}
+module.exports = app;

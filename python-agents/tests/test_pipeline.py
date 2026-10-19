@@ -75,4 +75,5 @@ def test_cancel_flow_completes_with_bare_name(client):
     r2 = client.post("/api/agent-query", json={"query": "Zebra", "session_id": sid})
     data = r2.json()
     assert data["intent"] == "booking"
-    assert "could not find an upcoming appointment under the name Zebra" in data["response"]
+    assert "provide your phone number or patient ID" in data["response"]
+    assert "could not find" not in data["response"]

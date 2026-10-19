@@ -21,6 +21,18 @@ jobs:
         working-directory: ./backend
         run: npm test
 
+  frontend-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+        working-directory: ./cloud-frontend
+      - run: npm run lint && npm run build
+        working-directory: ./cloud-frontend
+
   python-agents-tests:
     runs-on: ubuntu-latest
     steps:
@@ -44,7 +56,7 @@ jobs:
   deploy-render:
     # Deploys to Render only after the test and eval jobs pass, and only when
     # the RENDER_DEPLOY_HOOK secret is configured on the repo.
-    needs: [backend-unit-tests, python-agents-tests]
+    needs: [backend-unit-tests, python-agents-tests, frontend-checks]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:

@@ -10,3 +10,9 @@ dashboard.db
 refills.db
 waitlist.db
 intake.db
+sessions.db
+*.db-wal
+*.db-shm
+*.db-journal
+
+.local-data/

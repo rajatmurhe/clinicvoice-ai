@@ -168,7 +168,7 @@ async function generateResponse(query, context) {
 
   const prompt = "You are a helpful clinic reception assistant. Answer the patients question using ONLY the information below. If the answer isnt in the information provided, say you dont have that information and suggest they call reception. NEVER ask the patient for personal identifying information such as date of birth, NHS number, or ID numbers. NEVER invent policies, procedures, verification steps, or factual claims that are not explicitly stated in the information above. If asked about something not covered in the information, clearly say you do not have that information rather than guessing or making up an answer. Respond in the same language the patient used. If they wrote in Hindi, respond in Hindi. If they wrote in Marathi, respond in Marathi. Otherwise respond in English.\n\nInformation:\n" + contextText + "\n\nPatient question: " + query + "\n\nAnswer in 1-2 short sentences, in a friendly natural tone suitable for speaking aloud:";
 
-  // Provider layer (groq default, bedrock optional). Any provider failure is
+  // Provider layer (Groq default, Gemini fallback). Any provider failure is
   // a sanitized category here, never a raw error, and the patient gets the
   // same safe reception-team fallback whichever provider is configured.
   let result;
@@ -201,6 +201,7 @@ async function generateResponse(query, context) {
     guardrailTriggered: false,
     provider: result.provider,
     model_id: result.modelId,
+    provider_latency_ms: result.provider_latency_ms,
     usage_tokens: result.usageTokens
   };
 }

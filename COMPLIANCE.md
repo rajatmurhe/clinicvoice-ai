@@ -19,9 +19,10 @@ A user interaction with ClinicVoice AI can include:
 - **Booking details** — when using the calendar-booking agent: a date, a time,
   and a name, which becomes the title of a real calendar event.
 
-The system does **not** collect or request: medical history, symptoms,
-diagnoses, medication details, insurance numbers, or any other sensitive
-health data. This is enforced structurally, not just by policy — see Section 4.
+The booking verification flow requests a registered phone number or patient ID.
+Refill requests may include medication names, and intake may include a reason
+category/body area. User text can contain other sensitive information even when
+a guardrail refuses the request; refusal is not data minimization by itself.
 
 ## 2. Where data goes, by component
 
@@ -33,7 +34,7 @@ health data. This is enforced structurally, not just by policy — see Section 4
 | `python-agents/dashboard_log.py` | Query text, response text, intent, agent, guardrail flag, cache-hit flag, latency | Local SQLite file (`dashboard.db`), used only for the admin dashboard, gitignored, never leaves the machine it runs on |
 | `python-agents/semantic_cache.py` | Query text + embedding + response, in-memory only | Cleared on every server restart — never written to disk |
 | Google Calendar (via service account) | Appointment date, time, and the name given at booking | Retained per the clinic's own calendar until manually deleted — this is the one piece of data that persists outside the local machine by design, since it's the actual appointment record |
-| Groq (cloud LLM/TTS, cloud deployment only) | The query text sent for that single request | Per Groq's own data-handling terms — not controlled by this project; only the cloud deployment sends data externally, the local pipeline never does |
+| Groq and Google Gemini (cloud FAQ; Groq also provides speech services) | The query text sent for that single request | Per each provider's data-handling terms — not controlled by this project; only the cloud deployment sends data externally, the local pipeline never does |
 
 ## 3. What never leaves the local machine (local deployment)
 
@@ -44,16 +45,16 @@ architectural choice, made early in the project specifically for
 data-locality reasons in a healthcare context — see the project's build notes.
 
 The **live cloud deployment** is a separate, explicitly-labeled variant that
-trades local processing for public accessibility, using Groq for LLM/TTS. Its
+trades local processing for public accessibility, using Groq for LLM/TTS and Gemini for optional FAQ failover. Its
 existence and data flow are disclosed here rather than hidden, since a real
 compliance review needs to know both variants exist.
 
 ## 4. Guardrails as a compliance control, not just a UX feature
 
 The 4-layer safety system (input pattern check, greeting detection, confidence
-threshold, output pattern check) exists specifically so the assistant never
-asks for or generates identity-verifying information (date of birth, ID
-numbers) or clinical advice. This was tightened after a real bug was found
+threshold, output pattern check) exists specifically so the FAQ LLM does not invent identity-verification procedures or clinical
+advice. The deterministic booking agent separately asks for registered identity
+details before calendar access. This was tightened after a real bug was found
 during development, where the LLM invented a fake identity-verification step —
 the fix (an output-side check, not just an input-side one) is a direct example
 of defense-in-depth: even if a bad output is generated, it's caught before
@@ -67,14 +68,19 @@ healthcare system. Concretely:
 - No encryption-at-rest is applied to the local log files or the dashboard's
   SQLite database — acceptable for a local dev machine, not for a real
   deployment holding patient data.
-- No formal Data Processing Agreement exists with Groq, since this is a
+  - No formal Data Processing Agreement exists with Groq, since this is a
   demo, not a live clinic.
-- No user-facing mechanism exists yet to request deletion of a specific
+  - No user-facing mechanism exists yet to request deletion of a specific
   logged interaction (the "right to erasure" under GDPR) — the closest
   equivalent today is manually clearing the log files.
-- The Google Calendar integration uses a single shared service account
+  - The Google Calendar integration uses a single shared service account
   rather than per-clinic access scoping, which would need to change for a
   genuine multi-tenant product.
+  - Appointment access requires an exact clinic-scoped registry match. Merely
+    providing digits is insufficient. This is knowledge verification, not OTP;
+    a caller who knows the registered identifier can still impersonate a patient.
+    Session IDs are not authenticated and challenge limits reset with a new flow.
+
 
 A real deployment would need: encryption at rest, a signed DPA with any
 third-party LLM/TTS provider, an audit log separate from the operational
@@ -109,3 +115,27 @@ its design choices map onto DTAC's structure deliberately:
 This project does not claim DTAC compliance. It is built with DTAC's
 structure in mind so that the gap between a portfolio build and a
 DTAC-assessed product is well understood.
+
+## 7. Verification registry and Gemini data flow
+
+`CLINICVOICE_PATIENT_REGISTRY` points to a private JSON file managed by clinic
+staff, containing clinic ID, exact patient name and phone and/or patient ID.
+It is read locally, never sent to an LLM, and has no automatic retention policy.
+Missing, invalid or ambiguous records fail closed. Calendar access follows a
+successful match, with five-minute challenges and three attempts per challenge.
+Ambiguous appointments require reception. Enrollment from chat is not allowed.
+
+Verification-turn text is redacted in dashboard query logging. Browser transcripts
+still contain what the user entered. LangGraph checkpoint history can retain raw
+turn inputs, including identifiers; the latest state is redacted but this does
+not erase historical checkpoints. Protect these SQLite files and establish
+retention/deletion before real patient use. Session state and calendar records
+also persist locally; the local voice-only pipeline description above does not
+apply to the cloud orchestrator.
+
+When a configured FAQ provider has a transient failure, the same FAQ prompt
+(question and retrieved context) may be sent to the other provider, including
+Google Gemini. Gemini receives this data even when Groq is primary. Provider
+retention and contractual terms need separate review; this project supplies no
+BAA/DPA or certification. Groq remains the provider for hosted transcription/TTS.
+The browser speech-recognition service may also process microphone audio.

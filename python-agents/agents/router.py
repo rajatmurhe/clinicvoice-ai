@@ -10,6 +10,12 @@ BOOKING_PATTERNS = [
     r"(am i booked|do i have an appointment)",
     r"when is my appointment",
     r"what time is my appointment",
+    r"what time is .*appointment",
+    r"does .* have an appointment",
+    r"(appointment|booking) (time|details|status)",
+    r"(whose|who has) (appointment|booking)",
+    r"(look up|find|check) .*appointment",
+    r"appointment for .*",
     r"\bcancel\b",
     r"(get|book) (me )?an? appointment",
     r"book me in",
@@ -66,11 +72,11 @@ INTAKE_REGEX = re.compile("|".join(INTAKE_PATTERNS), re.IGNORECASE)
 # these keywords let Hindi and Marathi messages reach the right agent too.
 # Order matters and mirrors the regex router order.
 HI_MR_INTENT_KEYWORDS = [
-    ("escalation", ["शिकायत", "तक्रार", "प्रबंधक", "व्यवस्थापक", "नाराज", "रिसत"]),
-    ("intake", ["लक्षण", "रिपोर्ट", "तपासणी", "रक्त तपासणी"]),
-    ("refill", ["रिफिल", "रिफील"]),
-    ("insurance", ["बीमा(?!री)", "विमा"]),
-    ("booking", ["अपॉइंटमेंट", "अपॉईंटमेंट", "बुक", "रद्द", "रिझेल"]),
+    ("escalation", [r"शिकायत", r"तक्रार", r"प्रबंधक", r"व्यवस्थापक", r"नाराज", r"माणसाशी बोल", r"व्यक्तीशी बोल"]),
+    ("intake", [r"लक्षण", r"रिपोर्ट", r"तपासणी", r"रक्त तपासणी", r"दर्द", r"दुखत", r"वेदना", r"बरे वाटत नाही", r"तब्येत ठीक नाही", r"चाचणीचे निकाल"]),
+    ("refill", [r"रिफिल", r"रिफील", r"औषध.*(पुन्हा|परत|रिफिल)", r"गोळ्या संप", r"दवा.*(फिर से|दोबारा|खत्म)", r"दवाई.*(फिर से|दोबारा)"]),
+    ("insurance", [r"बीमा(?!री)", r"विमा", r"इन्शुरन्स", r"इंश्योरेंस"]),
+    ("booking", [r"अपॉइंटमेंट", r"अपॉईंटमेंट", r"भेट.*(ठरव|बुक|हवी)", r"डॉक्टर.*(भेट|दाखवायचं|दाखवायचे)", r"डॉक्टर से मिल", r"डॉक्टर को दिख", r"बुक", r"रद्द", r"कॅन्सल", r"पुढे ढकल", r"तारीख बदल", r"वेळ बदल", r"मुलाकात", r"नियुक्ति", r"समय.*(मिल|चाहिए)"]),
 ]
 
 HI_MR_KEYWORD_REGEXES = [

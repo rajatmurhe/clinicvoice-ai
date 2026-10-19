@@ -1,3 +1,4 @@
+import os
 import requests
 import math
 import time
@@ -7,6 +8,8 @@ EMBED_MODEL = "all-minilm"
 SIMILARITY_THRESHOLD = 0.80
 MAX_CACHE_SIZE = 200
 
+# Optional Ollama integration must not delay the cloud path by default.
+CACHE_ENABLED = os.environ.get("CLINICVOICE_SEMANTIC_CACHE", "false").lower() == "true"
 _cache = []
 
 
@@ -14,7 +17,7 @@ def get_embedding(text: str):
     response = requests.post(
         OLLAMA_EMBED_URL,
         json={"model": EMBED_MODEL, "prompt": text},
-        timeout=10
+        timeout=(0.3, 0.7)
     )
     response.raise_for_status()
     return response.json()["embedding"]
@@ -30,6 +33,8 @@ def cosine_similarity(a, b):
 
 
 def check_cache(query: str, clinic_id=None):
+    if not CACHE_ENABLED or not _cache:
+        return None
     try:
         query_embedding = get_embedding(query)
     except Exception:
@@ -58,6 +63,8 @@ def check_cache(query: str, clinic_id=None):
 
 
 def store_in_cache(query: str, response: str, guardrail_triggered: bool, clinic_id=None):
+    if not CACHE_ENABLED:
+        return
     try:
         embedding = get_embedding(query)
     except Exception:

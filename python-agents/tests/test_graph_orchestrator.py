@@ -54,3 +54,21 @@ def test_graph_escalation_clears_flow(patched_calendar):
     assert r["agent"] == "escalation"
     r2 = graph_orchestrator.run_query("tomorrow", "g4")
     assert r2["intent"] != "booking"
+
+
+def test_graph_verification_and_clinic_isolation(patched_calendar):
+    import datetime
+    day = (datetime.date.today() + datetime.timedelta(days=2)).isoformat()
+    patched_calendar.add_event(day, "02:00 PM", "Priya")
+    sid = "graph-verify"
+    graph_orchestrator.run_query("cancel my appointment", sid)
+    result = graph_orchestrator.run_query("Priya", sid)
+    assert "phone number or patient ID" in result["response"]
+    wrong_clinic = graph_orchestrator.run_query("12345", sid, "smilecare")
+    assert "cancelled" not in wrong_clinic["response"]
+    result = graph_orchestrator.run_query("00000", sid)
+    assert "couldn't verify" in result["response"]
+    assert patched_calendar.events_on(day)
+    result = graph_orchestrator.run_query("12345", sid)
+    assert "has been cancelled" in result["response"]
+    assert result["query"] == "[verification response redacted]"

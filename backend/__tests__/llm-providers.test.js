@@ -1,23 +1,20 @@
 // Provider selection and normalization tests. Everything here is mocked: CI
-// never needs a Groq key or AWS credentials. Live behavior is covered by the
-// manual scripts (scripts/bedrock-smoke.js, scripts/provider-comparison.js).
-jest.mock('@aws-sdk/client-bedrock-runtime');
+// never needs a Groq key or Gemini key. Live behavior is spot-checked manually.
+const realFetch = global.fetch;
 
-// Each test loads the modules fresh after setting env, so the provider module
-// captures the same mocked client this test configures.
 function loadModules() {
-  const sdk = require('@aws-sdk/client-bedrock-runtime');
   const providers = require('../llm-providers');
   const llmCloud = require('../llm-cloud');
-  return { sdk, providers, llmCloud };
+  return { providers, llmCloud };
 }
-
-const realFetch = global.fetch;
 
 afterEach(function() {
   global.fetch = realFetch;
   delete process.env.LLM_PROVIDER;
+  delete process.env.GEMINI_API_KEY;
+  delete process.env.GROQ_API_KEY;
   jest.restoreAllMocks();
+  jest.resetModules();
 });
 
 function groqOk() {
@@ -33,33 +30,38 @@ function groqOk() {
   });
 }
 
-function bedrockOk() {
-  return {
-    output: { message: { content: [{ text: 'We are open 9am to 6pm.' }] } },
-    usage: { inputTokens: 400, outputTokens: 12 },
-    metrics: { modelId: 'amazon.nova-micro-v1:0' }
-  };
+function geminiOk() {
+  return Promise.resolve({
+    ok: true,
+    status: 200,
+    json: function() {
+      return Promise.resolve({
+        candidates: [{ content: { parts: [{ text: '  We are open 9am to 6pm.  ' }] } }],
+        usageMetadata: { totalTokenCount: 120 }
+      });
+    }
+  });
 }
 
 describe('provider selection', function() {
   test('groq is the default when LLM_PROVIDER is unset', async function() {
-    const { sdk, providers } = loadModules();
+    jest.resetModules();
+    const { providers } = loadModules();
     global.fetch = jest.fn().mockReturnValue(groqOk());
+    process.env.GROQ_API_KEY = 'test';
     const result = await providers.generate('hello');
     expect(result.provider).toBe('groq');
     expect(result.modelId).toBe('openai/gpt-oss-20b');
-    expect(sdk.BedrockRuntimeClient).not.toHaveBeenCalled();
   });
 
-  test('bedrock is selected when LLM_PROVIDER=bedrock', async function() {
-    process.env.LLM_PROVIDER = 'bedrock';
-    const { sdk, providers } = loadModules();
-    const send = jest.fn().mockResolvedValue(bedrockOk());
-    sdk.BedrockRuntimeClient.mockImplementation(function() { return { send: send }; });
+  test('gemini is selected when LLM_PROVIDER=gemini', async function() {
+    process.env.LLM_PROVIDER = 'gemini';
+    process.env.GEMINI_API_KEY = 'test';
+    jest.resetModules();
+    const { providers } = loadModules();
+    global.fetch = jest.fn().mockReturnValue(geminiOk());
     const result = await providers.generate('hello');
-    expect(result.provider).toBe('bedrock');
-    expect(send).toHaveBeenCalledTimes(1);
-    expect(global.fetch).toBe(realFetch); // groq untouched
+    expect(result.provider).toBe('gemini');
   });
 
   test('an unknown provider setting fails predictably', async function() {
@@ -69,43 +71,28 @@ describe('provider selection', function() {
   });
 });
 
-describe('bedrock response normalization', function() {
-  function withSend(sendMock) {
-    process.env.LLM_PROVIDER = 'bedrock';
-    const { sdk } = loadModules();
-    sdk.BedrockRuntimeClient.mockImplementation(function() { return { send: sendMock }; });
-    return loadModules();
-  }
+describe('gemini response normalization', function() {
+  beforeEach(function() {
+    process.env.GEMINI_API_KEY = 'test';
+    process.env.LLM_PROVIDER = 'gemini';
+    jest.resetModules();
+  });
 
-  test('a valid converse response normalizes to the shared shape', async function() {
-    const { providers } = withSend(jest.fn().mockResolvedValue(bedrockOk()));
+  test('a valid gemini response normalizes to the shared shape', async function() {
+    const { providers } = loadModules();
+    global.fetch = jest.fn().mockReturnValue(geminiOk());
     const result = await providers.generate('hello');
-    expect(result).toEqual({
-      text: 'We are open 9am to 6pm.',
-      provider: 'bedrock',
-      modelId: 'amazon.nova-micro-v1:0',
-      usageTokens: 412
+    expect(result.provider).toBe('gemini');
+    expect(result.text).toBe('We are open 9am to 6pm.');
+  });
+
+  test('an empty candidate is an empty_response error', async function() {
+    const { providers } = loadModules();
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true, status: 200,
+      json: function() { return Promise.resolve({ candidates: [] }); }
     });
-  });
-
-  test('a missing or empty output is an empty_response error', async function() {
-    const { providers } = withSend(jest.fn().mockResolvedValue({ output: { message: { content: [] } } }));
     await expect(providers.generate('hello')).rejects.toMatchObject({ category: 'empty_response' });
-  });
-
-  test('a timeout abort maps to a timeout error', async function() {
-    const { providers } = withSend(jest.fn().mockRejectedValue(Object.assign(new Error('aborted'), { name: 'AbortError' })));
-    await expect(providers.generate('hello')).rejects.toMatchObject({ category: 'timeout' });
-  });
-
-  test('an access denied response maps to access_denied', async function() {
-    const { providers } = withSend(jest.fn().mockRejectedValue(Object.assign(new Error('denied'), { name: 'AccessDeniedException' })));
-    await expect(providers.generate('hello')).rejects.toMatchObject({ category: 'access_denied' });
-  });
-
-  test('an unexpected response shape maps to unexpected_shape', async function() {
-    const { providers } = withSend(jest.fn().mockResolvedValue({ completely: 'wrong' }));
-    await expect(providers.generate('hello')).rejects.toMatchObject({ category: 'unexpected_shape' });
   });
 });
 
@@ -123,28 +110,27 @@ describe('the safety pipeline stays in front of every provider', function() {
   });
 
   test('a provider failure returns the reception fallback, not a crash', async function() {
-    process.env.LLM_PROVIDER = 'bedrock';
-    const { sdk, llmCloud } = loadModules();
-    sdk.BedrockRuntimeClient.mockImplementation(function() {
-      return { send: jest.fn().mockRejectedValue(Object.assign(new Error('denied'), { name: 'AccessDeniedException' })) };
-    });
+    const { llmCloud } = loadModules();
+    global.fetch = jest.fn().mockRejectedValue(new Error('network down'));
+    process.env.LLM_PROVIDER = 'groq';
+    process.env.GROQ_API_KEY = 'bad';
     const result = await llmCloud.generateResponse('What are your opening hours?', contextWith(0.9));
     expect(result.response).toMatch(/reception team/);
-    expect(result.error_category).toBe('access_denied');
     expect(result.guardrailTriggered).toBe(false);
   });
 
   test('the output safety check still blocks a bad generated answer, whichever provider made it', async function() {
-    process.env.LLM_PROVIDER = 'bedrock';
-    const { sdk, llmCloud } = loadModules();
-    sdk.BedrockRuntimeClient.mockImplementation(function() {
-      return {
-        send: jest.fn().mockResolvedValue({
-          output: { message: { content: [{ text: 'You should take 500mg of paracetamol twice a day.' }] } },
-          usage: { inputTokens: 10, outputTokens: 10 }
-        })
-      };
-    });
+    const { llmCloud } = loadModules();
+    global.fetch = jest.fn().mockReturnValue(Promise.resolve({
+      ok: true, status: 200,
+      json: function() {
+        return Promise.resolve({
+          choices: [{ message: { content: 'You should take 500mg of paracetamol twice a day.' } }],
+          usage: { total_tokens: 50 }
+        });
+      }
+    }));
+    process.env.GROQ_API_KEY = 'test';
     const result = await llmCloud.generateResponse('What are your opening hours?', contextWith(0.9));
     expect(result.guardrailTriggered).toBe(true);
     expect(result.response).toMatch(/not able to help/);
@@ -155,5 +141,49 @@ describe('the safety pipeline stays in front of every provider', function() {
     const pre = llmCloud.decidePreLLM('What are your opening hours?', contextWith(0.9));
     expect(pre.kind).toBe('llm');
     expect(llmCloud.decidePreLLM('hello', contextWith(0)).kind).toBe('greeting');
+  });
+});
+
+describe('bounded transient failover', () => {
+  beforeEach(() => {
+    process.env.GROQ_API_KEY = 'test-groq';
+    process.env.GEMINI_API_KEY = 'test-gemini';
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+  test.each([429, 500, 503])('Groq %s falls back to Gemini once', async status => {
+    global.fetch = jest.fn().mockResolvedValueOnce({ok: false, status}).mockReturnValueOnce(geminiOk());
+    const result = await loadModules().providers.generate('hello');
+    expect(result.provider).toBe('gemini');
+    expect(result.usageTokens).toBe(120);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    expect(global.fetch.mock.calls[1][0]).not.toContain('test-gemini');
+  });
+  test('Gemini timeout falls back to Groq', async () => {
+    process.env.LLM_PROVIDER = 'gemini';
+    global.fetch = jest.fn().mockRejectedValueOnce(Object.assign(new Error(), {name: 'TimeoutError'})).mockReturnValueOnce(groqOk());
+    expect((await loadModules().providers.generate('hello')).provider).toBe('groq');
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+  test.each([400, 401, 403, 404])('HTTP %s does not fail over', async status => {
+    global.fetch = jest.fn().mockResolvedValue({ok: false, status});
+    await expect(loadModules().providers.generate('hello')).rejects.toBeInstanceOf(Error);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+  test('Gemini safety refusal does not fail over', async () => {
+    process.env.LLM_PROVIDER = 'gemini';
+    global.fetch = jest.fn().mockResolvedValue({ok: true, json: async () => ({promptFeedback: {blockReason: 'SAFETY'}})});
+    await expect(loadModules().providers.generate('hello')).rejects.toMatchObject({category: 'content_blocked'});
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+  test('both providers down terminates after two calls', async () => {
+    global.fetch = jest.fn().mockRejectedValue(new Error('offline'));
+    await expect(loadModules().providers.generate('hello')).rejects.toMatchObject({category: 'unreachable'});
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+  test('unconfigured secondary is never contacted', async () => {
+    delete process.env.GEMINI_API_KEY;
+    global.fetch = jest.fn().mockRejectedValue(new Error('offline'));
+    await expect(loadModules().providers.generate('hello')).rejects.toMatchObject({category: 'unreachable'});
+    expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 });

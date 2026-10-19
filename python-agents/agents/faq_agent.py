@@ -30,7 +30,7 @@ def _post_with_retries(query, clinic_id=None):
                 FAQ_BACKEND_URL,
                 json={"query": query, "clinic_id": clinic_id or "default"},
                 headers=headers,
-                timeout=(3, 10),
+                timeout=(3, 20),
             )
             if response.status_code in RETRYABLE_STATUS and attempt < 2:
                 time.sleep(0.3 * (2 ** attempt))
@@ -76,7 +76,7 @@ def handle_faq(query: str, clinic_id=None) -> dict:
     result_response = data.get("response", "")
     guardrail_triggered = data.get("guardrailTriggered", False)
 
-    if not guardrail_triggered:
+    if not guardrail_triggered and not data.get("error") and not data.get("degraded"):
         store_in_cache(query, result_response, guardrail_triggered, clinic_id)
 
     elapsed_ms = round((time.time() - start) * 1000, 1)

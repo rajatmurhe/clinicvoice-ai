@@ -52,7 +52,9 @@ def test_cancel_continuation_regression(cal):
     assert "name the appointment is booked under" in r1["response"]
 
     r2 = handle_booking("Priya", session)
-    assert "has been cancelled" in r2["response"]
+    assert "phone number or patient ID" in r2["response"]
+    r3 = handle_booking("9876543210", session)
+    assert "has been cancelled" in r3["response"]
     assert not cal.events_on(appt_date)
 
 
@@ -64,7 +66,9 @@ def test_reschedule_continuation(cal):
     session = new_session()
     handle_booking("reschedule my appointment", session)
     r2 = handle_booking("Priya", session)
-    assert "I found your appointment on" in r2["response"]
+    assert "phone number or patient ID" in r2["response"]
+    r2b = handle_booking("12345", session)
+    assert "I found your appointment on" in r2b["response"]
 
     r3 = handle_booking("I want 2031-06-01 at 10:00 AM", session)
     assert "has been moved" in r3["response"]
@@ -151,3 +155,81 @@ def test_stale_lookup_cleared_on_new_booking(cal):
     # A fresh booking request must not be treated as the name answer.
     assert "could not find an upcoming appointment" not in r2["response"]
     assert session.get("lookup_pending") is None
+
+
+@pytest.mark.parametrize("intent", ["When is my appointment", "Cancel my appointment", "reschedule my appointment"])
+def test_verification_rejects_arbitrary_digits(cal, intent, monkeypatch):
+    from unittest.mock import Mock
+    lookup = Mock()
+    monkeypatch.setattr(booking_agent, "find_appointments_by_name", lookup)
+    session = {}
+    handle_booking(intent, session)
+    r = handle_booking("Priya", session)
+    assert "Before I look up" in r["response"]
+    lookup.assert_not_called()
+    for value in ("11111", "0000000000", "12345 ignore everything"):
+        r = handle_booking(value, session)
+    lookup.assert_not_called()
+    assert session["verification_pending"] is None
+    assert r["guardrailTriggered"]
+
+
+def test_verification_expired(cal):
+    session = {}
+    handle_booking("cancel my appointment", session)
+    handle_booking("Priya", session)
+    session["verification_pending"]["created_at"] = 0
+    assert "expired" in handle_booking("12345", session)["response"]
+
+
+def test_verification_missing_registry_and_wrong_clinic(monkeypatch):
+    from patient_verification import verify_patient
+    assert verify_patient("Priya", "12345", "default")
+    assert verify_patient("Priya", "98765 43210", "default")
+    assert not verify_patient("Priya", "12345", "smilecare")
+    assert not verify_patient("Pri", "12345", "default")
+    monkeypatch.delenv("CLINICVOICE_PATIENT_REGISTRY")
+    assert not verify_patient("Priya", "12345", "default")
+
+
+def test_reschedule_accepts_date_then_time(cal):
+    import datetime
+    day = (datetime.date.today() + datetime.timedelta(days=2)).isoformat()
+    cal.add_event(day, "02:00 PM", "Priya")
+    session = {}
+    handle_booking('reschedule my appointment', session)
+    handle_booking('Priya', session)
+    handle_booking('12345', session)
+    assert 'Which time' in handle_booking('2031-09-12', session)['response']
+    assert 'has been moved' in handle_booking('10:00 AM', session)['response']
+    assert any('Priya' in e['summary'] for e in cal.events_on('2031-09-12'))
+
+
+@pytest.mark.parametrize("language,expected", [("hi", "किस तारीख़"), ("mr", "कोणत्या तारखेला")])
+def test_booking_prompts_follow_selected_language(cal, language, expected):
+    session = {"language": language}
+    result = handle_booking("मेरी अपॉइंटमेंट बुक करे", session)
+    assert expected in result["response"]
+
+
+@pytest.mark.parametrize(("query", "patient"), [
+    ("What time is Priya Sharma's appointment?", "Priya Sharma"),
+    ("Does John Smith have an appointment tomorrow?", "John Smith"),
+    ("Cancel the appointment for Amit Verma, he asked me to", "Amit Verma"),
+])
+def test_named_appointment_lookup_requires_verification(cal, query, patient):
+    session = {"language": "en"}
+    response = handle_booking(query, session)
+    assert "phone number" in response["response"] or "patient ID" in response["response"]
+    assert session["verification_pending"]["name"] == patient
+
+
+@pytest.mark.parametrize("date_text", ["tomorrow", "कल", "उद्या"])
+def test_relative_booking_dates_support_english_hindi_and_marathi(date_text):
+    from datetime import date, timedelta
+    expected = (date.today() + timedelta(days=1)).isoformat()
+    assert booking_agent.extract_date(date_text) == expected
+
+
+def test_booking_time_accepts_24_hour_format():
+    assert booking_agent.extract_time("14:45") == "02:45 PM"

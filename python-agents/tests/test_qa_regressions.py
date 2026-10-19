@@ -126,6 +126,7 @@ def test_reschedule_rejects_taken_slot(client):
         session = {}
         booking_agent.handle_booking("reschedule my appointment", session)
         booking_agent.handle_booking("Ali", session)
+        booking_agent.handle_booking("12345", session)
         r = booking_agent.handle_booking("I want " + day + " at 11:00 AM", session)
         assert "is not available" in r["response"]
         eleven = [e for e in cal.events_on(day) if "11:00 AM" in e["start"]]

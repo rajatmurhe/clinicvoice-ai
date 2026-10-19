@@ -3,13 +3,10 @@ services:
     build: ./backend
     environment:
       - GROQ_API_KEY=${GROQ_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-3.8-flash}
       - CLINICVOICE_CONFIDENCE_THRESHOLD=${CLINICVOICE_CONFIDENCE_THRESHOLD:-0.35}
       - LLM_PROVIDER=${LLM_PROVIDER:-groq}
-      - AWS_REGION=${AWS_REGION:-us-east-1}
-      - BEDROCK_MODEL_ID=${BEDROCK_MODEL_ID:-amazon.nova-micro-v1:0}
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
-      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-}
     ports:
       - "5050:5050"
     healthcheck:
@@ -23,6 +20,7 @@ services:
     environment:
       - FAQ_BACKEND_URL=http://faq-api:5050/api/text-query
       - CLINICVOICE_DATA_DIR=/data
+      - CLINICVOICE_PATIENT_REGISTRY=/data/patients.json
       - CLINICVOICE_CALENDAR_MODE=${CLINICVOICE_CALENDAR_MODE:-fake}
       - CLINICVOICE_CLINIC_ID=${CLINICVOICE_CLINIC_ID:-default}
       - CLINICVOICE_ORCHESTRATOR=${CLINICVOICE_ORCHESTRATOR:-legacy}

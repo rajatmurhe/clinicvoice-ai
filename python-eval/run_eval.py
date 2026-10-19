@@ -88,6 +88,9 @@ class OfflineHarness:
         os.environ["CLINICVOICE_CALENDAR_MODE"] = "fake"
         os.environ["CLINICVOICE_TOOLS"] = os.environ.get("EVAL_TOOLS_MODE", "direct")
         self.orchestrator = orchestrator
+        registry = Path(self.tmp_data_dir) / "patients.json"
+        registry.write_text(json.dumps([{"clinic_id": "default", "name": "Priya", "phone": "9876543210", "patient_id": "12345"}]))
+        os.environ["CLINICVOICE_PATIENT_REGISTRY"] = str(registry)
 
         sys.path.insert(0, str(AGENTS_DIR))
         os.chdir(AGENTS_DIR)

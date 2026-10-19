@@ -115,42 +115,81 @@ const CLINICS = [
 function App() {
   const [isListening, setIsListening] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const [openingMic, setOpeningMic] = useState(false);
+  const micPendingRef = useRef(false);
+  const [coldStart, setColdStart] = useState(false);
   const [error, setError] = useState('');
   const [messages, setMessages] = useState([]);
-  const [pushToTalk, setPushToTalk] = useState(false);
 
   const [inputValue, setInputValue] = useState('');
   const [clinicId, setClinicId] = useState('default');
 
   const recognitionRef = useRef(null);
   const conversationEndRef = useRef(null);
-  const sessionIdRef = useRef('cloud-' + Date.now());
+  const [initialSessionId] = useState(() => crypto.randomUUID());
+  const sessionIdRef = useRef(initialSessionId);
   const audioPlayerRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef(null);
   const speakingRef = useRef(false);
   const clinicRef = useRef('default');
+  const coldStartTimerRef = useRef(null);
+
+  const [lastAssistantResponse, setLastAssistantResponse] = useState('');
+  const playbackRef = useRef(0);
+  const finishAudioRef = useRef(null);
+
+  const LANGS = [
+    { id: 'en', label: 'English' },
+    { id: 'hi', label: 'हिन्दी', lang: 'hi' },
+    { id: 'mr', label: 'मराठी', lang: 'mr' },
+  ];
+  const [lang, setLang] = useState('en');
 
   const switchClinic = (id) => {
     if (id === clinicRef.current) return;
     stopSpeaking();
     clinicRef.current = id;
     setClinicId(id);
-    // Each tenant gets its own conversation and session state.
-    sessionIdRef.current = 'cloud-' + id + '-' + Date.now();
+    sessionIdRef.current = crypto.randomUUID();
     setMessages([]);
+    setLastAssistantResponse('');
     setError('');
+  };
+
+  const switchLang = (id) => {
+    stopSpeaking();
+    setLang(id);
+    sessionIdRef.current = crypto.randomUUID();
+    setMessages([]);
+    setLastAssistantResponse('');
+    setError('');
+  };
+
+  const replayLastResponse = () => {
+    if (lastAssistantResponse) {
+      stopSpeaking();
+      speakReply(lastAssistantResponse, null, null);
+    }
   };
 
   useEffect(() => {
     conversationEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
-  useEffect(() => {
-    // Push to talk fallback for browsers without the Web Speech API (Safari,
-    // Brave). Feature detected once on mount.
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    setPushToTalk(!SpeechRecognition);
+  useEffect(() => () => {
+    clearTimeout(coldStartTimerRef.current);
+    recognitionRef.current?.abort();
+    playbackRef.current += 1;
+    audioPlayerRef.current?.pause();
+    finishAudioRef.current?.();
+    window.speechSynthesis?.cancel();
+    if (mediaRecorderRef.current?.state === 'recording') {
+      mediaRecorderRef.current.onstop = null;
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+    }
   }, []);
 
   const formatTime = () => {
@@ -160,6 +199,8 @@ function App() {
   const stopSpeaking = () => {
     // Barge in: tapping the mic must stop playback at once.
     speakingRef.current = false;
+    playbackRef.current += 1;
+    finishAudioRef.current?.();
     if (audioPlayerRef.current) {
       audioPlayerRef.current.pause();
       audioPlayerRef.current.currentTime = 0;
@@ -174,96 +215,72 @@ function App() {
     return parts.length ? parts : [text];
   };
 
-  const speakText = (text, requestId, spokenSoFar, onProgress) => {
-    return fetch(API_URL + '/api/tts', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Request-ID': requestId || ''
-      },
-      body: JSON.stringify({ text: text })
-    }).then(res => {
-      if (!res.ok) throw new Error('TTS failed');
-      return res.blob();
-    }).then(blob => {
-      if (!speakingRef.current) return; // barged in while synthesizing
-      if (onProgress) onProgress(spokenSoFar + text);
-      const url = URL.createObjectURL(blob);
-      const audio = audioPlayerRef.current || new Audio();
-      audioPlayerRef.current = audio;
-      return new Promise((resolve) => {
-        audio.src = url;
-        audio.onended = resolve;
-        audio.play().catch(() => {
-          // Autoplay or codec failure: fall back to browser voice for the rest.
-          const utterance = new SpeechSynthesisUtterance(text);
-          window.speechSynthesis.speak(utterance);
-          resolve();
-        });
+  const browserSpeak = (text, playback) => new Promise(resolve => {
+    if (playback !== playbackRef.current || !window.speechSynthesis) return resolve();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = { en: 'en-US', hi: 'hi-IN', mr: 'mr-IN' }[lang];
+    utterance.onend = resolve;
+    utterance.onerror = resolve;
+    finishAudioRef.current = resolve;
+    window.speechSynthesis.speak(utterance);
+  });
+
+  const speakText = async (text, requestId, playback) => {
+    // The hosted voice is English; use the selected browser voice for Hindi/Marathi.
+    if (lang !== 'en') return browserSpeak(text, playback);
+    try {
+      const res = await fetch(API_URL + '/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Request-ID': requestId || '' },
+        body: JSON.stringify({ text }), signal: AbortSignal.timeout(15000)
       });
-    }).catch(() => {
-      if (onProgress) onProgress(spokenSoFar + text);
-      const utterance = new SpeechSynthesisUtterance(text);
-      window.speechSynthesis.speak(utterance);
-    });
+      if (!res.ok) throw new Error('TTS failed');
+      const blob = await res.blob();
+      if (playback !== playbackRef.current) return;
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audioPlayerRef.current = audio;
+      try {
+        await new Promise((resolve, reject) => {
+          finishAudioRef.current = resolve;
+          audio.onended = resolve;
+          audio.onerror = reject;
+          audio.play().catch(reject);
+        });
+      } finally {
+        URL.revokeObjectURL(url);
+      }
+    } catch {
+      await browserSpeak(text, playback);
+    }
   };
 
-  const speakReply = async (text, requestId, onProgress) => {
-    // Stream sentence by sentence: the first sentence starts playing as soon
-    // as its audio is ready, so the caller hears the reply sooner. The
-    // transcript fills in with the same rhythm instead of appearing all at
-    // once, so the streaming work is visible too.
+  const speakReply = async (text, requestId) => {
+    const playback = ++playbackRef.current;
     speakingRef.current = true;
-    const sentences = splitSentences(text);
-    let spoken = '';
-    await speakText(sentences[0], requestId, spoken, onProgress);
-    spoken += sentences[0] + ' ';
-    for (const sentence of sentences.slice(1)) {
-      if (!speakingRef.current) return;
-      await speakText(sentence, requestId, spoken, onProgress);
-      spoken += sentence + ' ';
+    for (const sentence of splitSentences(text)) {
+      if (playback !== playbackRef.current) return;
+      await speakText(sentence, requestId, playback);
     }
-    speakingRef.current = false;
+    if (playback === playbackRef.current) speakingRef.current = false;
   };
 
   const startListening = () => {
     stopSpeaking();
     setError('');
-
-    if (pushToTalk) {
-      startPushToTalk();
-      return;
-    }
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'en-US';
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      sendQuery(transcript);
-    };
-
-    recognition.onerror = (event) => {
-      setError('Speech recognition error: ' + event.error);
-      setIsListening(false);
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-    };
-
-    recognitionRef.current = recognition;
-    recognition.start();
-    setIsListening(true);
+    void startPushToTalk();
   };
 
   const startPushToTalk = async () => {
+    if (micPendingRef.current) return;
+    micPendingRef.current = true;
+    setOpeningMic(true);
+    let stream;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+        throw new Error("This browser cannot record audio. Please type your question or open the app in Chrome or Safari.");
+      }
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream);
       audioChunksRef.current = [];
       recorder.ondataavailable = (e) => audioChunksRef.current.push(e.data);
@@ -271,6 +288,7 @@ function App() {
         stream.getTracks().forEach(t => t.stop());
         setIsListening(false);
         setLoading(true);
+        setTranscribing(true);
         try {
           const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
           const reader = new FileReader();
@@ -282,33 +300,43 @@ function App() {
           const res = await fetch(API_URL + '/api/transcribe', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ audio: dataUrl })
+            body: JSON.stringify({ audio: dataUrl, language: lang }),
+            signal: AbortSignal.timeout(60000)
           });
-          if (!res.ok) throw new Error('Transcription unavailable');
           const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Transcription unavailable. Please type your question.');
+          setTranscribing(false);
           if (data.text) {
-            sendQuery(data.text);
+            await sendQuery(data.text);
           } else {
             setError('Nothing heard. Please try again.');
+            setLoading(false);
           }
         } catch (err) {
           setError(err.message || 'Transcription failed.');
           setLoading(false);
+        } finally {
+          setTranscribing(false);
         }
       };
       mediaRecorderRef.current = recorder;
       recorder.start();
       setIsListening(true);
     } catch (err) {
+      stream?.getTracks().forEach(track => track.stop());
+      setIsListening(false);
       setError('Microphone unavailable: ' + err.message);
+    } finally {
+      micPendingRef.current = false;
+      setOpeningMic(false);
     }
   };
 
   const stopListening = () => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-    } else if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+    if (mediaRecorderRef.current?.state === 'recording') {
       mediaRecorderRef.current.stop();
+    } else if (recognitionRef.current) {
+      recognitionRef.current.stop();
     } else {
       setIsListening(false);
     }
@@ -317,45 +345,21 @@ function App() {
   const onComposerSubmit = (e) => {
     e.preventDefault();
     const value = inputValue.trim();
-    if (!value || loading) return;
+    if (!value || loading || isListening || openingMic) return;
     setInputValue('');
     stopSpeaking();
     sendQuery(value);
   };
 
-  const speak = async (text, requestId) => {
-    try {
-      const res = await fetch(API_URL + '/api/tts', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Request-ID': requestId || ''
-        },
-        body: JSON.stringify({ text: text })
-      });
-
-      if (!res.ok) {
-        throw new Error('TTS failed');
-      }
-
-      const audioBlob = await res.blob();
-      const audioUrl = URL.createObjectURL(audioBlob);
-      const audio = new Audio(audioUrl);
-      audio.play();
-    } catch (err) {
-      console.error('TTS error, falling back to browser voice:', err);
-      const utterance = new SpeechSynthesisUtterance(text);
-      window.speechSynthesis.speak(utterance);
-    }
-  };
-
   const sendQuery = async (query) => {
     setLoading(true);
+    setColdStart(false);
+    if (coldStartTimerRef.current) clearTimeout(coldStartTimerRef.current);
+    coldStartTimerRef.current = setTimeout(() => setColdStart(true), 5000);
     const time = formatTime();
     // One id per turn flows through the agent service, the FAQ service and
     // every log line, so any answer can be traced end to end.
-    const requestId = (crypto.randomUUID && crypto.randomUUID().replace(/-/g, '').slice(0, 12)) ||
-      String(Date.now().toString(36) + Math.random().toString(36).slice(2, 8));
+    const requestId = crypto.randomUUID();
 
     setMessages(function(prev) {
       return prev.concat([{ role: 'user', text: query, time: time }]);
@@ -368,7 +372,8 @@ function App() {
           'Content-Type': 'application/json',
           'X-Request-ID': requestId
         },
-        body: JSON.stringify({ query: query, session_id: sessionIdRef.current, clinic_id: clinicRef.current })
+        body: JSON.stringify({ query: query, session_id: sessionIdRef.current, clinic_id: clinicRef.current, language: lang }),
+        signal: AbortSignal.timeout(90000)
       });
 
       if (res.status === 429) {
@@ -381,32 +386,26 @@ function App() {
 
       const data = await res.json();
 
-      setMessages(function(prev) {
-        return prev.concat([
-          { role: 'assistant', text: '', guardrail: data.guardrailTriggered, time: formatTime() }
-        ]);
-      });
-      const updateTranscript = (spoken) => {
-        setMessages(function(prev) {
-          return prev.map(function(m, i) {
-            return i === prev.length - 1 ? { ...m, text: spoken } : m;
-          });
-        });
-      };
-
-      // Refusals appear whole; normal replies fill in with the streamed audio.
-      if (data.guardrailTriggered) updateTranscript(data.response);
-      await speakReply(data.response, res.headers.get('X-Request-ID') || requestId, updateTranscript);
-      updateTranscript(data.response);
+      clearTimeout(coldStartTimerRef.current);
+      coldStartTimerRef.current = null;
+      setColdStart(false);
+      setMessages(prev => prev.concat([
+        { role: 'assistant', text: data.response, guardrail: data.guardrailTriggered, time: formatTime() }
+      ]));
+      setLastAssistantResponse(data.response);
+      // Text stays usable if audio is blocked or the user interrupts playback.
+      void speakReply(data.response, res.headers.get('X-Request-ID') || requestId);
     } catch (err) {
       setError(err.message);
     } finally {
+      if (coldStartTimerRef.current) { clearTimeout(coldStartTimerRef.current); coldStartTimerRef.current = null; }
+      setColdStart(false);
       setLoading(false);
     }
   };
 
   const orbState = isListening ? 'listening' : loading ? 'thinking' : '';
-  const orbHint = isListening ? 'Listening...' : loading ? 'Thinking...' : 'Tap to speak';
+  const orbHint = openingMic ? 'Waiting for microphone permission…' : isListening ? 'Recording… Tap Stop to send' : transcribing ? 'Transcribing your recording…' : loading ? 'Thinking...' : 'Tap to record';
 
   return (
     <div className="app-shell">
@@ -422,6 +421,22 @@ function App() {
           </div>
         </div>
 
+        <div className="clinic-switch" role="group" aria-label="Language">
+          {LANGS.map(function(l) {
+            return (
+              <button
+                key={l.id}
+                className={'clinic-pill' + (lang === l.id ? ' active' : '')}
+                onClick={() => switchLang(l.id)}
+                lang={l.lang}
+                disabled={loading || isListening || openingMic}
+                aria-pressed={lang === l.id}
+              >
+                {l.label}
+              </button>
+            );
+          })}
+        </div>
         <div className="clinic-switch" role="group" aria-label="Clinic (demo tenant)">
           {CLINICS.map(function(c) {
             return (
@@ -429,6 +444,8 @@ function App() {
                 key={c.id}
                 className={'clinic-pill' + (clinicId === c.id ? ' active' : '')}
                 onClick={() => switchClinic(c.id)}
+                disabled={loading || isListening || openingMic}
+                aria-pressed={clinicId === c.id}
               >
                 {c.label}
               </button>
@@ -447,7 +464,8 @@ function App() {
               <button
                 className={'orb-btn ' + (isListening ? 'recording' : loading ? 'thinking' : '')}
                 onClick={isListening ? stopListening : startListening}
-                disabled={loading}
+                disabled={loading || openingMic}
+                aria-label={isListening ? 'Stop recording' : 'Start recording'}
               >
                 {isListening ? <StopIcon /> : <MicIcon />}
               </button>
@@ -458,7 +476,7 @@ function App() {
           {messages.length === 0 && !loading && (
             <div className="empty-state">
               <div className="empty-state-title">Ask a question to get started</div>
-              <div className="empty-state-sub">Tap the mic or type a question below. Speech, AI, and hosting all run live.</div>
+              <div className="empty-state-sub">Tap the mic, speak, then tap Stop to send. You can also type a question below.</div>
             </div>
           )}
 
@@ -493,6 +511,7 @@ function App() {
                     <div className="typing-dot"></div>
                     <div className="typing-dot"></div>
                   </div>
+                  {coldStart && (<div className="cold-start-hint" role="status">The assistant is taking longer than usual. Waiting for a response…</div>)}
                 </div>
               </div>
             )}
@@ -501,15 +520,16 @@ function App() {
           </div>
 
           <form className="composer" onSubmit={onComposerSubmit}>
+            <button className="composer-send composer-replay" type="button" onClick={replayLastResponse} disabled={!lastAssistantResponse || loading || isListening || openingMic} aria-label="Replay last answer" title="Replay last answer">↻</button>
             <input
               className="composer-input"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               placeholder="Or type a question…"
               aria-label="Type your question"
-              disabled={loading}
+              disabled={loading || openingMic || isListening}
             />
-            <button className="composer-send" type="submit" disabled={loading || !inputValue.trim()} aria-label="Send question">
+            <button className="composer-send" type="submit" disabled={loading || isListening || openingMic || !inputValue.trim()} aria-label="Send question">
               <SendIcon />
             </button>
           </form>
@@ -522,7 +542,7 @@ function App() {
             {CAPABILITIES.map(function(cap, i) {
               const Icon = cap.icon;
               return (
-                <button className="capability-item" key={i} onClick={() => { stopSpeaking(); sendQuery(cap.query); }} disabled={loading}>
+                <button className="capability-item" key={i} onClick={() => { stopSpeaking(); sendQuery(cap.query); }} disabled={loading || openingMic || isListening}>
                   <div className="capability-icon"><Icon /></div>
                   <div>
                     <div className="capability-label">{cap.label}</div>

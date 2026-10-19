@@ -52,34 +52,38 @@
    "setup": {"appointments": [{"date_key": "today+2", "time": "02:00 PM", "name": "Priya"}]},
    "turns": [
      {"q": "Cancel my appointment", "expect_contains": ["name the appointment is booked under"]},
-     {"q": "Priya", "expect_contains": ["has been cancelled"]}
+     {"q": "Priya", "expect_contains": ["provide your phone number or patient ID"]},
+     {"q": "9876543210", "expect_contains": ["has been cancelled"]}
    ],
    "expect_calendar_absent": {"date_key": "today+2", "time": "02:00 PM", "name_contains": "priya"}},
 
   {"id": "bk-09", "category": "booking",
    "turns": [
      {"q": "cancel my appointment", "expect_contains": ["name the appointment is booked under"]},
-     {"q": "Zebra", "expect_contains": ["could not find an upcoming appointment under the name zebra"]}
+     {"q": "Zebra", "expect_contains": ["provide your phone number or patient ID"]}
    ]},
 
   {"id": "bk-10", "category": "booking",
    "setup": {"appointments": [{"date_key": "today+2", "time": "02:00 PM", "name": "Priya"}]},
    "turns": [
      {"q": "When is my appointment?", "expect_contains": ["name the appointment is booked under"]},
-     {"q": "Priya", "expect_contains": ["Your appointment is on"]}
+     {"q": "Priya", "expect_contains": ["provide your phone number or patient ID"]},
+     {"q": "12345", "expect_contains": ["Your appointment is on"]}
    ]},
 
   {"id": "bk-11", "category": "booking",
    "setup": {"appointments": [{"date_key": "today+3", "time": "11:30 AM", "name": "Priya"}]},
    "turns": [
      {"q": "I need to reschedule", "expect_contains": ["name the appointment is booked under"]},
-     {"q": "Priya", "expect_contains": ["I found your appointment on"]}
+     {"q": "Priya", "expect_contains": ["provide your phone number or patient ID"]},
+     {"q": "12345", "expect_contains": ["I found your appointment on"]}
    ]},
 
   {"id": "bk-12", "category": "booking",
    "setup": {"appointments": [{"date_key": "today+1", "time": "09:30 AM", "name": "Priya"}]},
    "turns": [
-     {"q": "I want to cancel, this is Priya", "expect_contains": ["has been cancelled"]}
+     {"q": "I want to cancel, this is Priya", "expect_contains": ["provide your phone number or patient ID"]},
+     {"q": "12345", "expect_contains": ["has been cancelled"]}
    ],
    "expect_calendar_absent": {"date_key": "today+1", "time": "09:30 AM", "name_contains": "priya"}},
 
@@ -105,7 +109,7 @@
   {"id": "bk-16", "category": "booking",
    "turns": [
      {"q": "When is my appointment?", "expect_contains": ["name the appointment is booked under"]},
-     {"q": "Ravi", "expect_contains": ["could not find an upcoming appointment"]}
+     {"q": "Ravi", "expect_contains": ["provide your phone number or patient ID"]}
    ]},
 
   {"id": "bk-17", "category": "booking",
@@ -135,7 +139,8 @@
    "setup": {"appointments": [{"date_key": "today+2", "time": "04:00 PM", "name": "Priya"}]},
    "turns": [
      {"q": "reschedule my appointment", "expect_contains": ["name the appointment is booked under"]},
-     {"q": "Priya", "expect_contains": ["I found your appointment on"]},
+     {"q": "Priya", "expect_contains": ["provide your phone number or patient ID"]},
+     {"q": "12345", "expect_contains": ["I found your appointment on"]},
      {"q": "I want 2031-06-01 at 10:00 AM", "expect_contains": ["has been moved"]}
    ],
    "expect_calendar": {"date_key": "2031-06-01", "time": "10:00 AM", "name_contains": "priya"},
@@ -155,7 +160,8 @@
    },
    "turns": [
      {"q": "Cancel my appointment", "expect_contains": ["booked under"]},
-     {"q": "Priya", "expect_contains": ["has been cancelled", "waitlisted"]}
+     {"q": "Priya", "expect_contains": ["provide your phone number or patient ID"]},
+     {"q": "12345", "expect_contains": ["has been cancelled", "waitlisted"]}
    ]},
 
   {"id": "bk-24", "category": "booking",

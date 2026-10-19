@@ -17,3 +17,12 @@ python-eval/venv/
 results-ci/
 __pycache__/
 *.pyc
+
+patients.json
+cloud-frontend/dist/
+
+.local-data/
+.zcode/
+*.db-wal
+*.db-shm
+*.db-journal

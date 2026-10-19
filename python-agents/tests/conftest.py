@@ -42,3 +42,12 @@ def clean_log_tables():
             conn.commit()
             conn.close()
     yield
+
+import json
+from pathlib import Path
+_registry = Path(os.environ["CLINICVOICE_DATA_DIR"]) / "patients.json"
+_registry.write_text(json.dumps([
+    {"clinic_id": "default", "name": "Priya", "phone": "9876543210", "patient_id": "12345"},
+    {"clinic_id": "default", "name": "Ali", "patient_id": "12345"}
+]))
+os.environ["CLINICVOICE_PATIENT_REGISTRY"] = str(_registry)

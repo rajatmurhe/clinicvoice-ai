@@ -62,6 +62,7 @@ def safety_node(state: OrchestratorState) -> dict:
 def _clear_flows(session):
     session["booking_in_progress"] = False
     session["lookup_pending"] = None
+    session["verification_pending"] = None
     session["waitlist_offer"] = None
     session["refill_pending"] = None
     session["intake_pending"] = None
@@ -73,7 +74,8 @@ STRONG_INTENTS = ("booking", "refill", "insurance", "intake", "escalation")
 
 def _pending_flow(session):
     if (
-        session.get("booking_in_progress")
+        session.get("verification_pending")
+        or session.get("booking_in_progress")
         or session.get("lookup_pending")
         or session.get("waitlist_offer")
         or session.get("reschedule_pending")
@@ -129,7 +131,7 @@ def faq_node(state: OrchestratorState) -> dict:
 
 
 def handoff_node(state: OrchestratorState) -> dict:
-    result = escalation_agent.handle_escalation(state["query"])
+    result = escalation_agent.handle_escalation(state["query"], state.get("session", {}))
     return {"response": result.get("response", ""), "agent": result.get("agent", "escalation"), "guardrail_triggered": result.get("guardrailTriggered", False)}
 
 
@@ -185,19 +187,24 @@ def get_app():
     return _APP
 
 
-def run_query(query: str, session_id: str) -> dict:
+def run_query(query: str, session_id: str, clinic_id="default", language="en") -> dict:
     app = get_app()
-    config = {"configurable": {"thread_id": session_id}}
+    config = {"configurable": {"thread_id": clinic_id + ":" + session_id}}
     existing = app.get_state(config)
     session = {}
     if existing and existing.values and existing.values.get("session"):
         session = existing.values["session"]
-    result = app.invoke({"query": query, "session": session}, config=config)
+    verification_turn = bool(session.get("verification_pending"))
+    session["clinic_id"] = clinic_id
+    session["language"] = language if language in ("en", "hi", "mr") else "en"
+    result = app.invoke({"query": query, "session": session, "guardrail_triggered": False, "error_type": None}, config=config)
+    if verification_turn:
+        app.update_state(config, {"query": "[verification response redacted]"})
     return {
         "response": result.get("response", ""),
         "guardrailTriggered": result.get("guardrail_triggered", False),
         "agent": result.get("agent", "faq"),
         "intent": result.get("intent", "faq"),
-        "query": query,
+        "query": "[verification response redacted]" if verification_turn else query,
         "error_type": result.get("error_type"),
     }

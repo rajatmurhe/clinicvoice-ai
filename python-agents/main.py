@@ -115,12 +115,14 @@ def clear_pending_flows(session):
     session["refill_pending"] = None
     session["intake_pending"] = None
     session["reschedule_pending"] = None
+    session["verification_pending"] = None
 
 
 class QueryRequest(BaseModel):
     query: str
     session_id: str = "default"
     clinic_id: str | None = None
+    language: str = "en"
 
 
 @app.middleware("http")
@@ -206,6 +208,7 @@ def dashboard_failures():
 
 def process_query(req: QueryRequest, session: dict, start: float):
     query = req.query
+    log_text = "[verification response redacted]" if session.get("verification_pending") else query
 
     if REPEAT_PATTERN.search(query) and session.get("last_response"):
         return {
@@ -229,7 +232,7 @@ def process_query(req: QueryRequest, session: dict, start: float):
         session["last_response"] = result["response"]
         obs.log_event("guardrail", kind="emergency", intent="emergency")
         log_query(
-            query=query,
+            query=log_text,
             response=result["response"],
             intent="emergency",
             agent="emergency",
@@ -253,7 +256,7 @@ def process_query(req: QueryRequest, session: dict, start: float):
         session["last_response"] = result["response"]
         obs.log_event("guardrail", kind="input_block", intent="faq")
         log_query(
-            query=query,
+            query=log_text,
             response=result["response"],
             intent="faq",
             agent="faq",
@@ -274,7 +277,8 @@ def process_query(req: QueryRequest, session: dict, start: float):
 
     pending_flow = None
     if (
-        session.get("booking_in_progress")
+        session.get("verification_pending")
+        or session.get("booking_in_progress")
         or session.get("lookup_pending")
         or session.get("waitlist_offer")
         or session.get("reschedule_pending")
@@ -296,7 +300,7 @@ def process_query(req: QueryRequest, session: dict, start: float):
             obs.log_event("flow_cleared", reason="strong_intent", previous_flow=pending_flow, new_intent=intent)
 
     if intent == "escalation":
-        result = handle_escalation(query)
+        result = handle_escalation(query, session)
         import webhooks
 
         webhooks.dispatch(session.get("clinic_id"), "escalation_raised", {
@@ -339,7 +343,7 @@ def process_query(req: QueryRequest, session: dict, start: float):
         error_type=error_type,
     )
     log_query(
-        query=query,
+        query=log_text,
         response=result.get("response", ""),
         intent=intent,
         agent=result.get("agent", intent),
@@ -371,6 +375,7 @@ def agent_query(req: QueryRequest):
             clinic_id = obs.DEFAULT_CLINIC_FALLBACK
         session = session_store.get_session(clinic_id + ":" + req.session_id)
         session["clinic_id"] = clinic_id
+        session["language"] = req.language if req.language in ("en", "hi", "mr") else "en"
 
         if REPEAT_PATTERN.search(req.query) and session.get("last_response"):
             return {
@@ -381,7 +386,7 @@ def agent_query(req: QueryRequest):
                 "query": req.query,
             }
 
-        result = graph_orchestrator.run_query(req.query, req.session_id)
+        result = graph_orchestrator.run_query(req.query, req.session_id, clinic_id, req.language)
 
         if COMPLIANCE_REVIEWER and not result.get("guardrailTriggered"):
             review = review_reply(result.get("response", ""))
@@ -395,7 +400,7 @@ def agent_query(req: QueryRequest):
         session_store.save_session(clinic_id + ":" + req.session_id, session)
 
         log_query(
-            query=req.query,
+            query=result.get("query", req.query),
             response=result.get("response", ""),
             intent=result.get("intent", "faq"),
             agent=result.get("agent", "faq"),
@@ -432,6 +437,7 @@ def agent_query(req: QueryRequest):
     session_key = clinic_id + ":" + req.session_id
     session = session_store.get_session(session_key)
     session["clinic_id"] = clinic_id
+    session["language"] = req.language if req.language in ("en", "hi", "mr") else "en"
     try:
         return process_query(req, session, start)
     finally:

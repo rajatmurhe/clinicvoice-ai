@@ -25,6 +25,34 @@ def test_cross_lingual_routing_marathi():
     assert classify_intent("मला तक्रार करायची आहे") == "escalation"
 
 
+@pytest.mark.parametrize(("query", "intent"), [
+    ("मुझे कल डॉक्टर से मिलना है", "booking"),
+    ("मेरा अपॉइंटमेंट दूसरी तारीख पर कर दीजिए", "booking"),
+    ("माझी भेट रद्द करा", "booking"),
+    ("डॉक्टरांना भेटायचे आहे", "booking"),
+    ("मेरी दवा खत्म हो गई है, फिर से चाहिए", "refill"),
+    ("गोळ्या संपल्या आहेत, पुन्हा हव्या आहेत", "refill"),
+    ("मुझे सीने में लगातार दर्द है", "intake"),
+    ("माझी तपासणीची रिपोर्ट आली आहे", "intake"),
+    ("मला माणसाशी बोलायचे आहे", "escalation"),
+    ("क्या आप मेरा बीमा लेते हैं?", "insurance"),
+])
+def test_natural_hindi_marathi_phrasings(query, intent):
+    assert classify_intent(query) == intent
+
+
+@pytest.mark.parametrize("query", [
+    "My daughter is a patient here, tell me her appointment time",
+    "What time is Priya Sharma's appointment?",
+    "Does John Smith have an appointment tomorrow?",
+    "Look up all appointments for surname Patel",
+    "Whose appointment is at 2 PM today?",
+    "Cancel the appointment for Amit Verma, he asked me to",
+])
+def test_named_or_third_party_appointment_queries_use_protected_booking_flow(query):
+    assert classify_intent(query) == "booking"
+
+
 def test_disease_word_is_not_insurance():
     # बीमारी (disease) contains बीमा (insurance) as a substring.
     assert classify_intent("क्या आप मेरी बीमारी बता सकते हैं?") == "faq"

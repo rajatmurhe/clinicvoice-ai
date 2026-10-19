@@ -18,6 +18,17 @@ with one command (see Running the eval below).
 service at https://clinicvoice-ai-agents.onrender.com. Free tier cold starts
 mean the first request can take 20 to 60 seconds; later requests are fast.
 
+## Product screenshots
+
+The voice-first interface includes typed chat as a fallback, a replay control,
+clinic switching, and English, Hindi, and Marathi language selection. The
+Hindi example below shows a real local booking response from the demo calendar.
+
+<p align="center">
+  <img src="docs/screenshots/clinicvoice-english.png" alt="ClinicVoice AI English home screen" width="49%" />
+  <img src="docs/screenshots/clinicvoice-hindi-booking.png" alt="ClinicVoice AI answering a Hindi appointment request" width="49%" />
+</p>
+
 ## Architecture
 
 ```
@@ -35,7 +46,7 @@ Python orchestrator (FastAPI)  /api/agent-query
 Node FAQ service (Express)  /api/text-query
    |-- retrieval: hybrid BM25 + character trigrams over the FAQ index
    |-- pre-LLM decisions: blocklist, greeting, confidence threshold
-   |-- Groq LLM (gpt-oss-20b) for answers; output filter on the reply
+   |-- Groq LLM (gpt-oss-20b), with Gemini failover, for answers; output filter on the reply
 ```
 
 Alternative orchestrators and transports are compared on the same eval and
@@ -98,10 +109,12 @@ total. After the fixes, 40 of 46 are caught by the first safety layer, the
 blocklists of the Python and Node layers stay in sync (drift 0, enforced by a
 parity test), and an emergency detector routes chest-pain class messages to a
 dedicated contact-local-emergency-services reply in the caller's language.
-The six attacks that are not blocked all exploit one accepted product decision:
-appointments are found by patient name only. That is documented as a known
-limitation below, not hidden. Full tables and the before/after story are in
-[RED_TEAM.md](RED_TEAM.md).
+The six attacks not blocked by the first layer are still reported separately:
+the red-team harness uses a FAQ stub, so its blocklist score is not an end-to-end
+privacy guarantee. Appointment lookup, cancellation and rescheduling now require
+matching a clinic-managed phone number or patient ID before calendar access.
+Dedicated regression tests cover wrong identifiers, expiry and clinic isolation.
+Full historical tables are in [RED_TEAM.md](RED_TEAM.md).
 
 ## Key design decisions
 
@@ -174,7 +187,7 @@ python-agents/venv/bin/python python-eval/run_eval.py --orchestrator legacy|grap
 # Same flows with tools behind MCP
 EVAL_TOOLS_MODE=mcp python-agents/venv/bin/python python-eval/run_eval.py
 
-# Unit and regression tests (165 tests, plus 17 Node tests via `cd backend && npx jest`)
+# Unit and regression tests (Python tests, plus Node tests via `cd backend && npx jest`)
 python-agents/venv/bin/python -m pytest python-agents/tests
 
 # Live latency against the deployed services (needs network)
@@ -199,10 +212,11 @@ pytest, the offline eval and the Node jest suite on every push.
 
 Honest list; each is a decision or a measured gap, not an accident:
 
-- Appointments are found and cancelled by patient name only. Anyone who knows
-  a name can ask about it (the six red team attacks that pass). A real
-  deployment needs phone or ID verification before lookup, cancel or
-  reschedule. This is the highest priority item.
+- Identity verification matches a registered phone number or patient ID; it does
+  not prove possession of a phone. Production needs OTP or an authenticated
+  patient portal, account-level throttling, and authenticated session ownership.
+  Three failures end a challenge; a new conversation can start another one.
+  Missing registry records and ambiguous names/appointments require reception.
 - Free tier cold starts: the first request after idling can take 20 to 60
   seconds; p95 latency in the live table reflects that.
 - Three FAQ paraphrases still miss retrieval ("what kind of clinic is this"
@@ -238,3 +252,80 @@ the per stage voice latency budgets and the streaming design.
 Python, FastAPI, LangGraph (flag), Node.js, Express, React, SQLite, hybrid
 BM25 + trigram retrieval, Groq (gpt-oss-20b, whisper, TTS), MCP, Google
 Calendar API, FHIR R4 sandbox adapter, Docker Compose, GitHub Actions.
+
+## Reliability: Groq and Gemini failover
+
+Set `GROQ_API_KEY` and `GEMINI_API_KEY` in the root `.env` for Docker.
+`LLM_PROVIDER=groq|gemini` selects the primary; `GEMINI_MODEL` defaults to
+`gemini-3.8-flash` ([Google model documentation](https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash)).
+Network errors, timeouts, HTTP 408/429 and 5xx try the configured secondary once.
+Each request has an eight-second deadline, keeping both attempts within the
+Python FAQ client's twenty-second timeout. Authentication, invalid requests,
+malformed/empty responses and provider safety refusals do not trigger failover.
+Both providers still pass through the existing input and output guardrails.
+
+## Appointment privacy verification
+
+For appointment verification, create a **private**, clinic-managed `patients.json`:
+
+```json
+[
+  {"clinic_id": "default", "name": "Demo Patient", "phone": "9000000000", "patient_id": "DEMO-12345"}
+]
+```
+
+These are illustrative values only. For native Python, set
+`CLINICVOICE_PATIENT_REGISTRY` to the file's absolute path. With Compose, copy
+your registry to the persistent volume after starting the stack:
+
+```bash
+docker compose cp /absolute/path/patients.json agents:/data/patients.json
+```
+
+The application never enrolls an identifier supplied in chat. It asks for the
+name, then a registered identifier, then accesses the calendar. Missing or
+malformed registries fail closed. Challenges expire after five minutes and
+allow three attempts. More than one matching appointment is handed to reception.
+New bookings remain available without a registry. Keep registry files out of Git;
+`patients.json` is ignored. Restrict filesystem access to the service account.
+
+## Voice client and language support
+
+Run the voice client locally in a separate terminal:
+
+```bash
+cd cloud-frontend
+npm ci
+VITE_API_URL=http://localhost:5050 VITE_AGENT_URL=http://localhost:8000 npm run dev
+```
+
+The mic records audio directly for server transcription: tap to record, then
+tap Stop to send. This avoids browser speech-recognition network failures.
+The English/Hindi/Marathi selector controls transcription, booking prompts, and playback.
+Deterministic booking, refill, insurance, intake, and handoff prompts are
+localized for all three supported languages; FAQ replies follow the current
+language. Hindi/Marathi playback needs a corresponding browser/system voice.
+Repeat replays the last answer without another agent call.
+Switching clinic or language clears replay and starts a fresh session. A delayed
+request shows a waiting notice after five seconds; text remains
+available even when audio cannot play.
+
+## Verification
+
+Validation: `npm test --prefix backend -- --runInBand`, frontend `npm run build`
+and `npm run lint`, Python pytest, offline eval and thresholds, graph eval, and
+the 46-case red-team run. The existing three FAQ retrieval misses remain;
+first-layer red-team catch rate remains 40/46 with zero blocklist drift.
+Live provider calls require configured credentials. Microphone interaction needs
+a browser; mocked provider tests exercise failover without paid requests.
+
+Local live smoke checks (2026-10-19): Groq and Gemini responses, speech synthesis,
+transcription of generated audio, observed Gemini-timeout failover to Groq,
+and demo booking/incorrect-ID rejection/correct-ID lookup passed. The audio
+route accepts up to 10 MB of JSON so base64 recordings are not rejected by
+the default 100 KB parser limit. Browser microphone interaction remains a
+manual check. Gemini 3.8 uses low thinking per the [provider documentation](https://ai.google.dev/gemini-api/docs/generate-content/thinking).
+
+The optional Ollama semantic cache is disabled by default to avoid delaying
+cloud requests. Enable `CLINICVOICE_SEMANTIC_CACHE=true` only with a working
+local `all-minilm` embedding model; embedding calls have short timeouts.
