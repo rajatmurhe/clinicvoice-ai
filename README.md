@@ -33,6 +33,34 @@ This project is designed to demonstrate how a conversational AI system can conne
 
 The screenshots show actual responses from the local demo services. The appointment calendar is populated with test data.
 
+## Agent Workflow Proof
+
+These walkthroughs are captured from the running React app connected to the local FastAPI agent service. They use synthetic `Demo Patient` data in an isolated SQLite calendar and registry. Each screenshot shows the conversation; the linked tests exercise the underlying behavior as repeatable checks. The workflow agents are bounded, code-driven steps: the model does not pick appointment slots, verify identities, approve refills, or make clinical decisions.
+
+### Booking agent: check availability, then book the selected slot
+
+![Booking agent checks open appointment slots and books the patient's selected time](docs/screenshots/agent-booking-confirmation.png)
+
+The agent parses the requested date, asks the calendar tool for open slots, and offers choices. After the patient chooses `09:00 AM`, it creates the booking and confirms the date and time. This is a real write to the isolated demo calendar, not a mock reply. See [booking workflow tests](python-agents/tests/test_booking_agent.py) and the [offline booking evaluation cases](python-eval/cases/booking_flows.json).
+
+### Booking agent: verify identity before looking up an appointment
+
+![Appointment lookup asks for the patient's name and registered ID before revealing the appointment](docs/screenshots/agent-verified-appointment-lookup.png)
+
+The name starts a verification challenge but does not trigger a calendar lookup. Only after the registered `DEMO-12345` ID matches the clinic registry does the agent query the calendar and show the appointment. In this demo, the registry entry and appointment both contain synthetic data. See [verification and privacy tests](python-agents/tests/test_booking_agent.py) and [COMPLIANCE.md](COMPLIANCE.md).
+
+### Refill agent: collect a request and hand it to clinic staff
+
+![Refill agent collects a name and medication and confirms that the request was logged for staff review](docs/screenshots/agent-refill-handoff.png)
+
+The agent collects only the patient's name and medication name, logs the request for the clinic team, and explains that staff will review it. It does not ask for dosage or approve or change a prescription. See [refill workflow tests](python-agents/tests/test_refill_agent.py).
+
+### Safety filter: stop medication-dosage advice
+
+![Safety filter blocks a medication dosage question and directs the patient to the clinic or emergency services](docs/screenshots/agent-safety-dosage-block.png)
+
+The medical-advice filter intercepts the dosage request before a normal agent or FAQ response and directs the patient to the clinic or local emergency services. See [safety tests](python-agents/tests/test_safety.py) and [red-team cases and results](RED_TEAM.md).
+
 ## What Patients Can Do
 
 ### Ask questions about a clinic
