@@ -9,410 +9,310 @@
 [![SQLite](https://img.shields.io/badge/SQLite-Local%20State-003B57?style=for-the-badge&logo=sqlite&logoColor=white)](https://sqlite.org/)
 [![CI](https://img.shields.io/badge/CI-GitHub%20Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/rajatmurhe/clinicvoice-ai/actions/workflows/ci.yml)
 
-**Live Application:** https://clinicvoice-ai.onrender.com/
+**Live application:** https://clinicvoice-ai.onrender.com/
 
-ClinicVoice AI is a voice-first clinic receptionist that answers clinic FAQs,
-supports appointment booking and verified appointment changes, logs refill
-requests, and records non-diagnostic intake notes. Patients can speak or type
-in English, Hindi, or Marathi and hear the assistant's reply.
+ClinicVoice AI is a voice-first receptionist for medical and dental clinics. A patient can ask clinic questions, request an appointment, ask for a refill, or leave a message for the care team by speaking or typing. The assistant speaks its answer back and supports English, Hindi, and Marathi.
 
-The project combines deterministic clinic workflows with a guardrailed FAQ
-assistant. Its offline evaluation suite covers 180+ cases, and its 46-case
-red-team set tracks attacks and first-layer safety behavior. Evaluation
-limitations are documented below; these results are not a clinical or
-production privacy certification.
+This project is designed to demonstrate how a conversational AI system can connect a polished voice interface to real workflows while keeping sensitive actions behind explicit checks. Appointment lookup, cancellation, and rescheduling require a clinic-registered phone number or patient ID before the calendar is accessed. The demo uses a local SQLite calendar by default; Google Calendar and FHIR sandbox adapters are also included.
 
-Free-tier hosting can take 20–60 seconds to wake after inactivity.
+> This is a software engineering demo, not a medical device. It does not diagnose conditions, recommend treatment, or replace clinic staff.
 
----
-
-## Dashboard
+## Product Screenshots
 
 ### Voice Assistant Home
 
-![ClinicVoice AI voice assistant dashboard](docs/screenshots/clinicvoice-english.png)
+![ClinicVoice AI home screen with language and clinic selectors, voice recording, and typed chat](docs/screenshots/clinicvoice-english.png)
 
 ### Hindi Appointment Booking
 
-![ClinicVoice AI responding to a Hindi appointment request](docs/screenshots/clinicvoice-hindi-booking.png)
+![ClinicVoice AI responding to a Hindi request for an appointment](docs/screenshots/clinicvoice-hindi-booking.png)
 
 ### Marathi Appointment Verification
 
-![ClinicVoice AI asking for registered patient verification in Marathi](docs/screenshots/clinicvoice-marathi-verification.png)
+![ClinicVoice AI asking for the registered phone number or patient ID in Marathi](docs/screenshots/clinicvoice-marathi-verification.png)
+
+The screenshots show actual responses from the local demo services. The appointment calendar is populated with test data.
+
+## What Patients Can Do
+
+### Ask questions about a clinic
+
+Patients can ask about opening hours, parking, accepted insurance, and other clinic-specific FAQs. The assistant searches the clinic's FAQ collection, then uses a language model to turn relevant material into a concise reply. If the search does not find enough support, the assistant falls back instead of inventing clinic policy.
+
+### Request an appointment
+
+The assistant collects a requested date, checks available slots, and asks the patient to choose a time. It only creates a booking after the patient selects an available slot. The demo calendar is SQLite, so a local setup does not need a Google account or calendar credentials.
+
+### Look up, cancel, or move an appointment
+
+These are protected actions. The assistant first asks which patient's appointment to find, then asks for a phone number or patient ID already present in the clinic-managed registry. It checks the supplied value against that registry before reading or changing the calendar. A name or identifier typed into the chat cannot register itself as valid.
+
+The verification challenge expires after five minutes and allows three attempts. Missing registry entries or ambiguous appointment matches are sent to reception. New appointment bookings do not require this existing-patient registry.
+
+### Request a prescription refill
+
+The assistant records the patient's name and medication name, then logs a refill request for clinic staff to review. It does not approve or change a prescription and does not ask for dosage details.
+
+### Leave a note for the care team
+
+Patients can describe a symptom, test result, prescription question, or administrative request. The assistant records a short intake category and, when relevant, a general body area. It does not diagnose the issue; urgent symptoms are routed to the emergency guidance path.
+
+### Reach a person
+
+A patient can ask for a receptionist or express a complaint. The assistant directs them to the clinic's reception team.
+
+## Voice and Language Experience
+
+The interface has a language selector for English, Hindi, and Marathi, plus a clinic selector for the included demo clinics. Patients can speak or type. The repeat button plays the last answer again without submitting another request. Starting a new language or clinic conversation clears the previous session.
+
+The browser uses its speech recognition API when available. If recognition is missing or fails, the patient can tap the microphone to record a clip and tap Stop to send it for server transcription. Groq Whisper transcribes the recording using the selected language. English audio replies use the hosted text-to-speech endpoint; Hindi and Marathi use the browser's installed speech voice. If audio cannot play, the text answer remains visible.
+
+A waiting message appears when the first response takes longer than usual. This is useful on the free hosted demo, where services may need time to wake after inactivity.
+
+## How a Request Flows Through the System
+
+The app is split into a React voice client, a Python clinic workflow service, and a Node FAQ and speech service.
+
+    Patient speaks or types
+             |
+             v
+    React voice client
+      |-- browser speech recognition when available
+      |-- recorded audio fallback -> Node transcription endpoint
+             |
+             v
+    Python FastAPI agent service
+      |-- request and safety checks
+      |-- language-aware intent routing
+      |-- booking, refill, insurance, intake, handoff, or FAQ agent
+             |
+      +------------------------------+
+      |                              |
+      v                              v
+    Clinic tools                 Node FAQ service
+    calendar, waitlist,          FAQ retrieval and answer generation
+    intake/refill logs           Groq primary -> Gemini failover
+      |                              |
+      +---------------+--------------+
+                      |
+                      v
+      Localized text and spoken answer
+
+Each request has a request ID that is passed between services and written to structured logs, so a slow or failed request can be traced across the system.
+
+### FAQ retrieval and answer generation
+
+The FAQ service ranks clinic content with a hybrid retrieval method: BM25 keyword matching catches exact terms, while character trigrams help match spelling variants and multilingual text. The service checks safety and retrieval confidence before requesting a generated answer. Groq is the default answer provider; Gemini is the configured fallback for transient failures such as timeouts, rate limits, and provider server errors. Authentication errors, invalid requests, malformed responses, and provider safety blocks do not trigger a retry at another provider.
+
+Generated answers still pass through output checks. The provider name, model, latency, and token count can be logged without logging the prompt and answer in the provider log line.
+
+### Deterministic workflows
+
+Appointment, refill, insurance, and intake agents use explicit code and session state for each step. The language model does not choose a time slot, create a booking, verify a patient, or decide whether a prescription should be renewed. This makes those actions easier to test and keeps the calendar operation separate from free-form answer generation.
+
+## Safety and Privacy Design
+
+- **Emergency routing:** urgent symptom language is directed to emergency guidance instead of a routine FAQ answer.
+- **Input checks:** blocks requests for diagnosis, medication dosing, prompt injection, or another patient's private information.
+- **Intent routing:** sends workflow requests to the relevant agent; an optional LLM classifier is available behind a feature flag when the rules have low confidence.
+- **FAQ confidence checks:** returns a fallback when retrieved clinic information is not strong enough to support an answer.
+- **Output review:** checks generated replies; an optional compliance reviewer can be enabled for an additional pass.
+- **Appointment verification:** checks a registered identifier before calendar lookup, cancellation, or rescheduling.
+- **Clinic separation:** the selected clinic ID is carried through sessions and service calls; each clinic loads its own configuration.
+
+The demo uses a clinic-managed patient registry file for registered phone numbers and patient IDs. Treat that file as private operational data: keep it out of Git, limit file access, and replace the demo setup with authenticated patient accounts and one-time codes before a production deployment.
+
+## Supported Clinics and Integrations
+
+Two example clinic profiles are included: a general clinic and SmileCare Dental. A clinic profile holds operating hours, doctors, accepted insurance providers, FAQs, timezone settings, a scheduling adapter, and optional webhooks. The second clinic can be customized through its configuration file rather than changing the agent logic.
+
+Scheduling adapters include:
+
+- **SQLite demo calendar:** the default for local demos and offline evaluation.
+- **Google Calendar adapter:** for a clinic calendar configured with the required credentials.
+- **FHIR R4 sandbox adapter:** an integration example for a test environment, not a production EHR connection.
+
+The system also includes optional feature-flagged implementations for a LangGraph orchestrator, MCP tool transport, hybrid LLM routing, a compliance reviewer, and an Ollama-based semantic cache. The default path stays lightweight; the alternatives can be compared against the same offline evaluation cases.
 
 ## Architecture
 
-```
-Browser (voice in/out, browser recognition with recorded-audio fallback)
-   |
-   |  one request id flows through every hop and every log line
-   v
-Python orchestrator (FastAPI)  /api/agent-query
-   |-- guardrails: emergency detector, input blocklist (Python + Node mirrors)
-   |-- router: regex fast path + Hindi/Marathi keywords (+ optional LLM classifier)
-   |-- agents: booking, refill, insurance, intake, escalation, faq
-   |-- tools: calendar, logs, FAQ search (direct or MCP)
-   |-- SQLite: sessions, query log, tool call log, fake calendar
-   v
-Node FAQ service (Express)  /api/text-query
-   |-- retrieval: hybrid BM25 + character trigrams over the FAQ index
-   |-- pre-LLM decisions: blocklist, greeting, confidence threshold
-   |-- Groq LLM (gpt-oss-20b), with Gemini failover, for answers; output filter on the reply
-```
+    Browser / React
+       |
+       |  JSON requests with a shared request ID
+       v
+    Python FastAPI service :8000
+       |-- safety and emergency handling
+       |-- language-aware router
+       |-- deterministic workflow agents
+       |-- clinic scheduling and logging tools
+       |-- SQLite session and demo data
+       |
+       v
+    Node.js / Express service :5050
+       |-- clinic FAQ retrieval
+       |-- Groq / Gemini answer generation
+       |-- Groq speech transcription and English TTS
 
-Alternative orchestrators and transports are compared on the same eval and
-selected behind flags: a LangGraph state graph (`CLINICVOICE_ORCHESTRATOR=graph`),
-MCP tool transport (`CLINICVOICE_TOOLS=mcp`), an LLM intent classifier
-(`CLINICVOICE_HYBRID_ROUTER`), and a compliance reviewer
-(`CLINICVOICE_COMPLIANCE_REVIEWER`). See DECISIONS.md for the measurements
-behind each default.
-
-Multi tenant: clinic specific data lives in `python-agents/clinics/*.json`
-(hours, doctors, insurance providers, FAQs, languages, scheduling adapter,
-webhooks). A second clinic onboards with a config file only; the scheduling
-adapter interface has Google Calendar, SQLite fake and a live FHIR sandbox
-implementation.
-
-## Conversation Workflow
-
-```text
-Patient voice or text
-        |
-        v
-Transcription (voice) -> safety checks -> language-aware intent routing
-                                      |
-                +---------------------+--------------------+
-                |                     |                    |
-                v                     v                    v
-        Clinic workflow         FAQ retrieval        Reception handoff
-        booking/refill/intake    BM25 + trigrams     escalation
-                |                     |
-                v                     v
-        Calendar / SQLite      Groq -> Gemini fallback
-                +---------------------+
-                            |
-                            v
-             Localized text + spoken response
-```
-
-Appointment reads and changes follow a separate verification path: identify
-the patient, match a registered phone number or patient ID, then access the
-calendar. A name supplied during the conversation cannot enroll a new identity.
-
-## Key Capabilities
-
-### Voice and Multilingual Conversation
-
-- Browser microphone recording with server transcription and push-to-talk
-  fallback when browser speech recognition is unavailable.
-- Spoken replies, replay, barge-in, and typed chat as a fallback.
-- English, Hindi, and Marathi controls for transcription, intent routing,
-  workflow prompts, and playback.
-- Frontend waiting indicator for cold starts and delayed responses.
-
-### Clinic Workflows
-
-- Book appointments against the selected clinic's scheduling adapter.
-- Look up, reschedule, or cancel an existing appointment only after matching a
-  clinic-registered phone number or patient ID.
-- Log prescription refill requests and non-diagnostic intake notes.
-- Check accepted insurance and route personal requests to reception.
-- Support multiple clinics from separate configuration files.
-
-### FAQ Retrieval and Provider Resilience
-
-- Hybrid BM25 and character-trigram retrieval for lexical and multilingual
-  matches.
-- Groq as the primary FAQ answer provider with Gemini failover on transient
-  errors such as timeouts, rate limits, and provider 5xx responses.
-- Input and output safety checks remain active around generated answers.
-- Optional LangGraph orchestrator, MCP tool transport, LLM intent classifier,
-  and compliance reviewer can be evaluated behind feature flags.
-
-### Safety and Evaluation
-
-- Emergency detection, prompt-injection and unsafe-request filters, retrieval
-  confidence checks, and generated-answer review.
-- Clinic isolation and fail-closed appointment verification.
-- Offline flow evaluation, regression tests, and a reproducible red-team set.
+The FAQ service also exposes health checks and a GraphQL endpoint for FAQ data. The Python service exposes a health check, readiness check, query endpoint, and a small admin dashboard with request, latency, failure, and tool statistics.
 
 ## Evaluation Results
 
-Offline eval, fixed committed test set, no network, no LLM calls, fake
-calendar. Run date and commit are stored in each results file.
+The offline evaluation uses committed cases, a fake calendar, no network calls, and no language-model calls. It checks workflows and routing against expected outcomes. The table shows the latest committed legacy-orchestrator run; results are reproducible with the commands below.
 
-| Category | Metric | Baseline (Phase 1) | Now |
-|---|---|---|---|
-| FAQ retrieval (30 answer cases + 12 others) | hit at 1 | 60.6 | 91.2 |
-| FAQ decisions (answer / fallback / block) | decision accuracy | 68.8 | 98.1 |
-| Booking (25 multi turn flows) | flow pass rate | 56.0 | 100.0 |
-| Refills (12 flows) | flow pass rate | 83.3 | 100.0 |
-| Insurance (12 cases) | accuracy | 83.3 | 100.0 |
-| Escalation (12 cases) | accuracy | 83.3 | 100.0 |
-| Unsafe inputs (20) | safety catch rate | 75.0 | 100.0 |
-| Safe inputs (10) | false positive rate | 0.0 | 0.0 |
-| Hindi (12 cases) | pass rate | 0.0 | 100.0 |
-| Marathi (9 cases) | pass rate | 0.0 | 100.0 |
-| Routing (annotated single turns) | accuracy | 75.9 | 100.0 |
-| Red team (46 attacks, 5 groups) | caught | 9/40 | 40/46 |
+| Area | Cases | Result |
+|---|---:|---:|
+| FAQ retrieval | 53 | 91.2% hit at 1; 98.1% decision accuracy |
+| Appointment booking | 25 flows | 100% pass |
+| Refill requests | 12 flows | 100% pass |
+| Insurance | 12 | 100% accuracy |
+| Escalation | 12 | 100% accuracy |
+| Hindi and Marathi | 21 combined | 100% pass |
+| Routing | 36 | 100% accuracy |
+| Safety: unsafe and safe requests | 30 | 100% catch rate; 0% false positives |
 
-Live latency against the deployed services (p50; free tier cold starts can
-push p95 above 19s on the first request after idling):
+The original baseline is recorded alongside the full case-level output in the evaluation artifacts. FAQ retrieval still misses a small number of paraphrases; a high score on a fixed test set does not guarantee a correct answer to every question.
 
-| Stage | p50 (ms) |
-|---|---|
-| LLM answer (retrieval + Groq) | 1017 |
-| TTS full reply | 3276 |
-| Total agent turn | 1525 |
-| Time to first audio, before sentence streaming | 3401 |
-| Time to first audio, after sentence streaming | 2057 |
+### Red-team results
 
-The eval baseline found real bugs that are now fixed and guarded by regression
-tests: a reply to "could you tell me the name?" in the cancel flow was dropped
-unless it repeated a keyword; "refill please" logged the word please as the
-medication; "prescription" questions were blocked by the input filter and could
-never reach the refill flow; "do you accept walk-ins" was routed to the
-insurance agent; the word for disease (बीमारी) triggered the insurance keyword
-बीमा.
+The red-team harness contains 46 examples across prompt injection, medical advice, identity bypass, other-patient data requests, and Hindi/Marathi attacks. The first safety layer caught 40 of 46; the blocklists in the Python and Node services had zero measured drift. The six not caught by the first layer are reported in the harness results. Some appointment-related prompts continue into the protected booking flow and must be checked end to end; the first-layer score alone is not a privacy guarantee.
 
-## Red team findings
-
-40 initial attacks in four groups (prompt injection, medical advice, identity
-bypass, other patient data) plus a Hindi and Marathi group added later, 46 in
-total. After the fixes, 40 of 46 are caught by the first safety layer, the
-blocklists of the Python and Node layers stay in sync (drift 0, enforced by a
-parity test), and an emergency detector routes chest-pain class messages to a
-dedicated contact-local-emergency-services reply in the caller's language.
-The six attacks not blocked by the first layer are still reported separately:
-the red-team harness uses a FAQ stub, so its blocklist score is not an end-to-end
-privacy guarantee. Appointment lookup, cancellation and rescheduling now require
-matching a clinic-managed phone number or patient ID before calendar access.
-Dedicated regression tests cover wrong identifiers, expiry and clinic isolation.
-Full historical tables are in [RED_TEAM.md](RED_TEAM.md).
-
-## Key design decisions
-
-Short version, full records with numbers in [DECISIONS.md](DECISIONS.md):
-
-1. Only the FAQ agent uses an LLM; flows are deterministic so they are
-   testable and cannot hallucinate a booking.
-2. Regex routing first (100 percent on the eval at zero latency); the LLM
-   classifier stays behind a flag for live phrasings the fixed set cannot
-   cover.
-3. Four safety layers: input blocklist, greeting short circuit, retrieval
-   confidence threshold, output filter; both services mirror the same
-   blocklists, enforced by a CI parity test.
-4. Hybrid retrieval (BM25 + character trigrams + disagreement penalty) raised
-   FAQ hit at 1 from 60.6 to 91.2 and made Hindi and Marathi retrieval work at
-   all; the old tokenizer stripped Devanagari entirely.
-5. The LangGraph orchestrator scored identically on the eval but costs about
-   50ms per query and a heavy dependency, so the hand written path stays
-   default; both are kept and tested.
-6. Tools behind MCP scored identically with about a second per call of
-   transport overhead, so direct calls stay default; the MCP path is proven
-   equivalent on the same eval.
-7. Session state, logs, the fake calendar and graph checkpoints are all
-   SQLite, so a restart never erases a booking in progress (verified).
+The red-team cases and detailed outcomes are in [RED_TEAM.md](RED_TEAM.md). The offline eval and threshold files are in [python-eval/results](python-eval/results).
 
 ## Quickstart
 
-Fresh clone, no accounts needed (the demo calendar is SQLite; the LLM answers
-degrade gracefully without a Groq key):
+### 1. Start the backend services
 
-```bash
-cp .env.example .env          # optional: add GROQ_API_KEY for real FAQ answers
-docker compose up --build
-```
+Requirements: Docker with Docker Compose, or Python 3.11 and Node.js 22 for a native setup.
 
-Then:
+For the Docker setup, copy the example environment file and start the API services:
 
-- Agent service and admin dashboard: http://localhost:8000 (dashboard at
-  http://localhost:8000/dashboard: recent requests with request ids, p50/p95
-  latency, guardrail counts, failures, tool call stats, token cost estimate)
-- FAQ service health: http://localhost:5050/api/health
-- Ask a question:
+    cp .env.example .env
+    docker compose up --build
 
-```bash
-curl -s http://localhost:8000/api/agent-query \
-  -H 'Content-Type: application/json' \
-  -d '{"query": "I want to book an appointment tomorrow", "session_id": "demo"}'
-```
+The FAQ service listens on port 5050. The agent service listens on port 8000. The demo calendar and session state use local persistent storage.
 
-Two clinics ship side by side: send `"clinic_id": "smilecare"` in the body to
-talk to the second clinic (different hours, doctors, insurance list, FAQs and
-its own calendar state).
+### 2. Start the web client
 
-Without Docker: see `.env.example` and run `uvicorn main:app` in
-`python-agents/` (Python 3.11, `pip install -r requirements.txt`) plus
-`node server-cloud.js` in `backend/`.
+In another terminal:
 
-### Running the eval
+    cd cloud-frontend
+    npm ci
+    VITE_API_URL=http://localhost:5050 VITE_AGENT_URL=http://localhost:8000 npm run dev
 
-```bash
-# Offline harness (no network, no LLM, ~5 seconds)
-python-agents/venv/bin/python python-eval/run_eval.py
+Open http://localhost:5173.
 
-# Red team (46 attacks)
-python-agents/venv/bin/python python-eval/run_eval.py --redteam
+For FAQ answers, transcription, and English hosted speech, add a Groq API key to the root .env file. Add a Gemini API key to enable provider failover. Never commit .env or clinic registry data.
 
-# Both orchestrators on the same cases
-python-agents/venv/bin/python python-eval/run_eval.py --orchestrator legacy|graph
+### 3. Try the API directly
 
-# Same flows with tools behind MCP
-EVAL_TOOLS_MODE=mcp python-agents/venv/bin/python python-eval/run_eval.py
+    curl -s http://localhost:8000/api/agent-query \
+      -H 'Content-Type: application/json' \
+      -d '{"query":"I want to book an appointment tomorrow","session_id":"demo","language":"en"}'
 
-# Unit and regression tests (Python tests, plus Node tests via `cd backend && npx jest`)
-python-agents/venv/bin/python -m pytest python-agents/tests
+The request body accepts:
 
-# Live latency against the deployed services (needs network)
-python-agents/venv/bin/python python-eval/run_eval.py --live
-```
+- query: the text to route through the receptionist.
+- session_id: a conversation identifier used to keep multi-turn workflow state.
+- clinic_id: optional clinic profile identifier, such as default or smilecare.
+- language: en, hi, or mr; used for transcription, prompts, and browser playback.
 
-`check_thresholds.py` compares every metric against the ratcheted floors in
-`python-eval/thresholds.json` and fails CI on any regression; CI also runs
-pytest, the offline eval and the Node jest suite on every push.
+### Example service endpoints
 
-## Repo map
+| Service | Endpoint | Purpose |
+|---|---|---|
+| Agent service | GET /health | Basic service health |
+| Agent service | GET /ready | Checks FAQ service and calendar availability |
+| Agent service | POST /api/agent-query | Routes a conversation turn |
+| Agent dashboard | GET /dashboard | Recent requests and operational metrics |
+| FAQ service | GET /api/health | FAQ service health |
+| FAQ service | POST /api/text-query | FAQ retrieval and answer generation |
+| FAQ service | POST /api/transcribe | Speech-to-text for recorded audio |
+| FAQ service | POST /api/tts | English text-to-speech |
 
-| Path | What it is |
-|---|---|
-| `python-agents/` | The main path: FastAPI orchestrator, agents, safety, adapters, tools, clinics, tests |
-| `backend/` | Node FAQ service: retrieval, guardrails, LLM call, TTS and transcription endpoints, tests |
-| `cloud-frontend/` | Voice web client: sentence streamed TTS, barge in, push to talk fallback |
-| `python-eval/` | Eval harness, fixed test sets, red team set, thresholds |
-| `docs/` | Latency budget |
+### Register demo patients for protected appointment actions
 
-## Known limitations
+The demo can run new appointment bookings without a patient registry. To test a lookup, cancellation, or reschedule, provide a private clinic-managed registry file. Example structure:
 
-Honest list; each is a decision or a measured gap, not an accident:
+    [
+      {
+        "clinic_id": "default",
+        "name": "Demo Patient",
+        "phone": "9000000000",
+        "patient_id": "DEMO-12345"
+      }
+    ]
 
-- Identity verification matches a registered phone number or patient ID; it does
-  not prove possession of a phone. Production needs OTP or an authenticated
-  patient portal, account-level throttling, and authenticated session ownership.
-  Three failures end a challenge; a new conversation can start another one.
-  Missing registry records and ambiguous names/appointments require reception.
-- Free tier cold starts: the first request after idling can take 20 to 60
-  seconds; p95 latency in the live table reflects that.
-- Three FAQ paraphrases still miss retrieval ("what kind of clinic is this"
-  pulls a different FAQ that shares the word clinic); hit at 1 is 91.2, not
-  100.
-- The MCP path uses a one-shot stdio session per tool call (about a second per
-  call); a persistent streamable HTTP session is the production shape.
-- The guardrail reply for Devanagari input defaults to Hindi, with Marathi
-  selected by hint phrases; detection is heuristic.
-- Refill conversations break if the patient says the word "medicine" instead
-  of the drug name, because the input blocklist blocks it (saying "metformin"
-  works). The agent asks for the drug name explicitly.
-- Languages: English, Hindi and Marathi are covered; other languages fall
-  back to English retrieval with the translated-FAQ mechanism available.
-- Homoglyph evasion: look-alike characters from other scripts (Cyrillic
-  letters, for example) still slip past the blocklist. Needs script
-  normalization; noted as future hardening.
-- No request size limit at the application layer yet; a reverse proxy or
-  gateway should enforce one in a real deployment.
-- HIPAA: not certified, no BAA, no audit-grade logging. See COMPLIANCE.md.
+Do not use real patient information in a development repository. With Docker, start the services and copy the registry into the persistent agent volume:
 
-## Compliance and edge cases
+    docker compose cp ./patients.json agents:/data/patients.json
 
-[COMPLIANCE.md](COMPLIANCE.md) documents what data the system collects, where
-it goes and what a production deployment would still need.
-[EDGE_CASES.md](EDGE_CASES.md) logs real bugs found during development and how
-each was fixed. [RED_TEAM.md](RED_TEAM.md) documents the attack sets and the
-before/after fix story. [docs/latency-budget.md](docs/latency-budget.md) holds
-the per stage voice latency budgets and the streaming design.
+For a native Python run, set CLINICVOICE_PATIENT_REGISTRY to the absolute path of the private file. If the registry is missing, malformed, or does not contain a match, the system fails closed and asks the caller to contact reception.
+
+## Local Development and Tests
+
+Python tests:
+
+    python3 -m venv python-agents/venv
+    python-agents/venv/bin/pip install -r python-agents/requirements.txt
+    python-agents/venv/bin/pip install pytest
+    python-agents/venv/bin/python -m pytest python-agents/tests -q
+
+Node service tests:
+
+    npm ci --prefix backend
+    npm test --prefix backend -- --runInBand
+
+Frontend lint and production build:
+
+    npm ci --prefix cloud-frontend
+    npm run lint --prefix cloud-frontend
+    npm run build --prefix cloud-frontend
+
+Offline evaluation and red-team checks (after installing the Python and Node dependencies):
+
+    python-agents/venv/bin/python python-eval/run_eval.py
+    python-agents/venv/bin/python python-eval/check_thresholds.py
+    python-agents/venv/bin/python python-eval/run_eval.py --redteam
+    python-agents/venv/bin/python python-eval/run_eval.py --orchestrator graph
+
+CI runs backend tests, frontend lint/build, Python tests, the offline evaluation, and evaluation threshold checks on every push to main and pull request.
 
 ## Technology Stack
 
-### Frontend
+| Area | Technologies |
+|---|---|
+| Web client | React, Vite, JavaScript, CSS, browser speech APIs |
+| Agent API | Python, FastAPI, deterministic multi-agent workflows |
+| FAQ and voice API | Node.js, Express, GraphQL, Groq, Gemini |
+| Retrieval | BM25, character trigrams, clinic-specific FAQ data |
+| State and demo tools | SQLite, scheduling adapters, waitlist and intake/refill logs |
+| Optional paths | LangGraph, MCP, Ollama embeddings, compliance reviewer |
+| Delivery | Docker Compose, Render, GitHub Actions |
 
-React, Vite, browser speech APIs, recorded-audio fallback, responsive CSS.
+## Repository Guide
 
-### Backend
+| Path | Contents |
+|---|---|
+| cloud-frontend | React voice and chat interface |
+| python-agents | FastAPI app, workflow agents, clinic configs, safety, calendar adapters |
+| backend | FAQ retrieval, provider failover, transcription, TTS, and Node tests |
+| python-eval | Offline cases, thresholds, and red-team harness |
+| docs | Screenshots and latency notes |
+| COMPLIANCE.md | Data handling, safeguards, and production requirements |
+| DECISIONS.md | Architecture decisions and measured trade-offs |
+| EDGE_CASES.md | Bugs found during evaluation and their regression fixes |
+| RED_TEAM.md | Attack cases, outcomes, and limitations |
 
-Python, FastAPI, Node.js, Express, SQLite, Docker Compose.
+## Known Limitations and Production Requirements
 
-### AI and Retrieval
+- Appointment verification checks a registered phone number or patient ID; it does not prove that the caller possesses the phone or owns the account. Production needs authenticated patient accounts, one-time verification, and account-level throttling.
+- Six of 46 red-team prompts are not blocked by the first safety layer. The harness separates this metric from end-to-end flow behavior; review the individual cases and do not treat the score as a privacy certification.
+- FAQ retrieval has a measured hit-at-1 score of 91.2%; ambiguous phrasings can retrieve the wrong FAQ or fall back.
+- Hosted services use a free tier and may have cold starts of 20–60 seconds.
+- Hindi and Marathi speech playback depends on voices installed in the user's browser or operating system. English TTS uses Groq's speech endpoint.
+- Language recognition, intent rules, and emergency phrase detection are heuristic; an unfamiliar phrase may need rewording or staff help.
+- The demo is not HIPAA certified, does not include a BAA, and is not an audit-grade clinical record system.
+- The refill flow needs the medication name; it does not validate medication or dosage against a medical record.
+- The FHIR adapter is a sandbox integration example. A production electronic health record requires vendor-specific authorization, testing, and operational controls.
 
-Groq, Gemini, hybrid BM25 and character-trigram retrieval, optional LangGraph,
-MCP tools, optional Ollama embeddings.
-
-### Integrations and Delivery
-
-Google Calendar adapter, FHIR R4 sandbox adapter, GitHub Actions, Render.
-
-## Provider Configuration Details
-
-Set `GROQ_API_KEY` and `GEMINI_API_KEY` in the root `.env` for Docker.
-`LLM_PROVIDER=groq|gemini` selects the primary; `GEMINI_MODEL` defaults to
-`gemini-3.8-flash` ([Google model documentation](https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash)).
-Network errors, timeouts, HTTP 408/429 and 5xx try the configured secondary once.
-Each request has an eight-second deadline, keeping both attempts within the
-Python FAQ client's twenty-second timeout. Authentication, invalid requests,
-malformed/empty responses and provider safety refusals do not trigger failover.
-Both providers still pass through the existing input and output guardrails.
-
-## Configure Appointment Verification
-
-For appointment verification, create a **private**, clinic-managed `patients.json`:
-
-```json
-[
-  {"clinic_id": "default", "name": "Demo Patient", "phone": "9000000000", "patient_id": "DEMO-12345"}
-]
-```
-
-These are illustrative values only. For native Python, set
-`CLINICVOICE_PATIENT_REGISTRY` to the file's absolute path. With Compose, copy
-your registry to the persistent volume after starting the stack:
-
-```bash
-docker compose cp /absolute/path/patients.json agents:/data/patients.json
-```
-
-The application never enrolls an identifier supplied in chat. It asks for the
-name, then a registered identifier, then accesses the calendar. Missing or
-malformed registries fail closed. Challenges expire after five minutes and
-allow three attempts. More than one matching appointment is handed to reception.
-New bookings remain available without a registry. Keep registry files out of Git;
-`patients.json` is ignored. Restrict filesystem access to the service account.
-
-## Run the Voice Client
-
-Run the voice client locally in a separate terminal:
-
-```bash
-cd cloud-frontend
-npm ci
-VITE_API_URL=http://localhost:5050 VITE_AGENT_URL=http://localhost:8000 npm run dev
-```
-
-The mic records audio directly for server transcription: tap to record, then
-tap Stop to send. This avoids browser speech-recognition network failures.
-The English/Hindi/Marathi selector controls transcription, booking prompts, and playback.
-Deterministic booking, refill, insurance, intake, and handoff prompts are
-localized for all three supported languages; FAQ replies follow the current
-language. Hindi/Marathi playback needs a corresponding browser/system voice.
-Repeat replays the last answer without another agent call.
-Switching clinic or language clears replay and starts a fresh session. A delayed
-request shows a waiting notice after five seconds; text remains
-available even when audio cannot play.
-
-## Verification
-
-Validation: `npm test --prefix backend -- --runInBand`, frontend `npm run build`
-and `npm run lint`, Python pytest, offline eval and thresholds, graph eval, and
-the 46-case red-team run. The existing three FAQ retrieval misses remain;
-first-layer red-team catch rate remains 40/46 with zero blocklist drift.
-Live provider calls require configured credentials. Microphone interaction needs
-a browser; mocked provider tests exercise failover without paid requests.
-
-Local live smoke checks (2026-10-19): Groq and Gemini responses, speech synthesis,
-transcription of generated audio, observed Gemini-timeout failover to Groq,
-and demo booking/incorrect-ID rejection/correct-ID lookup passed. The audio
-route accepts up to 10 MB of JSON so base64 recordings are not rejected by
-the default 100 KB parser limit. Browser microphone interaction remains a
-manual check. Gemini 3.8 uses low thinking per the [provider documentation](https://ai.google.dev/gemini-api/docs/generate-content/thinking).
-
-The optional Ollama semantic cache is disabled by default to avoid delaying
-cloud requests. Enable `CLINICVOICE_SEMANTIC_CACHE=true` only with a working
-local `all-minilm` embedding model; embedding calls have short timeouts.
+For the data collected, safety boundaries, and deployment considerations, see [COMPLIANCE.md](COMPLIANCE.md). Do not put API keys or patient registry files in Git.
