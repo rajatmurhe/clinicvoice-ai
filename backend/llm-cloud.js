@@ -1,5 +1,6 @@
 const { getRequestId } = require('./request-context');
 const providers = require('./llm-providers');
+const tracing = require('./langfuse-tracing');
 
 const BLOCKED_PATTERNS_INPUT = [
   /diagnos/i, /\bprescrib/i, /medication/i, /dose/i, /dosage/i, /how much .* (should|can|could)\s+(i|we|you|he|she|they)?\s*(take|dose)\b/i,
@@ -152,8 +153,24 @@ function decidePreLLM(query, context) {
   return { kind: 'llm', topScore: topScore, topFaqId: topFaqId };
 }
 
-async function generateResponse(query, context) {
+async function generateResponse(query, context, options = {}) {
+  const trace = options.trace || null;
   const pre = decidePreLLM(query, context);
+
+  const inputValidation = tracing.startChild(trace, 'faq-input-and-retrieval-validation', {
+    input: tracing.contentValue(query, { redacted: true, character_count: query.length }),
+    output: {
+      decision: pre.kind,
+      retrieval_score: pre.topScore,
+      confidence_threshold: CONFIDENCE_THRESHOLD,
+      top_faq_id: pre.topFaqId,
+      input_safety_passed: pre.kind !== 'block' && pre.kind !== 'emergency',
+      retrieval_confident: pre.topScore >= CONFIDENCE_THRESHOLD,
+      answer_generation_allowed: pre.kind === 'llm'
+    },
+    metadata: { validator: 'input-safety-plus-retrieval-confidence' }
+  }, 'guardrail');
+  tracing.endObservation(inputValidation);
 
   if (pre.kind !== 'llm') {
     return {
@@ -173,10 +190,49 @@ async function generateResponse(query, context) {
   // same safe reception-team fallback whichever provider is configured.
   let result;
   const providerStarted = Date.now();
+  const generation = tracing.startChild(trace, 'faq-answer-generation', {
+    input: tracing.contentValue(prompt, { redacted: true, character_count: prompt.length }),
+    metadata: { provider_selection: process.env.LLM_PROVIDER || 'groq', failover_enabled: true }
+  });
+  const providerAttempts = new Map();
   try {
-    result = await providers.generate(prompt);
+    result = await providers.generate(prompt, {
+      onAttempt: function(attempt) {
+        if (attempt.phase === 'start') {
+          providerAttempts.set(attempt.provider, tracing.startChild(generation, attempt.provider + '-generation', {
+            model: attempt.modelId,
+            input: tracing.contentValue(prompt, { redacted: true, character_count: prompt.length }),
+            metadata: { provider: attempt.provider }
+          }, 'generation'));
+          return;
+        }
+        const attemptObservation = providerAttempts.get(attempt.provider);
+        tracing.updateObservation(attemptObservation, {
+          ...(attempt.status === 'success' ? {
+            output: tracing.contentValue(attempt.response || '', { redacted: true, character_count: (attempt.response || '').length }),
+            ...(attempt.usageDetails && Object.keys(attempt.usageDetails).length ? { usageDetails: attempt.usageDetails } : {})
+          } : {
+            level: 'ERROR',
+            statusMessage: attempt.errorCategory || 'provider_error',
+            output: { error_category: attempt.errorCategory || 'provider_error' }
+          }),
+          metadata: {
+            provider: attempt.provider,
+            provider_latency_ms: attempt.latencyMs,
+            total_tokens: attempt.usageTokens ?? null
+          }
+        });
+        tracing.endObservation(attemptObservation);
+      }
+    });
     result.provider_latency_ms = Date.now() - providerStarted;
   } catch (err) {
+    tracing.updateObservation(generation, {
+      level: 'ERROR',
+      statusMessage: err instanceof providers.ProviderError ? err.category : 'provider_unreachable',
+      metadata: { provider_latency_ms: Date.now() - providerStarted }
+    });
+    tracing.endObservation(generation);
     // The LLM being down must never surface as a 500 or a stack trace. A clear
     // fallback with a human handoff keeps the assistant usable.
     return {
@@ -189,12 +245,34 @@ async function generateResponse(query, context) {
     };
   }
 
+  tracing.updateObservation(generation, {
+    output: tracing.contentValue(result.text, { redacted: true, character_count: result.text.length }),
+    metadata: {
+      provider: result.provider,
+      provider_latency_ms: result.provider_latency_ms,
+      total_tokens: result.usageTokens,
+      provider_attempt_count: (result.attempts || []).length
+    }
+  });
+  tracing.endObservation(generation);
+
   if (checkOutputSafety(result.text)) {
+    const outputValidation = tracing.startChild(trace, 'faq-output-safety-validation', {
+      output: { passed: false, decision: 'blocked' },
+      metadata: { validator: 'generated-answer-safety' }
+    }, 'guardrail');
+    tracing.endObservation(outputValidation);
     return {
       response: "I am not able to help with that. Please contact the clinic directly.",
       guardrailTriggered: true
     };
   }
+
+  const outputValidation = tracing.startChild(trace, 'faq-output-safety-validation', {
+    output: { passed: true, decision: 'accepted' },
+    metadata: { validator: 'generated-answer-safety' }
+  }, 'guardrail');
+  tracing.endObservation(outputValidation);
 
   return {
     response: result.text,

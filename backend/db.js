@@ -74,9 +74,11 @@ function seedFromJson() {
   console.log('Refreshed database with ' + faqs.length + ' FAQs and ' + clinicCount + ' clinic overrides.');
 }
 
+const FAQ_RETRIEVAL_SQL = 'SELECT id, question, answer, question_hi, question_mr FROM faqs WHERE clinic_id = ?';
+
 function getAllFaqs(clinicId) {
   const cid = clinicId || 'default';
-  return db.prepare('SELECT id, question, answer, question_hi, question_mr FROM faqs WHERE clinic_id = ?').all(cid);
+  return db.prepare(FAQ_RETRIEVAL_SQL).all(cid);
 }
 
-module.exports = { db, seedFromJson, getAllFaqs };
+module.exports = { db, seedFromJson, getAllFaqs, FAQ_RETRIEVAL_SQL };

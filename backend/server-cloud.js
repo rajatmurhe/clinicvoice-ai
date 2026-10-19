@@ -2,10 +2,11 @@ const express = require('express');
 const cors = require('cors');
 const { createHandler } = require('graphql-http/lib/use/express');
 const { schema, root } = require('./graphql-schema');
-const { seedFromJson } = require('./db');
+const { seedFromJson, FAQ_RETRIEVAL_SQL } = require('./db');
 const { retrieveContext } = require('./rag-cloud');
 const { generateResponse } = require('./llm-cloud');
 const { runWithRequestId } = require('./request-context');
+const tracing = require('./langfuse-tracing');
 
 const app = express();
 app.use(cors({ exposedHeaders: ['X-Request-ID'] }));
@@ -165,13 +166,57 @@ app.post('/api/transcribe', rateLimit(60), async (req, res) => {
 });
 
 app.post('/api/text-query', rateLimit(60), async (req, res) => {
+  let trace = null;
   try {
     const query = req.body?.query;
     if (typeof query !== "string" || !query.trim() || query.length > 10000) {
       return res.status(400).json({ error: 'No query provided.' });
     }
-    const context = await retrieveContext(query, 2, req.body.clinic_id || 'default');
-    const result = await generateResponse(query, context);
+    const clinicId = req.body.clinic_id || 'default';
+    trace = tracing.startFaqTrace({
+      requestId: res.getHeader('X-Request-ID') || '-',
+      clinicId,
+      query
+    });
+    const retrievalStarted = Date.now();
+    const retrieval = tracing.startChild(trace, 'faq-sql-retrieval', {
+      input: {
+        sql_template: FAQ_RETRIEVAL_SQL,
+        bind_parameters: ['clinic_id (redacted)'],
+        ...(tracing.traceContent ? { question: query } : {})
+      },
+      metadata: { retrieval: 'hybrid-bm25-and-character-trigram', top_k: 2 }
+    }, 'retriever');
+    let context;
+    try {
+      context = await retrieveContext(query, 2, clinicId);
+    } catch (error) {
+      tracing.updateObservation(retrieval, { level: 'ERROR', statusMessage: error && error.name ? error.name : 'retrieval_failed' });
+      tracing.endObservation(retrieval);
+      throw error;
+    }
+    tracing.updateObservation(retrieval, {
+      output: {
+        result_count: context.length,
+        matches: context.map(function(item) { return { faq_id: item.faq.id, score: item.score }; })
+      },
+      metadata: { latency_ms: Date.now() - retrievalStarted }
+    });
+    tracing.endObservation(retrieval);
+
+    const result = await generateResponse(query, context, { trace });
+    tracing.updateObservation(trace, {
+      output: tracing.contentValue(result.response, { redacted: true, character_count: result.response.length }),
+      metadata: {
+        provider: result.provider || 'pre-decision',
+        model_id: result.model_id || null,
+        usage_tokens: result.usage_tokens ?? null,
+        guardrail: result.guardrailTriggered || false,
+        degraded: result.error === 'llm_unreachable'
+      }
+    });
+    tracing.endObservation(trace);
+    trace = null;
     // Structured provider log: names, model id, latency and token counts only.
     // The prompt and the answer never go to the log line.
     process.stdout.write(JSON.stringify({
@@ -195,6 +240,11 @@ app.post('/api/text-query', rateLimit(60), async (req, res) => {
       degraded: result.error === 'llm_unreachable'
     });
   } catch (err) {
+    tracing.updateObservation(trace, {
+      level: 'ERROR',
+      statusMessage: err && err.name ? err.name : 'faq_request_failed'
+    });
+    tracing.endObservation(trace);
     process.stderr.write(JSON.stringify({
       ts: new Date().toISOString(),
       route: '/api/text-query',
@@ -266,6 +316,13 @@ app.use((err, req, res, next) => {
 
 if (require.main === module) {
   const PORT = process.env.PORT || 5050;
-  app.listen(PORT, () => console.log('Cloud FAQ API running on port ' + PORT));
+  const server = app.listen(PORT, () => console.log('Cloud FAQ API running on port ' + PORT));
+  ['SIGINT', 'SIGTERM'].forEach(function(signal) {
+    process.once(signal, function() {
+      server.close(function() {
+        tracing.shutdown().finally(function() { process.exit(0); });
+      });
+    });
+  });
 }
 module.exports = app;

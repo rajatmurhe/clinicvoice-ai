@@ -42,7 +42,16 @@ async function callGroq(prompt) {
   }, { model: GROQ_MODEL, messages: [{ role: 'user', content: prompt }], temperature: 0.2, max_tokens: 300 });
   const text = data?.choices?.[0]?.message?.content;
   if (typeof text !== 'string' || !text.trim()) throw new ProviderError('empty_response');
-  return { text: text.trim(), provider: 'groq', modelId: GROQ_MODEL, usageTokens: data.usage?.total_tokens ?? null };
+  const usage = data.usage || {};
+  return {
+    text: text.trim(), provider: 'groq', modelId: GROQ_MODEL,
+    usageTokens: usage.total_tokens ?? null,
+    usageDetails: {
+      ...(Number.isFinite(usage.prompt_tokens) ? { promptTokens: usage.prompt_tokens } : {}),
+      ...(Number.isFinite(usage.completion_tokens) ? { completionTokens: usage.completion_tokens } : {}),
+      ...(Number.isFinite(usage.total_tokens) ? { totalTokens: usage.total_tokens } : {})
+    }
+  };
 }
 
 async function callGemini(prompt) {
@@ -61,19 +70,58 @@ async function callGemini(prompt) {
   const parts = candidate?.content?.parts;
   const text = Array.isArray(parts) ? parts.filter(p => !p.thought && typeof p.text === 'string').map(p => p.text).join('') : '';
   if (!text.trim()) throw new ProviderError('empty_response');
-  return { text: text.trim(), provider: 'gemini', modelId: model, usageTokens: data.usageMetadata?.totalTokenCount ?? null };
+  const usage = data.usageMetadata || {};
+  return {
+    text: text.trim(), provider: 'gemini', modelId: model,
+    usageTokens: usage.totalTokenCount ?? null,
+    usageDetails: {
+      ...(Number.isFinite(usage.promptTokenCount) ? { promptTokens: usage.promptTokenCount } : {}),
+      ...(Number.isFinite(usage.candidatesTokenCount) ? { completionTokens: usage.candidatesTokenCount } : {}),
+      ...(Number.isFinite(usage.totalTokenCount) ? { totalTokens: usage.totalTokenCount } : {})
+    }
+  };
 }
 
-async function generate(prompt) {
+async function generate(prompt, options = {}) {
   const primary = providerName();
   const secondary = primary === 'groq' ? 'gemini' : 'groq';
   const calls = { groq: callGroq, gemini: callGemini };
-  try { return await calls[primary](prompt); }
+  const attempts = [];
+  async function call(name) {
+    const started = Date.now();
+    const modelId = name === 'groq' ? GROQ_MODEL : (process.env.GEMINI_MODEL || 'gemini-3.8-flash');
+    try { if (options.onAttempt) options.onAttempt({ phase: 'start', provider: name, modelId }); } catch (_) { /* telemetry is best effort */ }
+    try {
+      const result = await calls[name](prompt);
+      const attempt = {
+        provider: name,
+        modelId: result.modelId,
+        latencyMs: Date.now() - started,
+        usageTokens: result.usageTokens,
+        usageDetails: result.usageDetails
+      };
+      attempts.push(attempt);
+      try { if (options.onAttempt) options.onAttempt({ phase: 'end', status: 'success', ...attempt, response: result.text }); } catch (_) { /* telemetry is best effort */ }
+      return { ...result, attempts };
+    } catch (err) {
+      const attempt = {
+        provider: name,
+        modelId,
+        latencyMs: Date.now() - started,
+        errorCategory: err instanceof ProviderError ? err.category : 'unreachable'
+      };
+      attempts.push(attempt);
+      try { if (options.onAttempt) options.onAttempt({ phase: 'end', status: 'error', ...attempt }); } catch (_) { /* telemetry is best effort */ }
+      err.attempts = attempts;
+      throw err;
+    }
+  }
+  try { return await call(primary); }
   catch (err) {
     // Never route authentication, request, or safety failures to another vendor.
     if (!TRANSIENT.has(err.category) || !process.env[secondary === 'groq' ? 'GROQ_API_KEY' : 'GEMINI_API_KEY']) throw err;
     console.warn(`[LLM-FAILOVER] ${primary}: ${err.category}; trying ${secondary}`);
-    return calls[secondary](prompt);
+    return call(secondary);
   }
 }
 

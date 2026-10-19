@@ -35,6 +35,7 @@ a guardrail refuses the request; refusal is not data minimization by itself.
 | `python-agents/semantic_cache.py` | Query text + embedding + response, in-memory only | Cleared on every server restart — never written to disk |
 | Google Calendar (via service account) | Appointment date, time, and the name given at booking | Retained per the clinic's own calendar until manually deleted — this is the one piece of data that persists outside the local machine by design, since it's the actual appointment record |
 | Groq and Google Gemini (cloud FAQ; Groq also provides speech services) | The query text sent for that single request | Per each provider's data-handling terms — not controlled by this project; only the cloud deployment sends data externally, the local pipeline never does |
+| Langfuse (optional cloud FAQ tracing) | Request ID, clinic ID, prepared SQL template, retrieval result IDs/scores, validation outcomes, model/provider, latency, and token usage. Question/answer/prompt content is omitted by default. | Langfuse project retention and data region settings; this project does not enforce provider-side deletion |
 
 ## 3. What never leaves the local machine (local deployment)
 
@@ -139,3 +140,16 @@ Google Gemini. Gemini receives this data even when Groq is primary. Provider
 retention and contractual terms need separate review; this project supplies no
 BAA/DPA or certification. Groq remains the provider for hosted transcription/TTS.
 The browser speech-recognition service may also process microphone audio.
+
+Langfuse FAQ tracing is disabled unless `LANGFUSE_ENABLED=true` and both
+Langfuse keys are configured. `LANGFUSE_TRACE_CONTENT=false` is the default:
+the trace contains metadata and the fixed, parameterized FAQ SQL template, but
+not the user's question, model prompt, FAQ content, or generated answer. Setting
+`LANGFUSE_TRACE_CONTENT=true` sends the question, prompt, and answer to the
+configured Langfuse project; enable it only after reviewing the project's
+region, access controls, retention, and contractual terms for the data you
+intend to trace. Do not use identifiable patient data with a demo Langfuse
+project. ClinicVoice does not generate SQL; it retrieves FAQs with a fixed
+SQLite statement. Provider-reported token usage is attached to generation
+traces; Langfuse cost is inferred from that model's configured price and can be
+missing or approximate if the model/provider price is not configured.

@@ -24,7 +24,7 @@ function groqOk() {
     json: function() {
       return Promise.resolve({
         choices: [{ message: { content: '  We are open 9am to 6pm.  ' } }],
-        usage: { total_tokens: 87 }
+        usage: { prompt_tokens: 50, completion_tokens: 37, total_tokens: 87 }
       });
     }
   });
@@ -37,7 +37,7 @@ function geminiOk() {
     json: function() {
       return Promise.resolve({
         candidates: [{ content: { parts: [{ text: '  We are open 9am to 6pm.  ' }] } }],
-        usageMetadata: { totalTokenCount: 120 }
+        usageMetadata: { promptTokenCount: 70, candidatesTokenCount: 50, totalTokenCount: 120 }
       });
     }
   });
@@ -52,6 +52,7 @@ describe('provider selection', function() {
     const result = await providers.generate('hello');
     expect(result.provider).toBe('groq');
     expect(result.modelId).toBe('openai/gpt-oss-20b');
+    expect(result.usageDetails).toEqual({ promptTokens: 50, completionTokens: 37, totalTokens: 87 });
   });
 
   test('gemini is selected when LLM_PROVIDER=gemini', async function() {
@@ -84,6 +85,7 @@ describe('gemini response normalization', function() {
     const result = await providers.generate('hello');
     expect(result.provider).toBe('gemini');
     expect(result.text).toBe('We are open 9am to 6pm.');
+    expect(result.usageDetails).toEqual({ promptTokens: 70, completionTokens: 50, totalTokens: 120 });
   });
 
   test('an empty candidate is an empty_response error', async function() {
@@ -157,6 +159,17 @@ describe('bounded transient failover', () => {
     expect(result.usageTokens).toBe(120);
     expect(global.fetch).toHaveBeenCalledTimes(2);
     expect(global.fetch.mock.calls[1][0]).not.toContain('test-gemini');
+  });
+  test('each provider attempt exposes bounded tracing metadata for a failover run', async () => {
+    global.fetch = jest.fn().mockResolvedValueOnce({ok: false, status: 503}).mockReturnValueOnce(geminiOk());
+    const events = [];
+    const result = await loadModules().providers.generate('hello', { onAttempt: event => events.push(event) });
+    expect(result.attempts.map(attempt => attempt.provider)).toEqual(['groq', 'gemini']);
+    expect(events.map(event => [event.phase, event.provider])).toEqual([
+      ['start', 'groq'], ['end', 'groq'], ['start', 'gemini'], ['end', 'gemini']
+    ]);
+    expect(events[1].errorCategory).toBe('server_error');
+    expect(events[3].usageDetails).toEqual({ promptTokens: 70, completionTokens: 50, totalTokens: 120 });
   });
   test('Gemini timeout falls back to Groq', async () => {
     process.env.LLM_PROVIDER = 'gemini';

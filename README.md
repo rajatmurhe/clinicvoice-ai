@@ -134,6 +134,8 @@ The FAQ service ranks clinic content with a hybrid retrieval method: BM25 keywor
 
 Generated answers still pass through output checks. The provider name, model, latency, and token count can be logged without logging the prompt and answer in the provider log line.
 
+Optional Langfuse tracing records the FAQ request as a parent run with child spans for SQLite retrieval, input/retrieval validation, model generation, and output-safety validation. Retrieval traces show the parameterized SQL template, FAQ IDs and scores, and step latency; generations include the selected Groq/Gemini model, provider latency, and token usage returned by the provider. Langfuse can infer per-call cost when that model has pricing configured in the Langfuse project. ClinicVoice does **not** generate SQL: the FAQ search uses a fixed prepared query. Tracing is off by default; see the Langfuse setup below.
+
 ### Deterministic workflows
 
 Appointment, refill, insurance, and intake agents use explicit code and session state for each step. The language model does not choose a time slot, create a booking, verify a patient, or decide whether a prescription should be renewed. This makes those actions easier to test and keeps the calendar operation separate from free-form answer generation.
@@ -230,6 +232,8 @@ In another terminal:
 Open http://localhost:5173.
 
 For FAQ answers, transcription, and English hosted speech, add a Groq API key to the root .env file. Add a Gemini API key to enable provider failover. Never commit .env or clinic registry data.
+
+To enable FAQ tracing, create a Langfuse project and set `LANGFUSE_ENABLED=true`, `LANGFUSE_PUBLIC_KEY`, and `LANGFUSE_SECRET_KEY` in `.env`. Set `LANGFUSE_BASE_URL` if using a non-default Langfuse region or self-hosted instance. Keep `LANGFUSE_TRACE_CONTENT=false` to trace only metadata, SQL template, scores, and validation outcomes. Set it to `true` only when your data-handling policy allows clinic questions and generated answers to be sent to that Langfuse project. Do not use real patient content in a demo project. See [Langfuse token and cost tracking](https://langfuse.com/docs/observability/features/token-and-cost-tracking) for model pricing setup.
 
 ### 3. Try the API directly
 
