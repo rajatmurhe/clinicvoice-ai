@@ -1,13 +1,16 @@
 import re
 
 BLOCKED_PATTERNS_INPUT = [
-    r"diagnos", r"\bprescrib", r"medication", r"dose", r"dosage",
+    r"diagnos", r"\bprescrib", r"dose", r"dosage",
     r"how much .* (should|can|could)\s+(i|we|you|he|she|they)?\s*(take|dose)\b", r"is it (cancer|serious|an emergency)",
     r"chest pain", r"cant breathe", r"symptoms of", r"what disease",
     r"am i dying", r"nhs number", r"date of birth", r"social security",
     r"verify your identity",
-    r"\bmedicine\b", r"\bsurgery\b", r"sore throat|throat is sore",
-    r"\bantibiotic", r"side effects", r"\bdizzy\b", r"\bfever\b", r"\brash\b",
+    r"(what|which).*\b(medication|medicine|antibiotics?)\b",
+    r"(should|can|could) (i|we|he|she|they|you) (take|use|stop|increase|reduce)",
+    r"(need|recommend).*surgery",
+    r"(sore|pain|fever|rash|dizzy).*what should (i|we) do|what should (i|we) do.*(sore|pain|fever|rash|dizzy)",
+    r"(what|explain|tell).*side effects",
     r"what (could it be|is wrong with me)",
     r"how (do|to) i (treat|cure)", r"is it safe to",
     r"\d+\s?mg\b",
@@ -45,10 +48,10 @@ INPUT_REGEX = re.compile("|".join(BLOCKED_PATTERNS_INPUT), re.IGNORECASE)
 INVISIBLE_CHARS = re.compile(r"[\u200b-\u200f\u202a-\u202e\u00ad\ufeff\u2060'\u2019]")
 
 SQUEEZED_BLOCKED = [
-    "diagnos", "prescrib", "medication", "dosage", "symptomsof", "whatdisease",
+    "diagnos", "prescrib", "dosage", "symptomsof", "whatdisease",
     "amidying", "nhsnumber", "dateofbirth", "socialsecurity", "verifyyouridentity",
-    "chestpain", "cantbreathe", "cannotbreathe", "sorethroat", "throatisore",
-    "antibiotic", "sideeffects", "surgery", "medicine", "overdos",
+    "chestpain", "cantbreathe", "cannotbreathe",
+    "overdos",
     "ignoreallprevious", "forgetyourrules", "newinstructions", "systemprompt",
     "patientlist", "appointmentlist", "bookinglist", "patientdata",
     "patientrecords", "appointmentdetails", "patientdetails",

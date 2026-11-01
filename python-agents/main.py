@@ -1,3 +1,4 @@
+import security
 import os
 import re
 import time
@@ -43,7 +44,7 @@ app = FastAPI(title="ClinicVoice AI - Multi-Agent Orchestrator")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=os.environ.get("CLINICVOICE_ALLOWED_ORIGINS", "http://localhost:5050,http://127.0.0.1:5050").split(","),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -80,7 +81,7 @@ def llm_classify_intent(query):
         r = http_requests.post(
             ROUTER_CLASSIFY_URL,
             json={"query": query},
-            headers={"X-Request-ID": obs.get_request_id()},
+            headers={"X-Request-ID": obs.get_request_id(), **security.service_headers()},
             timeout=(2, 4),
         )
         r.raise_for_status()
@@ -127,10 +128,15 @@ class QueryRequest(BaseModel):
 
 @app.middleware("http")
 async def request_context(request: Request, call_next):
-    request_id = request.headers.get("x-request-id") or obs.new_request_id()
+    request_id = security.request_id(request.headers.get("x-request-id"))
     obs.set_request_id(request_id)
 
     path = request.url.path
+    is_admin = path == '/dashboard' or path.startswith('/dashboard/') or path.startswith('/api/dashboard/')
+    if is_admin and not security.authorized(request.headers.get('authorization'), 'CLINICVOICE_ADMIN_TOKEN', basic=True):
+        return JSONResponse({'error': 'Admin authentication required.'}, status_code=401, headers={'WWW-Authenticate': 'Basic realm="ClinicVoice admin"', 'Cache-Control': 'no-store'})
+    if path.startswith('/api/') and not is_admin and not security.authorized(request.headers.get('authorization'), 'CLINICVOICE_SERVICE_KEY'):
+        return JSONResponse({'error': 'Service authentication required.'}, status_code=401)
     if path not in ("/health", "/ready") and not path.startswith("/dashboard"):
         ip = request.client.host if request.client else "unknown"
         if not RATE_LIMITER.allow(ip):
@@ -145,6 +151,8 @@ async def request_context(request: Request, call_next):
     start = time.time()
     response = await call_next(request)
     response.headers["X-Request-ID"] = request_id
+    if is_admin:
+        response.headers["Cache-Control"] = "no-store"
     if path not in ("/health", "/ready") and not path.startswith("/dashboard"):
         obs.log_event(
             "request",
@@ -360,6 +368,7 @@ def process_query(req: QueryRequest, session: dict, start: float):
 
 @app.post("/api/agent-query")
 def agent_query(req: QueryRequest):
+    security.demo_session.set(req.session_id if os.environ.get("CLINICVOICE_DEMO_MODE") == "true" else None)
     start = time.time()
 
     if ORCHESTRATOR_MODE == "graph":

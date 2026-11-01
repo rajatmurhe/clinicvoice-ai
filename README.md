@@ -1,6 +1,6 @@
 # ClinicVoice AI: Multilingual Voice Assistant for Clinic Reception
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-ClinicVoice-00C853?style=for-the-badge&logo=render&logoColor=white)](https://clinicvoice-ai.onrender.com)
+[![Hosted API](https://img.shields.io/badge/Live%20Demo-ClinicVoice-00C853?style=for-the-badge&logo=render&logoColor=white)](https://clinicvoice-ai.onrender.com)
 [![React](https://img.shields.io/badge/React-Vite-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 [![Python](https://img.shields.io/badge/Python-FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Node.js](https://img.shields.io/badge/Node.js-Express-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
@@ -9,7 +9,9 @@
 [![SQLite](https://img.shields.io/badge/SQLite-Local%20State-003B57?style=for-the-badge&logo=sqlite&logoColor=white)](https://sqlite.org/)
 [![CI](https://img.shields.io/badge/CI-GitHub%20Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/rajatmurhe/clinicvoice-ai/actions/workflows/ci.yml)
 
-**Live application:** https://clinicvoice-ai.onrender.com/
+**Hosted API (current deployment):** https://clinicvoice-ai.onrender.com/
+
+**Run the complete demo:** `python3 scripts/setup_demo.py`, add your provider keys to `.env`, then `docker compose up --build`. Open http://localhost:5050. The gateway now serves the UI and protects backend access; production needs the settings in [the deployment guide](docs/LAUNCH.md) before this version is deployed.
 
 ClinicVoice AI is a voice-first receptionist for medical and dental clinics. A patient can ask clinic questions, request an appointment, ask for a refill, or leave a message for the care team by speaking or typing. The assistant speaks its answer back and supports English, Hindi, and Marathi.
 
@@ -93,7 +95,7 @@ A patient can ask for a receptionist or express a complaint. The assistant direc
 
 The interface has a language selector for English, Hindi, and Marathi, plus a clinic selector for the included demo clinics. Patients can speak or type. The repeat button plays the last answer again without submitting another request. Starting a new language or clinic conversation clears the previous session.
 
-The browser uses its speech recognition API when available. If recognition is missing or fails, the patient can tap the microphone to record a clip and tap Stop to send it for server transcription. Groq Whisper transcribes the recording using the selected language. English audio replies use the hosted text-to-speech endpoint; Hindi and Marathi use the browser's installed speech voice. If audio cannot play, the text answer remains visible.
+The browser records audio when the patient taps the mic; tapping Stop sends it to the authenticated gateway for Groq Whisper transcription in the selected language. English replies use hosted TTS; Hindi and Marathi use installed browser voices. Text remains visible when audio is unavailable.
 
 A waiting message appears when the first response takes longer than usual. This is useful on the free hosted demo, where services may need time to wake after inactivity.
 
@@ -105,8 +107,8 @@ The app is split into a React voice client, a Python clinic workflow service, an
              |
              v
     React voice client
-      |-- browser speech recognition when available
-      |-- recorded audio fallback -> Node transcription endpoint
+      |-- recorded audio -> authenticated gateway transcription endpoint
+      |-- session-authenticated text -> Node gateway -> Python agent service
              |
              v
     Python FastAPI agent service
@@ -166,24 +168,22 @@ The system also includes optional feature-flagged implementations for a LangGrap
 
 ## Architecture
 
-    Browser / React
-       |
-       |  JSON requests with a shared request ID
+    Browser / React (served by gateway)
+       |  Expiring anonymous demo token + request ID
        v
-    Python FastAPI service :8000
-       |-- safety and emergency handling
-       |-- language-aware router
-       |-- deterministic workflow agents
-       |-- clinic scheduling and logging tools
-       |-- SQLite session and demo data
-       |
+    Node.js / Express gateway :5050
+       |-- session issuance, request budgets, speech transcription / TTS
+       |-- static frontend, internal FAQ retrieval and Groq / Gemini generation
+       |  Server-only service credential
        v
-    Node.js / Express service :5050
-       |-- clinic FAQ retrieval
-       |-- Groq / Gemini answer generation
-       |-- Groq speech transcription and English TTS
+    Python FastAPI agent service :8000 (localhost :8001 in Compose)
+       |-- safety and emergency handling, intent routing
+       |-- bounded workflow agents and clinic tools
+       |-- session-scoped synthetic calendars in demo mode
+       |-- authenticated calls back to internal Node FAQ routes
+       |-- separately authenticated admin dashboard
 
-The FAQ service also exposes health checks and a GraphQL endpoint for FAQ data. The Python service exposes a health check, readiness check, query endpoint, and a small admin dashboard with request, latency, failure, and tool statistics.
+Health checks are public; GraphQL and internal FAQ/classification routes require the service credential. The dashboard requires the separate admin credential. See [deployment and access configuration](docs/LAUNCH.md).
 
 ## Evaluation Results
 
@@ -206,79 +206,34 @@ The original baseline is recorded alongside the full case-level output in the ev
 
 The red-team harness contains 46 examples across prompt injection, medical advice, identity bypass, other-patient data requests, and Hindi/Marathi attacks. The first safety layer caught 40 of 46; the blocklists in the Python and Node services had zero measured drift. The six not caught by the first layer are reported in the harness results. Some appointment-related prompts continue into the protected booking flow and must be checked end to end; the first-layer score alone is not a privacy guarantee.
 
-The red-team cases and detailed outcomes are in [RED_TEAM.md](RED_TEAM.md). The offline eval and threshold files are in [python-eval/results](python-eval/results).
+CI runs the red-team harness and checks that previously caught attacks remain caught and Python/Node decisions agree. The red-team cases and detailed outcomes are in [RED_TEAM.md](RED_TEAM.md). The offline eval and threshold files are in [python-eval/results](python-eval/results).
 
 ## Quickstart
 
-### 1. Start the backend services
+Requirements: Docker Compose and Python 3 (only for generating local secrets).
 
-Requirements: Docker with Docker Compose, or Python 3.11 and Node.js 22 for a native setup.
+```bash
+python3 scripts/setup_demo.py
+# Add GROQ_API_KEY and optionally GEMINI_API_KEY to .env locally.
+docker compose up --build
+```
 
-For the Docker setup, copy the example environment file and start the API services:
+Open **http://localhost:5050**. The root Docker image builds React and serves it through the Node gateway. No separate frontend setup or patient-registry copy is needed.
 
-    cp .env.example .env
-    docker compose up --build
+Try these:
 
-The FAQ service listens on port 5050. The agent service listens on port 8000. The demo calendar and session state use local persistent storage.
+1. Click an English, Hindi, or Marathi booking example.
+2. Choose an offered time. In demo mode the default name is **Demo Patient**.
+3. Ask “When is my appointment?”, give “My name is Demo Patient”, then **DEMO-12345**.
+4. Try rescheduling and cancellation using the same verification steps.
 
-### 2. Start the web client
+Only synthetic information belongs in this demo. Each browser demo session has its own calendar; the public demo ID is not real identity verification. Session tokens last 15 minutes and reset when the gateway restarts.
 
-In another terminal:
+The agent service is bound to localhost port 8001 in Compose. Its dashboard at http://localhost:8001/dashboard/ requires HTTP Basic login: username `admin`, password from `CLINICVOICE_ADMIN_TOKEN` in your private `.env`. Missing/short credentials deny access. Use HTTPS for any remotely accessible dashboard.
 
-    cd cloud-frontend
-    npm ci
-    VITE_API_URL=http://localhost:5050 VITE_AGENT_URL=http://localhost:8000 npm run dev
+The browser obtains an expiring token from `/api/session`; it never receives the internal service key. Direct agent and FAQ requests require the server-only `CLINICVOICE_SERVICE_KEY`. The gateway applies session limits and a shared per-process hourly request cap. These are demo abuse controls, not user authentication or a durable financial spending cap.
 
-Open http://localhost:5173.
-
-For FAQ answers, transcription, and English hosted speech, add a Groq API key to the root .env file. Add a Gemini API key to enable provider failover. Never commit .env or clinic registry data.
-
-To enable FAQ tracing, create a Langfuse project and set `LANGFUSE_ENABLED=true`, `LANGFUSE_PUBLIC_KEY`, and `LANGFUSE_SECRET_KEY` in `.env`. Set `LANGFUSE_BASE_URL` if using a non-default Langfuse region or self-hosted instance. Keep `LANGFUSE_TRACE_CONTENT=false` to trace only metadata, SQL template, scores, and validation outcomes. Set it to `true` only when your data-handling policy allows clinic questions and generated answers to be sent to that Langfuse project. Do not use real patient content in a demo project. See [Langfuse token and cost tracking](https://langfuse.com/docs/observability/features/token-and-cost-tracking) for model pricing setup.
-
-### 3. Try the API directly
-
-    curl -s http://localhost:8000/api/agent-query \
-      -H 'Content-Type: application/json' \
-      -d '{"query":"I want to book an appointment tomorrow","session_id":"demo","language":"en"}'
-
-The request body accepts:
-
-- query: the text to route through the receptionist.
-- session_id: a conversation identifier used to keep multi-turn workflow state.
-- clinic_id: optional clinic profile identifier, such as default or smilecare.
-- language: en, hi, or mr; used for transcription, prompts, and browser playback.
-
-### Example service endpoints
-
-| Service | Endpoint | Purpose |
-|---|---|---|
-| Agent service | GET /health | Basic service health |
-| Agent service | GET /ready | Checks FAQ service and calendar availability |
-| Agent service | POST /api/agent-query | Routes a conversation turn |
-| Agent dashboard | GET /dashboard | Recent requests and operational metrics |
-| FAQ service | GET /api/health | FAQ service health |
-| FAQ service | POST /api/text-query | FAQ retrieval and answer generation |
-| FAQ service | POST /api/transcribe | Speech-to-text for recorded audio |
-| FAQ service | POST /api/tts | English text-to-speech |
-
-### Register demo patients for protected appointment actions
-
-The demo can run new appointment bookings without a patient registry. To test a lookup, cancellation, or reschedule, provide a private clinic-managed registry file. Example structure:
-
-    [
-      {
-        "clinic_id": "default",
-        "name": "Demo Patient",
-        "phone": "9000000000",
-        "patient_id": "DEMO-12345"
-      }
-    ]
-
-Do not use real patient information in a development repository. With Docker, start the services and copy the registry into the persistent agent volume:
-
-    docker compose cp ./patients.json agents:/data/patients.json
-
-For a native Python run, set CLINICVOICE_PATIENT_REGISTRY to the absolute path of the private file. If the registry is missing, malformed, or does not contain a match, the system fails closed and asks the caller to contact reception.
+For native development, hosting configuration, and production limitations, see [docs/LAUNCH.md](docs/LAUNCH.md).
 
 ## Local Development and Tests
 
@@ -348,3 +303,5 @@ CI runs backend tests, frontend lint/build, Python tests, the offline evaluation
 - The FHIR adapter is a sandbox integration example. A production electronic health record requires vendor-specific authorization, testing, and operational controls.
 
 For the data collected, safety boundaries, and deployment considerations, see [COMPLIANCE.md](COMPLIANCE.md). Do not put API keys or patient registry files in Git.
+
+Latest launch regression evidence: [results-launch](python-eval/results-launch/eval-offline.md). Nine added English/Hindi/Marathi administrative requests pass without weakening the measured red-team baseline.

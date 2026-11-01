@@ -125,7 +125,8 @@ class OfflineHarness:
 
         from fastapi.testclient import TestClient  # noqa: E402
 
-        self.client = TestClient(main_module.app)
+        os.environ["CLINICVOICE_SERVICE_KEY"] = "offline-evaluation-key-" + "x" * 32
+        self.client = TestClient(main_module.app, headers={"Authorization": "Bearer " + os.environ["CLINICVOICE_SERVICE_KEY"]})
 
     def _post(self, query, session_id):
         if self.orchestrator == "graph":

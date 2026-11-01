@@ -1,0 +1,4 @@
+[
+  {"clinic_id":"default","name":"Demo Patient","patient_id":"DEMO-12345"},
+  {"clinic_id":"smilecare","name":"Demo Patient","patient_id":"DEMO-12345"}
+]

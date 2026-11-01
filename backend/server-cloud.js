@@ -8,8 +8,12 @@ const { generateResponse } = require('./llm-cloud');
 const { runWithRequestId } = require('./request-context');
 const tracing = require('./langfuse-tracing');
 
+const security = require('./security');
+const path = require('node:path');
 const app = express();
-app.use(cors({ exposedHeaders: ['X-Request-ID'] }));
+// Only configure this with the actual trusted proxy addresses/CIDRs.
+if (process.env.CLINICVOICE_TRUST_PROXY) app.set('trust proxy', process.env.CLINICVOICE_TRUST_PROXY.split(','));
+app.use(cors({ origin: security.origins(), exposedHeaders: ['X-Request-ID'] }));
 // Audio uses base64 JSON; normal recordings exceed Express's 100 KB default.
 app.use('/api/transcribe', express.json({ limit: '10mb' }));
 app.use(express.json());
@@ -19,8 +23,7 @@ seedFromJson();
 // One request id per request: inherited from the caller (frontend or Python
 // service) or generated here, echoed back, and attached to every log line.
 app.use(function(req, res, next) {
-  const requestId = (req.headers['x-request-id'] || '').toString().slice(0, 64) ||
-    require('crypto').randomBytes(6).toString('hex');
+  const requestId = security.requestId(req.headers['x-request-id']);
   res.setHeader('X-Request-ID', requestId);
   const start = Date.now();
   res.on('finish', function() {
@@ -44,6 +47,9 @@ function rateLimit(maxPerMinute) {
   return function(req, res, next) {
     const key = req.ip || 'unknown';
     const now = Date.now();
+    if (hits.size > 1000) for (const [key, times] of hits) {
+      if (!times.length || times[times.length - 1] < now - 60000) hits.delete(key);
+    }
     const bucket = (hits.get(key) || []).filter(function(t) { return now - t < 60000; });
     if (bucket.length >= maxPerMinute) {
       hits.set(key, bucket);
@@ -55,22 +61,30 @@ function rateLimit(maxPerMinute) {
   };
 }
 
-app.all('/graphql', createHandler({ schema: schema, rootValue: root }));
+app.all('/graphql', security.serviceOnly, createHandler({ schema: schema, rootValue: root }));
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'ClinicVoice AI FAQ API (cloud) running' });
 });
 
-app.get('/', (req, res) => {
-  res.json({
-    message: 'ClinicVoice AI - Cloud FAQ API',
-    note: 'This is the GraphQL/SQLite FAQ API only. The full voice/LLM pipeline runs locally (depends on Ollama, whisper.cpp).',
-    graphql: '/graphql',
-    health: '/api/health'
-  });
+app.post('/api/session', security.issueSession);
+app.post('/api/agent-query', security.authorize, security.budget, async (req, res) => {
+  if (!req.demoSession) return res.status(403).json({error: 'Browser session required.'});
+  const body = req.body || {};
+  if (typeof body.query !== 'string' || !body.query.trim() || body.query.length > 2000) return res.status(400).json({error: 'Please send a question under 2000 characters.'});
+  try {
+    const upstream = await fetch((process.env.AGENT_INTERNAL_URL || 'http://127.0.0.1:8001') + '/api/agent-query', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', Authorization: 'Bearer ' + process.env.CLINICVOICE_SERVICE_KEY, 'X-Request-ID': res.getHeader('X-Request-ID')},
+      body: JSON.stringify({query: body.query, session_id: req.demoSession + ':' + String(body.session_id || '').slice(0, 64), clinic_id: ['default', 'smilecare'].includes(body.clinic_id) ? body.clinic_id : 'default', language: ['en', 'hi', 'mr'].includes(body.language) ? body.language : 'en'}),
+      signal: AbortSignal.timeout(85000)
+    });
+    res.status(upstream.status).json(await upstream.json());
+  } catch { res.status(503).json({error: 'The assistant is temporarily unavailable. Please try again.'}); }
 });
+app.use(express.static(process.env.FRONTEND_DIST || path.join(__dirname, '../cloud-frontend/dist')));
 
-app.post('/api/router-classify', rateLimit(120), async (req, res) => {
+app.post('/api/router-classify', security.serviceOnly, security.budget, rateLimit(120), async (req, res) => {
   // Hybrid router endpoint: classifies a low-confidence message for the
   // Python orchestrator. Returns the regex-safe fallback on any LLM problem.
   const query = req.body?.query;
@@ -84,7 +98,7 @@ app.post('/api/router-classify', rateLimit(120), async (req, res) => {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ' + process.env.GROQ_API_KEY,
-        'X-Request-ID': (req.headers['x-request-id'] || '').toString().slice(0, 64) || '-'
+        'X-Request-ID': res.getHeader('X-Request-ID')
       },
       body: JSON.stringify({
         model: 'openai/gpt-oss-20b',
@@ -107,7 +121,7 @@ app.post('/api/router-classify', rateLimit(120), async (req, res) => {
   }
 });
 
-app.post('/api/transcribe', rateLimit(60), async (req, res) => {
+app.post('/api/transcribe', security.authorize, security.budget, rateLimit(60), async (req, res) => {
   // Server side speech to text for browsers without the Web Speech API
   // (Safari, Brave): the push to talk fallback records audio and posts it here.
   try {
@@ -133,7 +147,7 @@ app.post('/api/transcribe', rateLimit(60), async (req, res) => {
       method: 'POST',
       headers: {
         'Authorization': 'Bearer ' + process.env.GROQ_API_KEY,
-        'X-Request-ID': (req.headers['x-request-id'] || '').toString().slice(0, 64) || '-'
+        'X-Request-ID': res.getHeader('X-Request-ID')
       },
       body: form,
       signal: AbortSignal.timeout(20000)
@@ -165,7 +179,7 @@ app.post('/api/transcribe', rateLimit(60), async (req, res) => {
   }
 });
 
-app.post('/api/text-query', rateLimit(60), async (req, res) => {
+app.post('/api/text-query', security.serviceOnly, security.budget, rateLimit(60), async (req, res) => {
   let trace = null;
   try {
     const query = req.body?.query;
@@ -252,11 +266,11 @@ app.post('/api/text-query', rateLimit(60), async (req, res) => {
       error_type: err.name,
       message: err.message
     }) + '\n');
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'The assistant is temporarily unavailable.' });
   }
 });
 
-app.post('/api/tts', rateLimit(60), async (req, res) => {
+app.post('/api/tts', security.authorize, security.budget, rateLimit(60), async (req, res) => {
   try {
     const text = req.body?.text;
     if (typeof text !== "string" || !text.trim() || text.length > 10000) {

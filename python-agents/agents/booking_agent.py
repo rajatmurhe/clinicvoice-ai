@@ -1,3 +1,4 @@
+import os
 import re
 import time
 from patient_verification import verify_patient
@@ -492,7 +493,7 @@ def handle_booking(query: str, session: dict) -> dict:
         }
 
     if pending and requested_time and requested_time in pending["slots"]:
-        patient_name = extract_name(query) or "Patient"
+        patient_name = extract_name(query) or ("Demo Patient" if os.environ.get("CLINICVOICE_DEMO_MODE") == "true" else "Patient")
         try:
             event_id = book_appointment(pending["date"], requested_time, patient_name, doctor=doctor, clinic_id=clinic_id)
         except Exception:
