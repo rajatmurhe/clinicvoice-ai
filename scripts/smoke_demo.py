@@ -47,6 +47,8 @@ with tempfile.TemporaryDirectory(prefix='clinicvoice-smoke-') as temp:
                 return r.json()['response']
             assert '09:00 AM' in ask('I have a fever, can I book an appointment tomorrow?')
             assert 'booked' in ask('09:00 AM').lower()
+            # Independent browser sessions cannot consume or reveal this booking.
+            assert '09:00 AM' in ask('Book an appointment tomorrow', 'isolated-browser')
             assert 'name' in ask('When is my appointment?').lower()
             assert 'registered' in ask('My name is Demo Patient').lower()
             assert 'appointment is on' in ask('DEMO-12345').lower()

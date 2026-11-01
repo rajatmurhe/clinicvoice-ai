@@ -6,7 +6,7 @@ const API_URL = import.meta.env.VITE_API_URL || '';
 let sessionPromise;
 async function apiFetch(url, options) {
   async function session() {
-    const res = await fetch(API_URL + '/api/session', {method: 'POST'});
+    const res = await fetch(API_URL + '/api/session', {method: 'POST', signal: AbortSignal.timeout(15000)});
     if (!res.ok) throw new Error('Unable to start the demo. Please try again shortly.');
     return (await res.json()).token;
   }
@@ -394,7 +394,8 @@ function App() {
       }
 
       if (!res.ok) {
-        throw new Error('Server error: ' + res.status);
+        const failure = await res.json().catch(() => ({}));
+        throw new Error(failure.error || 'The assistant is temporarily unavailable. Please try again.');
       }
 
       const data = await res.json();
@@ -409,7 +410,7 @@ function App() {
       // Text stays usable if audio is blocked or the user interrupts playback.
       void speakReply(data.response, res.headers.get('X-Request-ID') || requestId);
     } catch (err) {
-      setError(err.message);
+      setError(['TimeoutError', 'AbortError'].includes(err.name) ? 'The assistant took too long to respond. Please try again.' : err.message);
     } finally {
       if (coldStartTimerRef.current) { clearTimeout(coldStartTimerRef.current); coldStartTimerRef.current = null; }
       setColdStart(false);
@@ -426,7 +427,7 @@ function App() {
         <div className="brand">
           <div className="brand-icon"><ClinicIcon /></div>
           <div className="brand-text">
-            <h1>ClinicVoice AI</h1><p>Demo with synthetic data. Use “Demo Patient” and ID “DEMO-12345” for your test booking. Please do not enter real patient information.</p>
+            <h1>ClinicVoice AI</h1>
             <div className="status-row">
               <span className="status-dot"></span>
               <span className="status-text">Live</span>

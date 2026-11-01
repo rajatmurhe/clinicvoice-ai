@@ -49,3 +49,24 @@ test('global budget rejects requests before spending', async () => {
     expect(global.fetch).not.toHaveBeenCalled();
   } finally {delete process.env.CLINICVOICE_REQUESTS_PER_HOUR;}
 });
+
+test('expired browser sessions cannot reach provider', async () => {
+  const response = await post('/api/session', {}, {Origin:'http://localhost:5050'});
+  const {token} = await response.json();
+  global.fetch = jest.fn();
+  const now = Date.now();
+  const clock = jest.spyOn(Date, 'now').mockReturnValue(now + 16 * 60000);
+  try {
+    expect((await post('/api/tts', {text:'hello'}, {Authorization:'Bearer ' + token})).status).toBe(401);
+    expect(global.fetch).not.toHaveBeenCalled();
+  } finally {clock.mockRestore();}
+});
+
+test('gateway handles agent timeout without leaking internal details', async () => {
+  const response = await post('/api/session', {}, {Origin:'http://localhost:5050'});
+  const {token} = await response.json();
+  global.fetch = jest.fn().mockRejectedValue(new Error('private upstream detail'));
+  const result = await post('/api/agent-query', {query:'Book an appointment',session_id:'test'}, {Authorization:'Bearer '+token});
+  expect(result.status).toBe(503);
+  expect((await result.json()).error).toBe('The assistant is temporarily unavailable. Please try again.');
+});
