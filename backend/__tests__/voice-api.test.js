@@ -1,3 +1,4 @@
+process.env.FAQ_DB_PATH = ':memory:';
 process.env.GROQ_API_KEY = 'test-key-not-real';
 process.env.CLINICVOICE_SERVICE_KEY = 'test-service-key-' + 'x'.repeat(32);
 const nativeFetch = global.fetch;
