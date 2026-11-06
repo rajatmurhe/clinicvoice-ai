@@ -1,3 +1,4 @@
+process.env.GROQ_API_KEY = 'test-key-not-real';
 process.env.CLINICVOICE_SERVICE_KEY = 'test-service-key-' + 'x'.repeat(32);
 const nativeFetch = global.fetch;
 const app = require('../server-cloud');
@@ -45,4 +46,16 @@ test('malformed JSON returns 400', async () => {
   const response = await nativeFetch(base+'/api/transcribe', {method:'POST',headers:{'Content-Type':'application/json', Authorization: 'Bearer ' + process.env.CLINICVOICE_SERVICE_KEY},body:'{'});
   expect(response.status).toBe(400);
   expect((await response.json()).error).toMatch(/JSON/);
+});
+
+test('missing speech credentials return configuration guidance without a provider call', async () => {
+  const key = process.env.GROQ_API_KEY;
+  delete process.env.GROQ_API_KEY;
+  global.fetch = jest.fn();
+  try {
+    const response = await post('/api/transcribe', {audio:Buffer.alloc(1000).toString('base64')});
+    expect(response.status).toBe(503);
+    expect((await response.json()).error_type).toBe('stt_not_configured');
+    expect(global.fetch).not.toHaveBeenCalled();
+  } finally {process.env.GROQ_API_KEY = key;}
 });

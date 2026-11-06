@@ -305,3 +305,7 @@ CI runs backend tests, frontend lint/build, Python tests, the offline evaluation
 For the data collected, safety boundaries, and deployment considerations, see [COMPLIANCE.md](COMPLIANCE.md). Do not put API keys or patient registry files in Git.
 
 Latest launch regression evidence: [results-launch](python-eval/results-launch/eval-offline.md). Nine added English/Hindi/Marathi administrative requests pass without weakening the measured red-team baseline.
+
+### Activating the LangGraph workflow
+
+Set `CLINICVOICE_ORCHESTRATOR=graph` on the **Python agent service** and restart it. The example environment and Docker Compose now select graph. Install the Python requirements first; both development and production manifests include LangGraph and its SQLite checkpointer. The workflow runs safety checks, intent routing, the selected agent, and checkpoint persistence. `/health` reports the active orchestrator. `legacy` remains available for comparison. See [launch instructions](docs/LAUNCH.md) for hosted configuration and persistence requirements.

@@ -134,6 +134,10 @@ app.post('/api/transcribe', security.authorize, security.budget, rateLimit(60), 
       return res.status(400).json({ error: 'Recording too short.' });
     }
 
+    if (!process.env.GROQ_API_KEY?.trim()) {
+      return res.status(503).json({ error: 'Voice input is not configured for this demo yet. Please type your question.', error_type: 'stt_not_configured' });
+    }
+
     const mime = /^data:(audio\/[^;,]+)/.exec(req.body.audio)?.[1] || 'audio/webm';
     const extension = { 'audio/mp4': 'm4a', 'audio/wav': 'wav', 'audio/ogg': 'ogg', 'audio/mpeg': 'mp3' }[mime] || 'webm';
     const form = new FormData();

@@ -28,6 +28,7 @@ import sessions as session_store
 import obs
 from rate_limit import SlidingWindowLimiter
 import tempfile
+from contextlib import asynccontextmanager
 
 VOICE_CLONING_ENABLED = os.environ.get("VOICE_CLONING_ENABLED", "true").lower() == "true"
 
@@ -40,7 +41,17 @@ if VOICE_CLONING_ENABLED:
 else:
     synthesize = None
 
-app = FastAPI(title="ClinicVoice AI - Multi-Agent Orchestrator")
+@asynccontextmanager
+async def lifespan(app):
+    if ORCHESTRATOR_MODE not in ("graph", "legacy"):
+        raise RuntimeError("CLINICVOICE_ORCHESTRATOR must be graph or legacy")
+    if ORCHESTRATOR_MODE == "graph":
+        from graph_orchestrator import get_app
+        get_app()  # Fail at startup if dependencies or checkpoint storage are unavailable.
+    yield
+
+
+app = FastAPI(title="ClinicVoice AI - Multi-Agent Orchestrator", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -165,7 +176,7 @@ async def request_context(request: Request, call_next):
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "message": "Multi-agent orchestrator running", "voice_cloning": VOICE_CLONING_ENABLED}
+    return {"status": "ok", "message": "Multi-agent orchestrator running", "voice_cloning": VOICE_CLONING_ENABLED, "orchestrator": ORCHESTRATOR_MODE}
 
 
 @app.get("/ready")

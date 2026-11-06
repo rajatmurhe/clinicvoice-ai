@@ -54,6 +54,10 @@ jobs:
         run: python -m pytest tests -q
       - name: Run offline eval (no network, no LLM)
         run: python python-eval/run_eval.py --out-dir python-eval/results-ci
+      - name: Run LangGraph evaluation
+        run: |
+          python python-eval/run_eval.py --orchestrator graph --out-dir python-eval/results-ci
+          python python-eval/check_thresholds.py python-eval/results-ci/eval-offline-graph.json
       - name: Run red-team regression checks
         run: |
           python python-eval/run_eval.py --redteam --out-dir python-eval/results-ci
@@ -63,6 +67,7 @@ jobs:
           npm ci --prefix cloud-frontend
           npm run build --prefix cloud-frontend
           python scripts/smoke_demo.py
+          CLINICVOICE_ORCHESTRATOR=graph python scripts/smoke_demo.py
       - name: Check eval thresholds
         run: python python-eval/check_thresholds.py python-eval/results-ci/eval-offline.json
 

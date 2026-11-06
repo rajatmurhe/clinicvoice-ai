@@ -34,6 +34,8 @@ Gateway settings:
 Agent settings:
 
 - `FAQ_BACKEND_URL`: gateway URL plus `/api/text-query`.
+- `CLINICVOICE_ORCHESTRATOR=graph`: enable the LangGraph workflow on the Python service. Install `requirements-prod.txt` for native hosting, or use the Python Dockerfile. `/health` reports `orchestrator: graph`; startup checks graph imports and checkpoint storage.
+- Mount persistent storage at `CLINICVOICE_DATA_DIR` if conversations must survive host restarts. Ephemeral hosting storage does not provide that guarantee.
 - `CLINICVOICE_DEMO_MODE=true`, `CLINICVOICE_CALENDAR_MODE=fake`.
 - `CLINICVOICE_PATIENT_REGISTRY=/app/demo-patients.json` for the supplied Python image.
 - `CLINICVOICE_DATA_DIR=/data`, with writable storage, and `VOICE_CLONING_ENABLED=false`.
@@ -63,3 +65,5 @@ The smoke test starts real services in temporary storage without provider keys. 
 ## Resume wording
 
 Use: React, Python/FastAPI, Node/Express, SQLite, Groq, Gemini, Whisper, Docker Compose, GitHub Actions. Describe LangGraph/MCP as optional implementations. Do not claim PostgreSQL, deployed XTTS, Bedrock, a 99% cache improvement, real-clinic usage, or a live completed rollout without corresponding evidence. Red-team CI refers to the workflow in this release; the previous six first-layer gaps remain documented.
+
+Graph verification: `CLINICVOICE_ORCHESTRATOR=graph python scripts/smoke_demo.py` and `python python-eval/run_eval.py --orchestrator graph --out-dir /tmp/clinicvoice-graph-eval`. New Compose and example configurations select graph; existing hosted environment overrides must be updated separately.

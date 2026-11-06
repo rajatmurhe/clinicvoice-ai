@@ -16,16 +16,25 @@ function stem(word) {
   return word;
 }
 
+// Canonicalise common administrative paraphrases before lexical retrieval.
+// Apply identically to questions and queries; do not widen the confidence threshold.
+function normalizePhrases(text) {
+  return text.toLowerCase()
+    .replace(/\b(?:schedule|arrange|book)\s+(?:(?:a|an|my)\s+)?(?:visit|appointment)\b/g, 'book appointment')
+    .replace(/\bwithout\s+(?:(?:a|an)\s+)?appointment\b/g, 'walk in')
+    .replace(/\b(?:kind|type|sort)\s+of\s+clinic\b/g, 'clinic');
+}
+
 // Unicode aware: keeps Devanagari (and any other script) instead of stripping
 // it, so Hindi and Marathi queries can match their translated FAQ variants.
 function tokenize(text) {
-  return text.toLowerCase().replace(/[^\p{L}\p{N}\p{M}\s]/gu, ' ').split(/\s+/).filter(function(t) {
+  return normalizePhrases(text).replace(/[^\p{L}\p{N}\p{M}\s]/gu, ' ').split(/\s+/).filter(function(t) {
     return t && !STOPWORDS.has(t);
   }).map(stem);
 }
 
 function trigrams(text) {
-  const cleaned = text.toLowerCase().replace(/[^\p{L}\p{N}\p{M}]+/gu, ' ').replace(/\s+/g, ' ').trim();
+  const cleaned = normalizePhrases(text).replace(/[^\p{L}\p{N}\p{M}]+/gu, ' ').replace(/\s+/g, ' ').trim();
   if (cleaned.length < 3) return new Set(cleaned ? [cleaned] : []);
   const grams = new Set();
   for (let i = 0; i + 3 <= cleaned.length; i++) {
