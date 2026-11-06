@@ -1,7 +1,12 @@
 services:
   faq-api:
-    build: ./backend
+    build: .
     environment:
+      - CLINICVOICE_SERVICE_KEY=${CLINICVOICE_SERVICE_KEY:?Run python3 scripts/setup_demo.py}
+      - CLINICVOICE_ALLOWED_ORIGINS=${CLINICVOICE_ALLOWED_ORIGINS:-http://localhost:5050,http://127.0.0.1:5050}
+      - CLINICVOICE_REQUESTS_PER_HOUR=${CLINICVOICE_REQUESTS_PER_HOUR:-300}
+      - CLINICVOICE_TRUST_PROXY=${CLINICVOICE_TRUST_PROXY:-}
+      - AGENT_INTERNAL_URL=http://agents:8000
       - GROQ_API_KEY=${GROQ_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - GEMINI_MODEL=${GEMINI_MODEL:-gemini-3.8-flash}
@@ -23,18 +28,21 @@ services:
   agents:
     build: ./python-agents
     environment:
+      - CLINICVOICE_SERVICE_KEY=${CLINICVOICE_SERVICE_KEY:?Run python3 scripts/setup_demo.py}
+      - CLINICVOICE_ADMIN_TOKEN=${CLINICVOICE_ADMIN_TOKEN:?Run python3 scripts/setup_demo.py}
       - FAQ_BACKEND_URL=http://faq-api:5050/api/text-query
+      - CLINICVOICE_DEMO_MODE=true
       - CLINICVOICE_DATA_DIR=/data
-      - CLINICVOICE_PATIENT_REGISTRY=/data/patients.json
+      - CLINICVOICE_PATIENT_REGISTRY=/app/demo-patients.json
       - CLINICVOICE_CALENDAR_MODE=${CLINICVOICE_CALENDAR_MODE:-fake}
       - CLINICVOICE_CLINIC_ID=${CLINICVOICE_CLINIC_ID:-default}
-      - CLINICVOICE_ORCHESTRATOR=${CLINICVOICE_ORCHESTRATOR:-legacy}
+      - CLINICVOICE_ORCHESTRATOR=${CLINICVOICE_ORCHESTRATOR:-graph}
       - CLINICVOICE_TOOLS=${CLINICVOICE_TOOLS:-direct}
       - CLINICVOICE_HYBRID_ROUTER=${CLINICVOICE_HYBRID_ROUTER:-false}
       - CLINICVOICE_COMPLIANCE_REVIEWER=${CLINICVOICE_COMPLIANCE_REVIEWER:-false}
       - CLINICVOICE_CALENDAR_ID=${CLINICVOICE_CALENDAR_ID:-}
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8001:8000"
     depends_on:
       faq-api:
         condition: service_healthy

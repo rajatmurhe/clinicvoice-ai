@@ -15,6 +15,6 @@
     "national insurance", "new india assurance"
   ],
   "languages": ["en", "hi", "mr"],
-  "scheduling": {"adapter": "google"},
+  "scheduling": {"adapter": "fake"},
   "webhooks": []
 }

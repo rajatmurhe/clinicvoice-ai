@@ -230,13 +230,21 @@ def get_adapter(clinic_id=None):
     from clinic_config import load_clinic
 
     cid = clinic_id or "default"
+    from security import demo_session
+    if demo_session.get():
+        import hashlib
+        # Each browser demo gets an isolated calendar, using only a hashed ID.
+        scope = hashlib.sha256((cid + ':' + demo_session.get()).encode()).hexdigest()
+        folder = os.environ.get('CLINICVOICE_DATA_DIR', '/tmp/clinicvoice-demo')
+        os.makedirs(folder, exist_ok=True)
+        return FakeSqliteAdapter(os.path.join(folder, 'demo-calendar-' + scope + '.db'))
     if cid in _ADAPTER_CACHE:
         return _ADAPTER_CACHE[cid]
     settings = load_clinic(cid).get("scheduling", {})
-    kind = settings.get("adapter", "google")
+    kind = settings.get("adapter", "fake")
     # Test and CI override: force the SQLite fake for every clinic.
-    if os.environ.get("CLINICVOICE_CALENDAR_MODE") == "fake":
-        kind = "fake"
+    if os.environ.get("CLINICVOICE_CALENDAR_MODE") in ("fake", "google"):
+        kind = os.environ["CLINICVOICE_CALENDAR_MODE"]
     if kind == "google":
         adapter = GoogleCalendarAdapter()
     elif kind == "fake":

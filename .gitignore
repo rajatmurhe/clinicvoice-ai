@@ -26,3 +26,6 @@ cloud-frontend/dist/
 *.db-wal
 *.db-shm
 *.db-journal
+.venv/
+*.db
+*.sqlite

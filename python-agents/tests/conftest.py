@@ -51,3 +51,5 @@ _registry.write_text(json.dumps([
     {"clinic_id": "default", "name": "Ali", "patient_id": "12345"}
 ]))
 os.environ["CLINICVOICE_PATIENT_REGISTRY"] = str(_registry)
+
+os.environ["CLINICVOICE_SERVICE_KEY"] = "test-service-key-" + "x" * 32

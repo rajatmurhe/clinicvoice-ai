@@ -1,10 +1,21 @@
 import { useState, useRef, useEffect } from 'react';
 import './App.css';
 
-// Point at your local stack with VITE_API_URL / VITE_AGENT_URL when developing;
-// defaults are the deployed services.
-const API_URL = import.meta.env.VITE_API_URL || 'https://clinicvoice-ai.onrender.com';
-const AGENT_URL = import.meta.env.VITE_AGENT_URL || 'https://clinicvoice-ai-agents.onrender.com';
+// The browser talks only to the gateway; no service key is bundled here.
+const API_URL = import.meta.env.VITE_API_URL || '';
+let sessionPromise;
+async function apiFetch(url, options) {
+  async function session() {
+    const res = await fetch(API_URL + '/api/session', {method: 'POST', signal: AbortSignal.timeout(15000)});
+    if (!res.ok) throw new Error('Unable to start the demo. Please try again shortly.');
+    return (await res.json()).token;
+  }
+  if (!sessionPromise) sessionPromise = session().catch(e => { sessionPromise = null; throw e; });
+  const send = async () => fetch(url, {...options, headers: {...options.headers, Authorization: 'Bearer ' + await sessionPromise}});
+  let res = await send();
+  if (res.status === 401) { sessionPromise = session().catch(e => {sessionPromise = null; throw e;}); res = await send(); }
+  return res;
+}
 
 function MicIcon() {
   return (
@@ -102,9 +113,9 @@ function CardIcon() {
 }
 
 const CAPABILITIES = [
-  { icon: CalendarIcon, label: 'Ask about appointments', example: '"What are your opening hours?"', query: 'What are your opening hours?' },
-  { icon: CardIcon, label: 'Check accepted insurance', example: '"Do you accept Aetna?"', query: 'Do you accept Aetna?' },
-  { icon: ClockIcon, label: 'General clinic questions', example: '"Is there parking?"', query: 'Is there parking?' },
+  { icon: CalendarIcon, label: 'Book in English', example: '"Book an appointment tomorrow"', query: 'I want to book an appointment tomorrow' },
+  { icon: CardIcon, label: 'हिन्दी में बुक करें', example: 'कल अपॉइंटमेंट बुक करें', query: 'कल अपॉइंटमेंट बुक करें', language: 'hi' },
+  { icon: ClockIcon, label: 'मराठीत बुक करा', example: 'उद्या अपॉइंटमेंट बुक करा', query: 'उद्या अपॉइंटमेंट बुक करा', language: 'mr' },
 ];
 
 const CLINICS = [
@@ -146,6 +157,7 @@ function App() {
     { id: 'mr', label: 'मराठी', lang: 'mr' },
   ];
   const [lang, setLang] = useState('en');
+  const languageRef = useRef('en');
 
   const switchClinic = (id) => {
     if (id === clinicRef.current) return;
@@ -161,6 +173,7 @@ function App() {
   const switchLang = (id) => {
     stopSpeaking();
     setLang(id);
+    languageRef.current = id;
     sessionIdRef.current = crypto.randomUUID();
     setMessages([]);
     setLastAssistantResponse('');
@@ -218,7 +231,7 @@ function App() {
   const browserSpeak = (text, playback) => new Promise(resolve => {
     if (playback !== playbackRef.current || !window.speechSynthesis) return resolve();
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = { en: 'en-US', hi: 'hi-IN', mr: 'mr-IN' }[lang];
+    utterance.lang = { en: 'en-US', hi: 'hi-IN', mr: 'mr-IN' }[languageRef.current];
     utterance.onend = resolve;
     utterance.onerror = resolve;
     finishAudioRef.current = resolve;
@@ -227,9 +240,9 @@ function App() {
 
   const speakText = async (text, requestId, playback) => {
     // The hosted voice is English; use the selected browser voice for Hindi/Marathi.
-    if (lang !== 'en') return browserSpeak(text, playback);
+    if (languageRef.current !== 'en') return browserSpeak(text, playback);
     try {
-      const res = await fetch(API_URL + '/api/tts', {
+      const res = await apiFetch(API_URL + '/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Request-ID': requestId || '' },
         body: JSON.stringify({ text }), signal: AbortSignal.timeout(15000)
@@ -297,7 +310,7 @@ function App() {
             reader.onerror = reject;
             reader.readAsDataURL(blob);
           });
-          const res = await fetch(API_URL + '/api/transcribe', {
+          const res = await apiFetch(API_URL + '/api/transcribe', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ audio: dataUrl, language: lang }),
@@ -351,7 +364,7 @@ function App() {
     sendQuery(value);
   };
 
-  const sendQuery = async (query) => {
+  const sendQuery = async (query, language = languageRef.current) => {
     setLoading(true);
     setColdStart(false);
     if (coldStartTimerRef.current) clearTimeout(coldStartTimerRef.current);
@@ -366,13 +379,13 @@ function App() {
     });
 
     try {
-      const res = await fetch(AGENT_URL + '/api/agent-query', {
+      const res = await apiFetch(API_URL + '/api/agent-query', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-Request-ID': requestId
         },
-        body: JSON.stringify({ query: query, session_id: sessionIdRef.current, clinic_id: clinicRef.current, language: lang }),
+        body: JSON.stringify({ query: query, session_id: sessionIdRef.current, clinic_id: clinicRef.current, language }),
         signal: AbortSignal.timeout(90000)
       });
 
@@ -381,7 +394,8 @@ function App() {
       }
 
       if (!res.ok) {
-        throw new Error('Server error: ' + res.status);
+        const failure = await res.json().catch(() => ({}));
+        throw new Error(failure.error || 'The assistant is temporarily unavailable. Please try again.');
       }
 
       const data = await res.json();
@@ -396,7 +410,7 @@ function App() {
       // Text stays usable if audio is blocked or the user interrupts playback.
       void speakReply(data.response, res.headers.get('X-Request-ID') || requestId);
     } catch (err) {
-      setError(err.message);
+      setError(['TimeoutError', 'AbortError'].includes(err.name) ? 'The assistant took too long to respond. Please try again.' : err.message);
     } finally {
       if (coldStartTimerRef.current) { clearTimeout(coldStartTimerRef.current); coldStartTimerRef.current = null; }
       setColdStart(false);
@@ -542,7 +556,7 @@ function App() {
             {CAPABILITIES.map(function(cap, i) {
               const Icon = cap.icon;
               return (
-                <button className="capability-item" key={i} onClick={() => { stopSpeaking(); sendQuery(cap.query); }} disabled={loading || openingMic || isListening}>
+                <button className="capability-item" key={i} onClick={() => { const chosen = cap.language || 'en'; switchLang(chosen); sendQuery(cap.query, chosen); }} disabled={loading || openingMic || isListening}>
                   <div className="capability-icon"><Icon /></div>
                   <div>
                     <div className="capability-label">{cap.label}</div>

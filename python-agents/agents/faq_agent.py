@@ -5,6 +5,7 @@ import requests
 
 from semantic_cache import check_cache, store_in_cache
 import obs
+import security
 
 FAQ_BACKEND_URL = os.environ.get("FAQ_BACKEND_URL", "http://localhost:5050/api/text-query")
 
@@ -22,7 +23,7 @@ def _post_with_retries(query, clinic_id=None):
     Raises the last exception only after all attempts fail, so the caller can
     degrade gracefully instead of hanging.
     """
-    headers = {"X-Request-ID": obs.get_request_id()}
+    headers = {"X-Request-ID": obs.get_request_id(), **security.service_headers()}
     last_error = None
     for attempt in range(3):
         try:

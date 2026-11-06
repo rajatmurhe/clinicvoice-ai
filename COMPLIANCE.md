@@ -153,3 +153,11 @@ project. ClinicVoice does not generate SQL; it retrieves FAQs with a fixed
 SQLite statement. Provider-reported token usage is attached to generation
 traces; Langfuse cost is inferred from that model's configured price and can be
 missing or approximate if the model/provider price is not configured.
+
+## 8. Demo gateway and access controls (launch update)
+
+Administrative symptom and medication mentions are allowed; advice-seeking phrases, privacy attacks, and emergency checks remain separate controls. These heuristic checks still require ongoing evaluation. Nine realistic English/Hindi/Marathi administrative cases are included in the offline safety evaluation.
+
+The dashboard and its APIs require a separate admin credential and fail closed when it is missing. Request IDs are restricted to ASCII letters, digits, and hyphens (maximum 64 characters); invalid IDs are replaced. Stored string fields are escaped on dashboard rendering, including historical request IDs. The agent API and internal FAQ/classification endpoints require a server-only service credential. The browser uses expiring anonymous demo tokens through a gateway. No secret is shipped in the frontend bundle.
+
+Anonymous tokens are not patient authentication. Demo calendars are scoped to the browser session and use a public synthetic registry. Token expiry/restarts can reset demo continuity. Request caps are per-process, in memory, and do not constitute a durable cost ceiling. Provider account limits, trusted proxy configuration, stronger real-patient verification, and storage retention remain deployment responsibilities. See docs/LAUNCH.md for exact configuration and remaining limitations.
