@@ -309,3 +309,7 @@ Latest launch regression evidence: [results-launch](python-eval/results-launch/e
 ### Activating the LangGraph workflow
 
 Set `CLINICVOICE_ORCHESTRATOR=graph` on the **Python agent service** and restart it. The example environment and Docker Compose now select graph. Install the Python requirements first; both development and production manifests include LangGraph and its SQLite checkpointer. The workflow runs safety checks, intent routing, the selected agent, and checkpoint persistence. `/health` reports the active orchestrator. `legacy` remains available for comparison. See [launch instructions](docs/LAUNCH.md) for hosted configuration and persistence requirements.
+
+### Call the Clinic — optional telephone pilot
+
+The patient-first phone entry point collects a reason for visiting and duration, reads the details back for confirmation, and reuses ClinicVoice's appointment handlers. A separate spoken confirmation is required before booking. Confirmed intake and booking outcomes appear on the authenticated staff dashboard. English, Hindi and Marathi prompt flows are included; real telephone speech quality remains unverified. A voice-provider account, public HTTPS webhook and a tested number are required. The frontend displays a call link only after an operator marks the number verified. See [telephone setup and limitations](docs/TELEPHONE.md).

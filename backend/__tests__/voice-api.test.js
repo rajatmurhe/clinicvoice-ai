@@ -60,3 +60,21 @@ test('missing speech credentials return configuration guidance without a provide
     expect(global.fetch).not.toHaveBeenCalled();
   } finally {process.env.GROQ_API_KEY = key;}
 });
+
+
+test('telephone number is hidden until verified and must be E.164', async () => {
+  const saved = {number: process.env.CLINICVOICE_PUBLIC_PHONE_NUMBER, verified: process.env.CLINICVOICE_PHONE_VERIFIED};
+  try {
+    process.env.CLINICVOICE_PUBLIC_PHONE_NUMBER = '+15551234567';
+    process.env.CLINICVOICE_PHONE_VERIFIED = 'false';
+    expect(await (await nativeFetch(base + '/api/phone-info')).json()).toEqual({available:false, number:null});
+    process.env.CLINICVOICE_PHONE_VERIFIED = 'true';
+    expect((await (await nativeFetch(base + '/api/phone-info')).json()).number).toBe('+15551234567');
+    process.env.CLINICVOICE_PUBLIC_PHONE_NUMBER = 'javascript:bad';
+    expect((await (await nativeFetch(base + '/api/phone-info')).json()).available).toBe(false);
+  } finally {
+    for (const [key, value] of Object.entries({CLINICVOICE_PUBLIC_PHONE_NUMBER:saved.number, CLINICVOICE_PHONE_VERIFIED:saved.verified})) {
+      if (value === undefined) delete process.env[key]; else process.env[key] = value;
+    }
+  }
+});

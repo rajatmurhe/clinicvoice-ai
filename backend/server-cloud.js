@@ -67,6 +67,13 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'ClinicVoice AI FAQ API (cloud) running' });
 });
 
+// The gateway only advertises a telephone number after an operator verifies it.
+app.get('/api/phone-info', (req, res) => {
+  const number = process.env.CLINICVOICE_PUBLIC_PHONE_NUMBER || '';
+  const available = process.env.CLINICVOICE_PHONE_VERIFIED === 'true' && /^\+[1-9]\d{7,14}$/.test(number);
+  res.json({available, number: available ? number : null});
+});
+
 app.post('/api/session', security.issueSession);
 app.post('/api/agent-query', security.authorize, security.budget, async (req, res) => {
   if (!req.demoSession) return res.status(403).json({error: 'Browser session required.'});

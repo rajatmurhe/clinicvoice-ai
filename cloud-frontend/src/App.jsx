@@ -131,6 +131,14 @@ function App() {
   const micPendingRef = useRef(false);
   const [coldStart, setColdStart] = useState(false);
   const [error, setError] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState(null);
+  useEffect(() => {
+    let active = true;
+    fetch(API_URL + '/api/phone-info').then(r => r.ok ? r.json() : null).then(data => {
+      if (active && data?.available && /^\+[1-9]\d{7,14}$/.test(data.number)) setPhoneNumber(data.number);
+    }).catch(() => {});
+    return () => { active = false; };
+  }, []);
   const [messages, setMessages] = useState([]);
 
   const [inputValue, setInputValue] = useState('');
@@ -550,6 +558,9 @@ function App() {
         </div>
 
         <div className="capabilities-panel">
+          <div className="capabilities-title">Call the clinic</div>
+          <p>{phoneNumber ? <a href={'tel:' + phoneNumber}>{phoneNumber}</a> : 'Telephone pilot — number not connected yet.'}</p>
+          <p>Describe your reason for a visit and confirm your details by voice. You can also use the browser microphone below. Synthetic test details only.</p>
           <div className="capabilities-title">What I can help with</div>
           <div className="capabilities-sub">Try asking about any of these.</div>
           <div className="capabilities-list">

@@ -493,7 +493,7 @@ def handle_booking(query: str, session: dict) -> dict:
         }
 
     if pending and requested_time and requested_time in pending["slots"]:
-        patient_name = extract_name(query) or ("Demo Patient" if os.environ.get("CLINICVOICE_DEMO_MODE") == "true" else "Patient")
+        patient_name = extract_name(query) or session.get("patient_name") or ("Demo Patient" if os.environ.get("CLINICVOICE_DEMO_MODE") == "true" else "Patient")
         try:
             event_id = book_appointment(pending["date"], requested_time, patient_name, doctor=doctor, clinic_id=clinic_id)
         except Exception:
@@ -511,6 +511,7 @@ def handle_booking(query: str, session: dict) -> dict:
         })
         doctor_text = " with " + doctor if doctor else ""
         return {
+            "booking_confirmation": {"event_id": event_id, "date": pending["date"], "time": requested_time, "patient_name": patient_name},
             "response": booking_language(
                 session,
                 "You are all set! I have booked your appointment" + doctor_text + " for " + pending["date"] + " at " + requested_time + ". We look forward to seeing you.",

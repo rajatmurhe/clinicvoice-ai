@@ -62,6 +62,9 @@ app.add_middleware(
     expose_headers=["X-Request-ID"],
 )
 
+from telephony import router as phone_router
+app.include_router(phone_router)
+
 app.mount("/dashboard", StaticFiles(directory="static", html=True), name="dashboard")
 
 RATE_LIMITER = SlidingWindowLimiter(
@@ -218,6 +221,12 @@ def dashboard_stats():
     return get_stats()
 
 
+@app.get("/api/dashboard/phone-calls")
+def phone_calls():
+    from phone_workflow import recent_calls
+    return {"calls": recent_calls()}
+
+
 @app.get("/api/dashboard/failures")
 def dashboard_failures():
     from dashboard_log import get_recent_failures
@@ -346,7 +355,8 @@ def process_query(req: QueryRequest, session: dict, start: float):
             result["guardrailTriggered"] = True
             result["compliance_violation"] = review["violation"]
 
-    result["response"] = maybe_add_nudge(query, result.get("response", ""), result.get("agent", intent))
+    if session.get("channel") != "phone":
+        result["response"] = maybe_add_nudge(query, result.get("response", ""), result.get("agent", intent))
 
     session["last_response"] = result.get("response", "")
 
