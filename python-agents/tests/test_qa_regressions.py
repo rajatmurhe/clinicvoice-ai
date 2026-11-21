@@ -18,7 +18,7 @@ from safety import check_input_safety, check_emergency
 
 @pytest.fixture()
 def client():
-    return TestClient(main.app)
+    return TestClient(main.app, headers={"Authorization": "Bearer test-service-key-" + "x" * 32})
 
 
 def data_dir():

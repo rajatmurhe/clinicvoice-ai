@@ -47,3 +47,22 @@ describe('hybrid retrieval', () => {
     expect(tokenize('क्लिनिक के समय')).toContain('क्लिनिक');
   });
 });
+
+
+describe('administrative paraphrases against the complete FAQ corpus', () => {
+  const corpus = require('../data/faqs.json');
+  test.each([
+    ['How can I arrange a visit?', 1],
+    ['How do I schedule an appointment?', 1],
+    ['Can I visit without an appointment?', 7],
+    ['Do you take walk-in patients?', 7],
+    ['What type of clinic is this?', 21],
+    ['What sort of clinic is this?', 21],
+    ['What happens if I miss my appointment?', 12],
+    ['Is parking available?', 13],
+  ])('%s retrieves FAQ %s', (query, id) => {
+    const top = hybridScores(query, corpus).sort((a, b) => b.score - a.score)[0];
+    expect(top.faq.id).toBe(id);
+    expect(top.score).toBeGreaterThanOrEqual(0.35);
+  });
+});

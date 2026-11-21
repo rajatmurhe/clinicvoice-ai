@@ -29,6 +29,9 @@
   <div class="refresh">Auto-refreshes every 5 seconds</div>
   <div class="cards" id="cards"></div>
 
+  <h2>Telephone intake · synthetic-data pilot</h2>
+  <p class="empty">Patient-reported information, not a clinical assessment. A safety flag does not mean a notification was delivered.</p>
+  <table><thead><tr><th>Updated</th><th>Patient</th><th>Patient's words</th><th>Duration</th><th>Intake</th><th>Call outcome</th><th>Booking</th></tr></thead><tbody id="phone-body"></tbody></table>
   <h2>Recent requests</h2>
   <table>
     <thead>
@@ -67,17 +70,35 @@ async function loadStats() {
   tbody.innerHTML = data.recent_queries.map(q => `
     <tr>
       <td>${new Date(q.timestamp * 1000).toLocaleTimeString()}</td>
-      <td class="mono">${q.request_id || '—'}</td>
+      <td class="mono">${escapeHtml(q.request_id || '—')}</td>
       <td>${escapeHtml(q.query || '')}</td>
-      <td><span class="badge ${q.agent}">${q.agent}</span></td>
+      <td><span class="badge">${escapeHtml(q.agent)}</span></td>
       <td>${q.guardrail_triggered ? '🛡️ yes' : '—'}</td>
       <td>${q.cache_hit ? '⚡ hit' : '—'}</td>
       <td>${q.latency_ms ? q.latency_ms.toFixed(0) + 'ms' : '—'}</td>
-      <td>${q.error_type ? '⚠️ ' + q.error_type : '—'}</td>
+      <td>${q.error_type ? '⚠️ ' + escapeHtml(q.error_type) : '—'}</td>
     </tr>
   `).join('');
 
   loadFailures();
+  loadPhoneCalls();
+}
+
+async function loadPhoneCalls() {
+  const res = await fetch('/api/dashboard/phone-calls');
+  if (!res.ok) return;
+  const {calls} = await res.json();
+  document.getElementById('phone-body').innerHTML = calls.map(c => {
+    const confirmed = c.intake_status === 'patient_confirmed';
+    const booking = c.booking_confirmation;
+    return `<tr><td>${new Date(c.updated * 1000).toLocaleString()}</td>
+      <td>${escapeHtml(c.patient_name || '—')}</td>
+      <td>${escapeHtml(confirmed ? c.patient_words : 'Not confirmed')}</td>
+      <td>${escapeHtml(confirmed ? c.duration_words : '—')}</td>
+      <td>${escapeHtml(c.intake_status || 'Pending')}</td>
+      <td>${escapeHtml(c.outcome || '—')}</td>
+      <td>${escapeHtml(booking ? booking.date + ' ' + booking.time : 'Not confirmed')}</td></tr>`;
+  }).join('');
 }
 
 async function loadFailures() {
@@ -91,9 +112,9 @@ async function loadFailures() {
   document.getElementById('failures-body').innerHTML = failures.map(f => `
     <tr>
       <td>${new Date(f.timestamp * 1000).toLocaleTimeString()}</td>
-      <td class="mono">${f.request_id || '—'}</td>
-      <td>${f.intent || '—'}</td>
-      <td>⚠️ ${f.error_type || '—'}</td>
+      <td class="mono">${escapeHtml(f.request_id || '—')}</td>
+      <td>${escapeHtml(f.intent || '—')}</td>
+      <td>⚠️ ${escapeHtml(f.error_type || '—')}</td>
     </tr>
   `).join('');
 }

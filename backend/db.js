@@ -6,8 +6,8 @@ const DB_PATH = process.env.FAQ_DB_PATH || path.join(__dirname, 'data', 'clinic.
 const db = new Database(DB_PATH);
 // Jest runs suites in parallel workers and they all open this file; WAL plus
 // a busy timeout stops concurrent schema setup from tripping over locks.
-db.exec('PRAGMA journal_mode = WAL');
 db.exec('PRAGMA busy_timeout = 5000');
+db.exec('PRAGMA journal_mode = WAL');
 
 function ensureSchema() {
   db.exec(`

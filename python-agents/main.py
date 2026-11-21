@@ -1,3 +1,4 @@
+import security
 import os
 import re
 import time
@@ -27,6 +28,7 @@ import sessions as session_store
 import obs
 from rate_limit import SlidingWindowLimiter
 import tempfile
+from contextlib import asynccontextmanager
 
 VOICE_CLONING_ENABLED = os.environ.get("VOICE_CLONING_ENABLED", "true").lower() == "true"
 
@@ -39,16 +41,29 @@ if VOICE_CLONING_ENABLED:
 else:
     synthesize = None
 
-app = FastAPI(title="ClinicVoice AI - Multi-Agent Orchestrator")
+@asynccontextmanager
+async def lifespan(app):
+    if ORCHESTRATOR_MODE not in ("graph", "legacy"):
+        raise RuntimeError("CLINICVOICE_ORCHESTRATOR must be graph or legacy")
+    if ORCHESTRATOR_MODE == "graph":
+        from graph_orchestrator import get_app
+        get_app()  # Fail at startup if dependencies or checkpoint storage are unavailable.
+    yield
+
+
+app = FastAPI(title="ClinicVoice AI - Multi-Agent Orchestrator", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=os.environ.get("CLINICVOICE_ALLOWED_ORIGINS", "http://localhost:5050,http://127.0.0.1:5050").split(","),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["X-Request-ID"],
 )
+
+from telephony import router as phone_router
+app.include_router(phone_router)
 
 app.mount("/dashboard", StaticFiles(directory="static", html=True), name="dashboard")
 
@@ -80,7 +95,7 @@ def llm_classify_intent(query):
         r = http_requests.post(
             ROUTER_CLASSIFY_URL,
             json={"query": query},
-            headers={"X-Request-ID": obs.get_request_id()},
+            headers={"X-Request-ID": obs.get_request_id(), **security.service_headers()},
             timeout=(2, 4),
         )
         r.raise_for_status()
@@ -127,10 +142,15 @@ class QueryRequest(BaseModel):
 
 @app.middleware("http")
 async def request_context(request: Request, call_next):
-    request_id = request.headers.get("x-request-id") or obs.new_request_id()
+    request_id = security.request_id(request.headers.get("x-request-id"))
     obs.set_request_id(request_id)
 
     path = request.url.path
+    is_admin = path == '/dashboard' or path.startswith('/dashboard/') or path.startswith('/api/dashboard/')
+    if is_admin and not security.authorized(request.headers.get('authorization'), 'CLINICVOICE_ADMIN_TOKEN', basic=True):
+        return JSONResponse({'error': 'Admin authentication required.'}, status_code=401, headers={'WWW-Authenticate': 'Basic realm="ClinicVoice admin"', 'Cache-Control': 'no-store'})
+    if path.startswith('/api/') and not is_admin and not security.authorized(request.headers.get('authorization'), 'CLINICVOICE_SERVICE_KEY'):
+        return JSONResponse({'error': 'Service authentication required.'}, status_code=401)
     if path not in ("/health", "/ready") and not path.startswith("/dashboard"):
         ip = request.client.host if request.client else "unknown"
         if not RATE_LIMITER.allow(ip):
@@ -145,6 +165,8 @@ async def request_context(request: Request, call_next):
     start = time.time()
     response = await call_next(request)
     response.headers["X-Request-ID"] = request_id
+    if is_admin:
+        response.headers["Cache-Control"] = "no-store"
     if path not in ("/health", "/ready") and not path.startswith("/dashboard"):
         obs.log_event(
             "request",
@@ -157,7 +179,7 @@ async def request_context(request: Request, call_next):
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "message": "Multi-agent orchestrator running", "voice_cloning": VOICE_CLONING_ENABLED}
+    return {"status": "ok", "message": "Multi-agent orchestrator running", "voice_cloning": VOICE_CLONING_ENABLED, "orchestrator": ORCHESTRATOR_MODE}
 
 
 @app.get("/ready")
@@ -197,6 +219,12 @@ def synthesize_voice(req: QueryRequest):
 @app.get("/api/dashboard/stats")
 def dashboard_stats():
     return get_stats()
+
+
+@app.get("/api/dashboard/phone-calls")
+def phone_calls():
+    from phone_workflow import recent_calls
+    return {"calls": recent_calls()}
 
 
 @app.get("/api/dashboard/failures")
@@ -327,7 +355,8 @@ def process_query(req: QueryRequest, session: dict, start: float):
             result["guardrailTriggered"] = True
             result["compliance_violation"] = review["violation"]
 
-    result["response"] = maybe_add_nudge(query, result.get("response", ""), result.get("agent", intent))
+    if session.get("channel") != "phone":
+        result["response"] = maybe_add_nudge(query, result.get("response", ""), result.get("agent", intent))
 
     session["last_response"] = result.get("response", "")
 
@@ -360,6 +389,7 @@ def process_query(req: QueryRequest, session: dict, start: float):
 
 @app.post("/api/agent-query")
 def agent_query(req: QueryRequest):
+    security.demo_session.set(req.session_id if os.environ.get("CLINICVOICE_DEMO_MODE") == "true" else None)
     start = time.time()
 
     if ORCHESTRATOR_MODE == "graph":

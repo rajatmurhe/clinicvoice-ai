@@ -6,7 +6,7 @@ import main
 
 @pytest.fixture()
 def client():
-    return TestClient(main.app)
+    return TestClient(main.app, headers={"Authorization": "Bearer test-service-key-" + "x" * 32})
 
 
 def test_health(client):

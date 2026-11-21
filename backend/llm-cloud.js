@@ -3,11 +3,14 @@ const providers = require('./llm-providers');
 const tracing = require('./langfuse-tracing');
 
 const BLOCKED_PATTERNS_INPUT = [
-  /diagnos/i, /\bprescrib/i, /medication/i, /dose/i, /dosage/i, /how much .* (should|can|could)\s+(i|we|you|he|she|they)?\s*(take|dose)\b/i,
+  /diagnos/i, /\bprescrib/i, /dose/i, /dosage/i, /how much .* (should|can|could)\s+(i|we|you|he|she|they)?\s*(take|dose)\b/i,
   /is it (cancer|serious|an emergency)/i, /chest pain/i, /cant breathe/i,
   /symptoms of/i, /what disease/i, /am i dying/i, /nhs number/i, /date of birth/i, /social security/i, /verify your identity/i,
-  /\bmedicine\b/i, /\bsurgery\b/i, /sore throat|throat is sore/i,
-  /\bantibiotic/i, /side effects/i, /\bdizzy\b/i, /\bfever\b/i, /\brash\b/i,
+  /(what|which).*\b(medication|medicine|antibiotics?)\b/i,
+  /(should|can|could) (i|we|he|she|they|you) (take|use|stop|increase|reduce)/i,
+  /(need|recommend).*surgery/i,
+  /(sore|pain|fever|rash|dizzy).*what should (i|we) do|what should (i|we) do.*(sore|pain|fever|rash|dizzy)/i,
+  /(what|explain|tell).*side effects/i,
   /what (could it be|is wrong with me)/i,
   /how (do|to) i (treat|cure)/i, /is it safe to/i,
   /\d+\s?mg\b/i,
@@ -64,10 +67,10 @@ const CONFIDENCE_THRESHOLD = parseFloat(process.env.CLINICVOICE_CONFIDENCE_THRES
 const INVISIBLE_CHARS = /[\u200b-\u200f\u202a-\u202e\u00ad\ufeff\u2060'\u2019]/g;
 
 const SQUEEZED_BLOCKED = [
-  'diagnos', 'prescrib', 'medication', 'dosage', 'symptomsof', 'whatdisease',
+  'diagnos', 'prescrib', 'dosage', 'symptomsof', 'whatdisease',
   'amidying', 'nhsnumber', 'dateofbirth', 'socialsecurity', 'verifyyouridentity',
-  'chestpain', 'cantbreathe', 'cannotbreathe', 'sorethroat', 'throatisore',
-  'antibiotic', 'sideeffects', 'surgery', 'medicine', 'overdos',
+  'chestpain', 'cantbreathe', 'cannotbreathe',
+  'overdos',
   'ignoreallprevious', 'forgetyourrules', 'newinstructions', 'systemprompt',
   'patientlist', 'appointmentlist', 'bookinglist', 'patientdata',
   'patientrecords', 'appointmentdetails', 'patientdetails'

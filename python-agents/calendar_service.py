@@ -2,7 +2,7 @@ import datetime
 import os
 import time
 
-CALENDAR_MODE = os.environ.get("CLINICVOICE_CALENDAR_MODE", "google")
+CALENDAR_MODE = os.environ.get("CLINICVOICE_CALENDAR_MODE", "fake")
 
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
 _RENDER_SECRET_PATH = "/etc/secrets/service-account-key.json"

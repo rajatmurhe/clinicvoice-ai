@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
 const rateLimit = require('express-rate-limit');
-const { execSync } = require('child_process');
+const { execSync, execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const { initRAG, retrieveContext } = require('./rag');
@@ -72,7 +72,7 @@ app.post('/api/voice/query', voiceLimiter, upload.single('audio'), async (req, r
 
     const speechPath = 'uploads/' + Date.now() + '_response.aiff';
     const t5 = Date.now();
-    execSync('say -v Samantha "' + result.response.replace(/"/g, '') + '" -o ' + speechPath);
+    execFileSync('say', ['-v', 'Samantha', '-o', speechPath, '--', result.response]);
     console.log('tts:', Date.now() - t5, 'ms');
 
     const audioData = fs.readFileSync(speechPath);

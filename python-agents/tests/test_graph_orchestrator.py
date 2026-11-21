@@ -72,3 +72,32 @@ def test_graph_verification_and_clinic_isolation(patched_calendar):
     result = graph_orchestrator.run_query("12345", sid)
     assert "has been cancelled" in result["response"]
     assert result["query"] == "[verification response redacted]"
+
+
+def test_graph_creates_storage_and_resumes_after_restart(patched_calendar, monkeypatch, tmp_path):
+    monkeypatch.setattr(graph_orchestrator, "CHECKPOINT_DB", str(tmp_path / "new" / "graph.sqlite"))
+    graph_orchestrator.run_query("Book an appointment", "restart")
+    graph_orchestrator._CHECKPOINTER.conn.close()
+    graph_orchestrator._APP = None
+    graph_orchestrator._CHECKPOINTER = None
+    result = graph_orchestrator.run_query("2031-09-09", "restart")
+    assert result["agent"] == "booking"
+    assert "we have availability at" in result["response"]
+
+
+def test_graph_handoff_dispatches_event(patched_calendar, monkeypatch):
+    import webhooks
+    calls = []
+    monkeypatch.setattr(webhooks, "dispatch", lambda *args: calls.append(args))
+    result = graph_orchestrator.run_query("I want to speak to a human", "handoff")
+    assert result["agent"] == "escalation"
+    assert calls[0][0:2] == ("default", "escalation_raised")
+
+
+def test_graph_startup_and_health(patched_calendar, monkeypatch):
+    import main
+    from fastapi.testclient import TestClient
+    monkeypatch.setattr(main, "ORCHESTRATOR_MODE", "graph")
+    with TestClient(main.app) as client:
+        assert client.get("/health").json()["orchestrator"] == "graph"
+        assert graph_orchestrator._APP is not None

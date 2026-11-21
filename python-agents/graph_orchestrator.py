@@ -132,6 +132,12 @@ def faq_node(state: OrchestratorState) -> dict:
 
 def handoff_node(state: OrchestratorState) -> dict:
     result = escalation_agent.handle_escalation(state["query"], state.get("session", {}))
+    import webhooks
+
+    clinic_id = state.get("session", {}).get("clinic_id", "default")
+    webhooks.dispatch(clinic_id, "escalation_raised", {
+        "clinic_id": clinic_id, "query": state["query"],
+    })
     return {"response": result.get("response", ""), "agent": result.get("agent", "escalation"), "guardrail_triggered": result.get("guardrailTriggered", False)}
 
 
@@ -179,6 +185,7 @@ _APP = None
 def get_app():
     global _CHECKPOINTER, _APP
     if _APP is None:
+        os.makedirs(os.path.dirname(os.path.abspath(CHECKPOINT_DB)), exist_ok=True)
         conn = sqlite3.connect(
             CHECKPOINT_DB, check_same_thread=False,
         )
