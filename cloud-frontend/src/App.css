@@ -34,7 +34,7 @@ p { margin: 0; }
 /* ---------- nav: dark bar ---------- */
 .nav {
   position: sticky; top: 0; z-index: 50;
-  background: rgba(14, 25, 23, .9);
+  background: var(--bg);
   backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--line);
 }
