@@ -23,7 +23,7 @@ This project is designed to demonstrate how a conversational AI system can conne
 
 ### Voice Assistant Home
 
-![ClinicVoice AI home screen with language and clinic selectors, voice recording, and typed chat](docs/screenshots/clinicvoice-english.png)
+![ClinicVoice AI home screen with the voice orb, language switch, and clinic selector](docs/screenshots/clinicvoice-english.png)
 
 ### Hindi Appointment Booking
 
@@ -33,7 +33,7 @@ This project is designed to demonstrate how a conversational AI system can conne
 
 ![ClinicVoice AI asking for the registered phone number or patient ID in Marathi](docs/screenshots/clinicvoice-marathi-verification.png)
 
-The screenshots show actual responses from the local demo services. The appointment calendar is populated with test data.
+Tap the orb to speak, or type in the conversation panel below it. The screenshots show actual responses from the local demo services. The appointment calendar is populated with test data.
 
 ## Agent Workflow Proof
 
@@ -49,7 +49,7 @@ The agent parses the requested date, asks the calendar tool for open slots, and 
 
 ![Appointment lookup asks for the patient's name and registered ID before revealing the appointment](docs/screenshots/agent-verified-appointment-lookup.png)
 
-The name starts a verification challenge but does not trigger a calendar lookup. Only after the registered `DEMO-12345` ID matches the clinic registry does the agent query the calendar and show the appointment. In this demo, the registry entry and appointment both contain synthetic data. See [verification and privacy tests](python-agents/tests/test_booking_agent.py) and [COMPLIANCE.md](COMPLIANCE.md).
+The name starts a verification challenge but does not trigger a calendar lookup. Only after the registered `DEMO-12345` ID matches the clinic registry does the agent query the calendar and show the appointment. In this demo, the registry entry and appointment both contain synthetic data; the appointment shown was booked earlier in the same session. See [verification and privacy tests](python-agents/tests/test_booking_agent.py) and [COMPLIANCE.md](COMPLIANCE.md).
 
 ### Refill agent: collect a request and hand it to clinic staff
 
