@@ -53,17 +53,6 @@ function SendIcon() {
   );
 }
 
-function ClinicIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M4 13v-1a8 8 0 0116 0v1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-      <rect x="3" y="13" width="4" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.6"/>
-      <rect x="17" y="13" width="4" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.6"/>
-      <path d="M19 19v1a3 3 0 01-3 3h-3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-    </svg>
-  );
-}
-
 function UserIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -152,6 +141,8 @@ function App() {
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef(null);
   const speakingRef = useRef(false);
+  const [speaking, setSpeaking] = useState(false);
+  const conversationRef = useRef(null);
   const clinicRef = useRef('default');
   const coldStartTimerRef = useRef(null);
 
@@ -196,7 +187,9 @@ function App() {
   };
 
   useEffect(() => {
-    conversationEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Scroll inside the transcript card only, so the page itself stays put.
+    const box = conversationRef.current;
+    if (box) box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
   }, [messages, loading]);
 
   useEffect(() => () => {
@@ -220,6 +213,7 @@ function App() {
   const stopSpeaking = () => {
     // Barge in: tapping the mic must stop playback at once.
     speakingRef.current = false;
+    setSpeaking(false);
     playbackRef.current += 1;
     finishAudioRef.current?.();
     if (audioPlayerRef.current) {
@@ -279,11 +273,12 @@ function App() {
   const speakReply = async (text, requestId) => {
     const playback = ++playbackRef.current;
     speakingRef.current = true;
+    setSpeaking(true);
     for (const sentence of splitSentences(text)) {
       if (playback !== playbackRef.current) return;
       await speakText(sentence, requestId, playback);
     }
-    if (playback === playbackRef.current) speakingRef.current = false;
+    if (playback === playbackRef.current) { speakingRef.current = false; setSpeaking(false); }
   };
 
   const startListening = () => {
@@ -426,159 +421,173 @@ function App() {
     }
   };
 
-  const orbState = isListening ? 'listening' : loading ? 'thinking' : '';
-  const orbHint = openingMic ? 'Waiting for microphone permission…' : isListening ? 'Recording… Tap Stop to send' : transcribing ? 'Transcribing your recording…' : loading ? 'Thinking...' : 'Tap to record';
+  const busy = loading || isListening || openingMic;
+  const orbState = isListening ? 'listen' : loading ? 'think' : speaking ? 'speak' : '';
+  const orbHint = openingMic ? 'Waiting for microphone permission' : isListening ? 'Recording · tap stop to send' : transcribing ? 'Transcribing your recording' : loading ? 'Thinking' : speaking ? 'Speaking · tap to interrupt' : 'Tap the orb to speak';
+  const callState = isListening ? 'Listening' : loading ? 'Thinking' : speaking ? 'Speaking' : messages.length ? 'Ready' : 'Waiting for you';
+  const activeClinic = CLINICS.find(c => c.id === clinicId)?.label;
 
   return (
     <div className="app-shell">
-      <div className="header">
-        <div className="brand">
-          <div className="brand-icon"><ClinicIcon /></div>
-          <div className="brand-text">
-            <h1>ClinicVoice AI</h1>
-            <div className="status-row">
-              <span className="status-dot"></span>
-              <span className="status-text">Live</span>
+      <header className="nav">
+        <div className="wrap nav-row">
+          <div className="brand">Clinic<b>Voice</b> <span className="brand-ai">AI</span></div>
+          <div className="nav-live" aria-label="Service status"><span className="live-dot"></span>Live demo</div>
+          <div className="nav-right">
+            <div className="seg dark" role="group" aria-label="Language">
+              {LANGS.map(l => (
+                <button key={l.id} className={lang === l.id ? 'on' : ''} onClick={() => switchLang(l.id)} lang={l.lang} disabled={busy} aria-pressed={lang === l.id}>{l.label}</button>
+              ))}
             </div>
           </div>
         </div>
+      </header>
 
-        <div className="clinic-switch" role="group" aria-label="Language">
-          {LANGS.map(function(l) {
-            return (
-              <button
-                key={l.id}
-                className={'clinic-pill' + (lang === l.id ? ' active' : '')}
-                onClick={() => switchLang(l.id)}
-                lang={l.lang}
-                disabled={loading || isListening || openingMic}
-                aria-pressed={lang === l.id}
-              >
-                {l.label}
-              </button>
-            );
-          })}
-        </div>
-        <div className="clinic-switch" role="group" aria-label="Clinic (demo tenant)">
-          {CLINICS.map(function(c) {
-            return (
-              <button
-                key={c.id}
-                className={'clinic-pill' + (clinicId === c.id ? ' active' : '')}
-                onClick={() => switchClinic(c.id)}
-                disabled={loading || isListening || openingMic}
-                aria-pressed={clinicId === c.id}
-              >
-                {c.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <main>
+        <section className="hero">
+          <div className="wrap">
+            <div className="eyebrow">AI voice receptionist · English · हिन्दी · मराठी</div>
+            <h1>The clinic front desk that <em>answers every call.</em></h1>
+            <p className="tri">Ask a question. Book a visit. Request a refill.</p>
+            <p className="sub">ClinicVoice listens, checks the clinic calendar and registry, and only changes an appointment after the patient is verified.</p>
 
-      {error && <div className="error-banner">{error}</div>}
-
-      <div className="main-layout">
-        <div className="chat-column">
-          <div className="voice-stage">
-            <div className={'orb-wrap ' + orbState}>
-              <div className="orb-ring"></div>
-              <button
-                className={'orb-btn ' + (isListening ? 'recording' : loading ? 'thinking' : '')}
-                onClick={isListening ? stopListening : startListening}
-                disabled={loading || openingMic}
-                aria-label={isListening ? 'Stop recording' : 'Start recording'}
-              >
-                {isListening ? <StopIcon /> : <MicIcon />}
-              </button>
+            <div className="seg light clinic-seg" role="group" aria-label="Clinic (demo tenant)">
+              {CLINICS.map(c => (
+                <button key={c.id} className={clinicId === c.id ? 'on' : ''} onClick={() => switchClinic(c.id)} disabled={busy} aria-pressed={clinicId === c.id}>{c.label}</button>
+              ))}
             </div>
-            <span className="voice-hint">{orbHint}</span>
+
+            <div className="stage">
+              <div className="orb-wrap">
+                <span className="ring"></span><span className="ring"></span><span className="ring"></span>
+                <div className={'orb ' + orbState}></div>
+                <button
+                  className={'orb-btn' + (isListening ? ' stop' : '')}
+                  onClick={isListening ? stopListening : startListening}
+                  disabled={loading || openingMic}
+                  aria-label={isListening ? 'Stop recording' : 'Start recording'}
+                >
+                  {isListening ? <StopIcon /> : <MicIcon />}
+                </button>
+              </div>
+              <span className="orb-label" role="status">{orbHint}</span>
+            </div>
+          </div>
+        </section>
+
+        <div className="strip">
+          <div className="wrap">
+            <span><ShieldIcon /> Verified before any calendar access</span>
+            <span><CalendarIcon /> Books only open slots</span>
+            <span><ClockIcon /> Safety filter on every reply</span>
+            <span><CardIcon /> Synthetic demo data</span>
+          </div>
+        </div>
+
+        {error && <div className="wrap"><div className="error-banner" role="alert">{error}</div></div>}
+
+        <section className="sec wrap">
+          <div className="head">
+            <div className="kicker">Live conversation</div>
+            <h2>Talk to <em>{activeClinic}</em></h2>
           </div>
 
-          {messages.length === 0 && !loading && (
-            <div className="empty-state">
-              <div className="empty-state-title">Ask a question to get started</div>
-              <div className="empty-state-sub">Tap the mic, speak, then tap Stop to send. You can also type a question below.</div>
+          <div className="grid">
+            <div className="call">
+              <div className="top">
+                <span className={'dot' + (busy || speaking ? ' on' : '')}></span>
+                <span className="t">{callState}</span>
+                <button className="replay" type="button" onClick={replayLastResponse} disabled={!lastAssistantResponse || busy} aria-label="Replay last answer" title="Replay last answer">↻ Replay</button>
+              </div>
+
+              <div className="conversation" ref={conversationRef}>
+                {messages.length === 0 && !loading && (
+                  <div className="empty-state">
+                    <div className="empty-state-title">Ask a question to get started</div>
+                    <div className="empty-state-sub">Tap the orb, speak, then tap stop to send. Or type below.</div>
+                  </div>
+                )}
+
+                {messages.map((msg, i) => {
+                  const isUser = msg.role === 'user';
+                  const kind = isUser ? 'user' : msg.guardrail ? 'guardrail' : 'assistant';
+                  return (
+                    <div key={i} className={'ln ' + kind}>
+                      <div className="who">
+                        {isUser ? <UserIcon /> : msg.guardrail ? <ShieldIcon /> : <BotIcon />}
+                        {isUser ? 'Patient' : 'ClinicVoice'}
+                        <span className="time">{msg.time}</span>
+                      </div>
+                      {msg.guardrail && <div className="safety-tag"><ShieldIcon /> Blocked by the safety filter</div>}
+                      <div className="text">{msg.text}</div>
+                    </div>
+                  );
+                })}
+
+                {loading && (
+                  <div className="ln assistant">
+                    <div className="who"><BotIcon /> ClinicVoice</div>
+                    <div className="typing-indicator"><span></span><span></span><span></span></div>
+                    {coldStart && (<div className="cold-start-hint" role="status">The assistant is taking longer than usual. Waiting for a response…</div>)}
+                  </div>
+                )}
+                <div ref={conversationEndRef}></div>
+              </div>
+
+              <form className="composer" onSubmit={onComposerSubmit}>
+                <input
+                  className="composer-input"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  placeholder="Or type a question…"
+                  aria-label="Type your question"
+                  disabled={busy}
+                />
+                <button className="btn primary" type="submit" disabled={busy || !inputValue.trim()} aria-label="Send question">
+                  Send <SendIcon />
+                </button>
+              </form>
             </div>
-          )}
 
-          <div className="conversation">
-            {messages.map(function(msg, i) {
-              const isUser = msg.role === 'user';
-              const bubbleClass = isUser ? 'bubble user' : msg.guardrail ? 'bubble guardrail' : 'bubble assistant';
-              const avatarClass = isUser ? 'avatar user' : msg.guardrail ? 'avatar guardrail' : 'avatar assistant';
-
-              return (
-                <div key={i} className={'message-group ' + msg.role}>
-                  <div className={avatarClass}>
-                    {isUser ? <UserIcon /> : msg.guardrail ? <ShieldIcon /> : <BotIcon />}
-                  </div>
-                  <div className="bubble-wrap">
-                    {msg.guardrail && (
-                      <div className="safety-tag"><ShieldIcon /> Blocked by the safety filter</div>
-                    )}
-                    <div className={bubbleClass}>{msg.text}</div>
-                    <div className="timestamp">{msg.time}</div>
-                  </div>
-                </div>
-              );
-            })}
-
-            {loading && (
-              <div className="message-group assistant">
-                <div className="avatar assistant"><BotIcon /></div>
-                <div className="bubble-wrap">
-                  <div className="typing-indicator">
-                    <div className="typing-dot"></div>
-                    <div className="typing-dot"></div>
-                    <div className="typing-dot"></div>
-                  </div>
-                  {coldStart && (<div className="cold-start-hint" role="status">The assistant is taking longer than usual. Waiting for a response…</div>)}
+            <aside className="side">
+              <div className="work">
+                <div className="top"><span className="t">Try asking</span></div>
+                <div className="caps">
+                  {CAPABILITIES.map((cap, i) => {
+                    const Icon = cap.icon;
+                    return (
+                      <button className="cap" key={i} onClick={() => { const chosen = cap.language || 'en'; switchLang(chosen); sendQuery(cap.query, chosen); }} disabled={busy}>
+                        <span className="cap-icon"><Icon /></span>
+                        <span>
+                          <span className="cap-label">{cap.label}</span>
+                          <span className="cap-example">{cap.example}</span>
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
-            )}
 
-            <div ref={conversationEndRef}></div>
+              <div className="work">
+                <div className="top"><span className="t">Call the clinic</span></div>
+                <div className="phone">
+                  {phoneNumber
+                    ? <a className="phone-num" href={'tel:' + phoneNumber}>{phoneNumber}</a>
+                    : <div className="phone-num muted">Telephone pilot · number not connected yet</div>}
+                  <p>Describe your reason for a visit and confirm your details by voice. Synthetic test details only.</p>
+                </div>
+              </div>
+            </aside>
           </div>
+        </section>
+      </main>
 
-          <form className="composer" onSubmit={onComposerSubmit}>
-            <button className="composer-send composer-replay" type="button" onClick={replayLastResponse} disabled={!lastAssistantResponse || loading || isListening || openingMic} aria-label="Replay last answer" title="Replay last answer">↻</button>
-            <input
-              className="composer-input"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              placeholder="Or type a question…"
-              aria-label="Type your question"
-              disabled={loading || openingMic || isListening}
-            />
-            <button className="composer-send" type="submit" disabled={loading || isListening || openingMic || !inputValue.trim()} aria-label="Send question">
-              <SendIcon />
-            </button>
-          </form>
+      <footer>
+        <div className="wrap foot">
+          <div className="brand dark-ink">Clinic<b>Voice</b> <span className="brand-ai">AI</span></div>
+          <p>A software engineering demo, not a medical device. It does not diagnose, recommend treatment, or replace clinic staff.</p>
         </div>
-
-        <div className="capabilities-panel">
-          <div className="capabilities-title">Call the clinic</div>
-          <p>{phoneNumber ? <a href={'tel:' + phoneNumber}>{phoneNumber}</a> : 'Telephone pilot — number not connected yet.'}</p>
-          <p>Describe your reason for a visit and confirm your details by voice. You can also use the browser microphone below. Synthetic test details only.</p>
-          <div className="capabilities-title">What I can help with</div>
-          <div className="capabilities-sub">Try asking about any of these.</div>
-          <div className="capabilities-list">
-            {CAPABILITIES.map(function(cap, i) {
-              const Icon = cap.icon;
-              return (
-                <button className="capability-item" key={i} onClick={() => { const chosen = cap.language || 'en'; switchLang(chosen); sendQuery(cap.query, chosen); }} disabled={loading || openingMic || isListening}>
-                  <div className="capability-icon"><Icon /></div>
-                  <div>
-                    <div className="capability-label">{cap.label}</div>
-                    <div className="capability-example">{cap.example}</div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
+      </footer>
     </div>
   );
 }
